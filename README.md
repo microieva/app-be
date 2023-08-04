@@ -1,4 +1,4 @@
-# test project
+# Boilerplate code to get started with building RESTful API Services (Nodejs, Express, TypeORM Mysql)
 
 
 ```
