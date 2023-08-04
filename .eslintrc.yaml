@@ -1,0 +1,63 @@
+# ESLint configuration
+# Intended to be a strict superset of Node core style, with the exception of
+# rules which would cause breakage in supported Node versions.
+# Uses Airbnb's styles where they don't conflict with Node core or my prefs.
+---
+extends: standard
+env:
+  node: true
+  mocha: true
+  es6: true
+parser: '@typescript-eslint/parser'
+parserOptions:
+  sourceType: module
+  ecmaVersion: 6
+rules:
+  generator-star-spacing:
+    - 2
+    - before: true
+      after: true
+  no-shadow: 0
+  import/no-unresolved: 0
+  import/extensions: 0
+  require-yield: 0
+  no-param-reassign: 0
+  comma-dangle: 0
+  no-underscore-dangle: 0
+  no-control-regex: 0
+  import/no-extraneous-dependencies:
+    - 2
+    - devDependencies: true
+  func-names: 0
+  no-unused-expressions: 0
+  prefer-arrow-callback: 1
+  no-use-before-define:
+    - 2
+    - functions: false
+  space-before-function-paren:
+    - 2
+    - always
+  max-len:
+    - 2
+    - 180
+    - 2
+  semi:
+    - 2
+    - never
+  strict:
+    - 2
+    - global
+  arrow-parens:
+    - 2
+    - always
+# custom rules
+  import/prefer-default-export: 0
+  no-plusplus: 0
+  no-console: 0
+  no-undef: 0
+  new-cap: 0
+  no-unused-vars: 0
+  quote-props: 0
+  dot-notation: 0
+
+# vi: set sts=2 sw=2 et ft=yaml:
