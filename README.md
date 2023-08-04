@@ -1,4 +1,4 @@
-# City of Glendale - Beeline
+# test project
 
 
 ```
@@ -34,7 +34,7 @@ npm run lint
 ### Building a container
 
 ```bash
-docker build -t rahulse97/rest-api-typescript .
+docker build -t test/rest-api-typescript .
 ```
 
 ### Run docker image
