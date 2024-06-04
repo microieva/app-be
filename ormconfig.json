@@ -1,0 +1,14 @@
+{
+    "name": "mssql",
+    "type": "mssql",
+    "host": "localhost",
+    "database": "APP_DB",
+    "username": "SA",
+    "password": "Mikrobiol2162",
+    "extra": {
+        "driver": "msnodesqlv8",
+        "options": {
+            "trustedConnection": true
+        }
+    }
+}

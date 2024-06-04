@@ -1,4 +1,5 @@
-import 'dotenv/config'; // Import and configure dotenv
+import 'dotenv/config'; 
+require("reflect-metadata");
 import express, { Application, NextFunction, Request, Response } from 'express';
 import { configureApp } from './configurations/app-config';
 import { configureSession } from './configurations/session-config';
@@ -89,11 +90,16 @@ class App {
     configureSession(this.express);
     this.express.use(formDataHandler);
     logger.info('App configuration completed.');
-    await dataSource.initialize();
+    await dataSource.initialize()
+    .then(() => {
+        console.log("*** Data Source initialized ***")
+    })
+    .catch((err) => {
+        console.error("Error during Data Source initialization", err)
+    }); 
     console.log('Data Source has been initialized');
     logger.info('App configuration completed.');
   }
-  
 }
 
 export default new App().express;

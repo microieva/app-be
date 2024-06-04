@@ -1,15 +1,23 @@
+import 'dotenv/config'; 
 import { DataSource } from 'typeorm';
-import { User } from '../Entities/user';
-import { UserLogin } from '../Entities/userlogin';
+import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
 
-export const dataSource = new DataSource({
-  type: 'mysql',
-  host: process.env.MYSQL_HOST,
-  port: Number(process.env.MYSQL_PORT),
-  username:  process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASS,
-  database: process.env.MYSQL_DB,
+const options: SqlServerConnectionOptions = {
+  type: 'mssql',
+  //url:'localhost://127.0.0.1:1433;databaseName=APP_DB;',
+  //url: 'jdbc:mssql://localhost:1433/APP_DB ',
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT),
+  username:  process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
   logging: false,
   synchronize: true,
-  entities: [User, UserLogin],
-});
+  entities: [],
+  migrations: ["./src/migration/*.ts"],
+  extra: {
+    trustServerCertificate: true
+  }
+};
+export const dataSource = new DataSource(options);
+
