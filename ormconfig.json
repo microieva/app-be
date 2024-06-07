@@ -1,14 +1,35 @@
-{
-    "name": "mssql",
-    "type": "mssql",
-    "host": "localhost",
-    "database": "APP_DB",
-    "username": "SA",
-    "password": "Mikrobiol2162",
-    "extra": {
-        "driver": "msnodesqlv8",
-        "options": {
-            "trustedConnection": true
-        }
+[
+    {
+        "name": "mssql",
+        "type": "mssql",
+        "host": "localhost",
+        "port": 1433,
+        "synchronize": true,
+        "database": "SQL_DB",
+        "username": "SA",
+        "password": "Mikrobiol2162",
+        "extra": {
+            "driver": "msnodesqlv8",
+            "options": {
+                "trustedConnection": true
+            }
+        },
+        "entities": [
+            "src/graphql/**/*.ts"
+        ]
+    },
+    {
+        "name": "postgres",
+        "type": "postgres", 
+        "host": "postgres", 
+        "port": 5432, 
+        "username": "postgres",
+        "password": "postgrespassword",
+        "database": "postgres",
+        "entities": [
+        "dist/**/graphql/*"
+        ],
+        "synchronize": true 
     }
-}
+]
+  

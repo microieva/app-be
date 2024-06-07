@@ -1,9 +1,9 @@
 import cluster from 'cluster';
 import os from 'os';
-import app from './app'; // Update the path to your App file
+import app from './app'; 
 
 // const numCPUs = 1;
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 4000;
 
 if (cluster.isMaster) {
   console.log(`Master process (PID ${process.pid}) is running`);

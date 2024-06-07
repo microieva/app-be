@@ -21,7 +21,7 @@
       "./node_modules/@types",
       "@types/jest"
     ],
-    "types": ["jest"],
+    "types": ["jest", "node"],
     "stripInternal": true,
     "noImplicitAny": false,
     "preserveConstEnums": true,
@@ -29,6 +29,7 @@
     "emitDecoratorMetadata": true,                    /* Emit design-type metadata for decorated declarations in source files. */
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "apollo-server/*"
   ]
 }

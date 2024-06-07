@@ -51,7 +51,7 @@ export const swaggerDocument = {
                 "port": {
                     "enum": [
                         "8443",
-                        "3000",
+                        "4000",
                         "443"
                     ],
                     "default": "8443"

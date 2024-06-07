@@ -40,7 +40,7 @@ docker build -t test/rest-api-typescript .
 ### Run docker image
 
 ```bash
-docker run -p 8080:3000 -d rahulse97/rest-api-typescript
+docker run -p 8080:4000 -d rahulse97/rest-api-typescript
 ```
 
 ### Print app output

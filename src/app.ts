@@ -6,8 +6,11 @@ import { configureSession } from './configurations/session-config';
 import * as Routes from './routers';
 import { formDataHandler } from './middlewares/formdata-handler';
 import { errorHandler } from './middlewares/error-handler';
-import { dataSource } from './configurations/db.config';
+//import { dataSource } from './configurations/db.config';
 import logger from './configurations/logger';
+// import { ApolloServer } from 'apollo-server-express';
+// import { typeDefs } from './schema';
+// import { resolvers } from './graphql/query.resolver';
 
 class App {
   public express: Application = express();
@@ -89,16 +92,8 @@ class App {
     configureApp(this.express);
     configureSession(this.express);
     this.express.use(formDataHandler);
-    logger.info('App configuration completed.');
-    await dataSource.initialize()
-    .then(() => {
-        console.log("*** Data Source initialized ***")
-    })
-    .catch((err) => {
-        console.error("Error during Data Source initialization", err)
-    }); 
     console.log('Data Source has been initialized');
-    logger.info('App configuration completed.');
+    logger.info('App configuration completed');
   }
 }
 

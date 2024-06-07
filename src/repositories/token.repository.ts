@@ -1,6 +1,6 @@
 import { User } from '../Entities/user';
 import { UserLogin } from '../Entities/userlogin';
-import { dataSource } from '../configurations/db.config';
+import dataSource from '../configurations/db.config';
 import bcrypt from 'bcrypt';
 import { CONSTANT } from '../utils/constant';
 import { APIError } from '../utils/errorhandler';
