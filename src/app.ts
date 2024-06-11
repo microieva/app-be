@@ -92,7 +92,6 @@ class App {
     configureApp(this.express);
     configureSession(this.express);
     this.express.use(formDataHandler);
-    console.log('Data Source has been initialized');
     logger.info('App configuration completed');
   }
 }

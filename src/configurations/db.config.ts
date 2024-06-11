@@ -21,9 +21,6 @@ const options: SqlServerConnectionOptions = {
   synchronize: true,
   entities: [TestApp],
   migrations: ["./src/migration/*.ts"],
-  options: {
-  
-  },
   extra: {
     trustServerCertificate: true
   }
@@ -41,7 +38,7 @@ dataSource.initialize()
         server.applyMiddleware({
           app,
           cors: {
-            origin: ['http://localhost:4000/graphql', 'htpp://localhost:8080', 'localhost://127.0.0.1:1433;databaseName=SQL_DB;'], 
+            origin: ['http://localhost:4000/graphql'], 
             credentials: true,
           }
         });
@@ -60,4 +57,13 @@ export default dataSource;
 
 
 
+/*
+    public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(
+            `INSERT INTO "test_app" (testAppName, isAppConnected) VALUES ('testing SQL_DB connection', 1);`
+        );
+    }
 
+    public async down(queryRunner: QueryRunner): Promise<void> {
+        throw new Error("Not implemented")
+    }*/

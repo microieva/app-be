@@ -11,7 +11,7 @@ services:
   graphql-engine:
     image: hasura/graphql-engine:v2.39.0
     ports:
-      - "4000:4000"
+      - "4000:8080"
     depends_on:
       - "mssql"
     restart: always
@@ -19,7 +19,7 @@ services:
       ## postgres database to store Hasura metadata
       ##HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://postgres:postgrespassword@postgres:5432/postgres
       ## this env var can be used to add the above ms sql server database to Hasura as a data source. this can be removed/updated based on your needs
-      MSSQL_DATABASE_URL: Driver=msodbcsql18;Server=tcp:mssql,1433;Database=SQL_DB;Uid=sa;Pwd=Mikrobiol2162;Encrypt=optional
+      MSSQL_DATABASE_URL: Driver=msodbcsql18;Server=tcp:mssql,1433;Database=SQL_DB;Uid=SA;Pwd=Mikrobiol2162;Encrypt=optional
       ## enable the console served by server
       HASURA_GRAPHQL_ENABLE_CONSOLE: "true" # set to "false" to disable console
       ## enable debugging mode. It is recommended to disable this in production
@@ -29,5 +29,6 @@ services:
       # HASURA_GRAPHQL_CONSOLE_ASSETS_DIR: /srv/console-assets
       ## uncomment next line to set an admin secret
       # HASURA_GRAPHQL_ADMIN_SECRET: myadminsecretkey
+      #hasura ports ??
 volumes:
   mssql-data:
