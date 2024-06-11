@@ -1,5 +1,5 @@
-import { User } from '../Entities/user';
-import { UserLogin } from '../Entities/userlogin';
+import { User } from '../entities/user';
+import { UserLogin } from '../entities/userlogin';
 import dataSource from '../configurations/db.config';
 import bcrypt from 'bcrypt';
 import { CONSTANT } from '../utils/constant';

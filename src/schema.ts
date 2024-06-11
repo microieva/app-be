@@ -22,7 +22,7 @@ type TestApp {
 
 input TestAppInput {
   testAppName: String!
-  testAppConnected: Boolean
+  isAppConnected: Boolean
 }
 `
 

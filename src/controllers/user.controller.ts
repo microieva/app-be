@@ -159,9 +159,10 @@ export class UserController {
       const user: UserInfo = await UserRepository.createUser(postData);
 
       const activationLink: string = 'http://localhost:4200';
+      //'vinodk@test.com',
 
       await Mail.sendMail(
-        'vinodk@test.com',
+        'ieva.vyliaudaite@me.com',
         'Activate Your Account',
         `Hello ${user.firstname} \\n Click on the link below to activate your account:\n${activationLink}`,
       );
