@@ -7,27 +7,73 @@ export const testAppMutationResolver = {
     Mutation: {
         saveTestApp: async (parent: TestApp, args: any, context: any) => {
             const input: TestAppInput = args.testAppInput;
-            try {
-                const repo = dataSource
-                    .createQueryRunner().connection
-                    .getRepository(TestApp);
+
+            const repo = dataSource
+                .createQueryRunner().connection
+                .getRepository(TestApp);
+            
+            if (input.testAppName !== "") {
+                try {
+                    if (input.id) {
+                        const dbTestApp = await repo.findOneBy({id: input.id });
+                        const dbId = dbTestApp.id;
+                        dbTestApp.testAppName = input.testAppName;
+                        dbTestApp.isAppConnected = input.isAppConnected;
+                        await repo.update(dbTestApp, {id: dbId});
+                    } else {
+                        const newTestApp = new TestApp();
+                        newTestApp.testAppName = input.testAppName;
+                        newTestApp.isAppConnected = input.isAppConnected;
+                        await repo.save(newTestApp);
+                    }
+                    return {
+                        success: true,
+                        message: "Saved!"
+                    } as MutationResponse;    
                 
-                const newTestApp = new TestApp();
-                if (input) {
-                    newTestApp.testAppName = input.testAppName;
-                    newTestApp.isAppConnected = input.isAppConnected;
+                } catch (error) {
+                    return {
+                        success: false,
+                        message: `Unexpected error when saving testApp: ${error}`
+                    } as MutationResponse;
                 }
-                await repo.save(newTestApp);
-                
-                return {
-                    success: true,
-                    message: null
-                } as MutationResponse;
-            } catch (error) {
+            } else {
                 return {
                     success: false,
-                    message: `Unexpected error when saving testApp: ${error}`
-                } as MutationResponse;
+                    message: "testName is required"
+                }
+            }
+
+        },
+        deleteTestApp: async (parent: TestApp, args: any, context: any)  => {
+            const id: number = args.testAppId;
+
+            const repo = dataSource
+                .createQueryRunner().connection
+                .getRepository(TestApp)
+
+            const dbTestApp = await repo.findOneOrFail({ where: { id } });
+            const dbId = dbTestApp.id;
+
+            if (dbTestApp) {
+                try {
+                    await repo.delete(dbId);
+                    return {
+                        success: true,
+                        message: `testApp deleted successfuly`
+                    }
+                }catch (error) {
+                    return {
+                        success: false,
+                        message: `Unexpected error on deleting testApp: ${error}`
+                    }
+                }
+
+            } else {
+                return {
+                    success: false,
+                    message: "testApp not found"
+                }
             }
         }
     }
