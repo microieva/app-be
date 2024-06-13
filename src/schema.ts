@@ -3,6 +3,7 @@ import { gql } from "apollo-server";
 export const schema = `
   type Query {
     testApps: [TestApp!]!
+    testApp(testAppId: Int!): TestApp!
   }
 
   type Mutation {
@@ -22,6 +23,7 @@ export const schema = `
   }
 
   input TestAppInput {
+    id: Int
     testAppName: String!
     isAppConnected: Boolean
   }

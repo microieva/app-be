@@ -12,25 +12,32 @@ export const testAppMutationResolver = {
                 .createQueryRunner().connection
                 .getRepository(TestApp);
             
-            if (input.testAppName !== "") {
+            if (input.testAppName !== "" && input.testAppName !== null) {
                 try {
                     if (input.id) {
                         const dbTestApp = await repo.findOneBy({id: input.id });
-                        const dbId = dbTestApp.id;
+ 
+                        dbTestApp.id = input.id,
                         dbTestApp.testAppName = input.testAppName;
                         dbTestApp.isAppConnected = input.isAppConnected;
-                        await repo.update(dbTestApp, {id: dbId});
+
+                        await repo.save(dbTestApp);
+                        return {
+                            success: true,
+                            message: "Updated!"
+                        } as MutationResponse;    
                     } else {
                         const newTestApp = new TestApp();
+                        
                         newTestApp.testAppName = input.testAppName;
                         newTestApp.isAppConnected = input.isAppConnected;
+
                         await repo.save(newTestApp);
+                        return {
+                            success: true,
+                            message: "Saved!"
+                        } as MutationResponse;    
                     }
-                    return {
-                        success: true,
-                        message: "Saved!"
-                    } as MutationResponse;    
-                
                 } catch (error) {
                     return {
                         success: false,
@@ -40,7 +47,7 @@ export const testAppMutationResolver = {
             } else {
                 return {
                     success: false,
-                    message: "testName is required"
+                    message: "testName is required and can not be empty"
                 }
             }
 
