@@ -3,11 +3,14 @@ import { DataSource } from 'typeorm';
 import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
 import { TestApp } from '../graphql/test-app/test-app.model';
 import express from 'express';
+//import { ApolloServer } from 'apollo-server-express';
 import { ApolloServer } from 'apollo-server-express';
+//import { startStandaloneServer } from '@apollo/server/standalone';
 import { typeDefs } from '../schema';
 import { resolvers } from '../graphql/resolvers';
+//import { AppContext } from '../graphql/types';
 
-
+const app = express();
 const options: SqlServerConnectionOptions = {
   type: 'mssql',
   //url:'localhost://127.0.0.1:1433;databaseName=SQL_DB;',
@@ -28,12 +31,19 @@ const options: SqlServerConnectionOptions = {
 const dataSource = new DataSource(options);
 
 dataSource.initialize()
-  .then(() => {
-      const app = express();
+  .then(() => {   
       const server = new ApolloServer({
         typeDefs,
         resolvers
-      })
+        // context: ({req, res})=> {
+        //   const myStr = "hello"
+        //   console.log('this is context function. is it being called?', req)
+        //   return {
+        //     myStr
+        //   }
+        // }
+      });
+      
       server.start().then(()=> {
         server.applyMiddleware({
           app,
@@ -54,16 +64,3 @@ dataSource.initialize()
   }); 
 
 export default dataSource;
-
-
-
-/*
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(
-            `INSERT INTO "test_app" (testAppName, isAppConnected) VALUES ('testing SQL_DB connection', 1);`
-        );
-    }
-
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        throw new Error("Not implemented")
-    }*/

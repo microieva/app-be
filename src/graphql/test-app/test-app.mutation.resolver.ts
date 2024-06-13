@@ -46,6 +46,8 @@ export const testAppMutationResolver = {
 
         },
         deleteTestApp: async (parent: TestApp, args: any, context: any)  => {
+            //const cntxt = context.myStr;
+            console.log('MUTATION---------------------------------------: ', context.myStr)
             const id: number = args.testAppId;
 
             const repo = dataSource
