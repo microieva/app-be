@@ -1,4 +1,4 @@
-import dataSource from "../../configurations/db.config";
+import {dataSource} from "../../configurations/db.config";
 import { MutationResponse } from "../types";
 import { TestAppInput } from "./test-app.input";
 import { TestApp } from "./test-app.model";

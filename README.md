@@ -1,12 +1,4 @@
-# Boilerplate code to get started with building RESTful API Services (Nodejs, Express, TypeORM Mysql)
 
-
-```
-cd existing_repo
-git remote add origin 
-git branch -M main
-git push -uf origin main
-```
 ### Development
 
 ```bash

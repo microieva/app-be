@@ -1,9 +1,11 @@
-import dataSource from "../configurations/db.config";
+import {dataSource} from "../configurations/db.config";
 import { TestApp } from "./test-app/test-app.model";
 
 export const queries = {
     Query: {
         testApps: async (parent: TestApp, args: any, context: any) => {
+            console.log('context - mystr: ', context.myStr)
+            console.log('context - res: ', context.res)
             try {
                 const repo = dataSource
                     .createQueryRunner().connection

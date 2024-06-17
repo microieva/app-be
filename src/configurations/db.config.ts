@@ -2,15 +2,15 @@ import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
 import { TestApp } from '../graphql/test-app/test-app.model';
-import express from 'express';
+//import express from 'express';
 //import { ApolloServer } from 'apollo-server-express';
-import { ApolloServer } from 'apollo-server-express';
+//import { ApolloServer } from 'apollo-server-express';
 //import { startStandaloneServer } from '@apollo/server/standalone';
-import { typeDefs } from '../schema';
-import { resolvers } from '../graphql/resolvers';
+// import { typeDefs } from '../schema';
+// import { resolvers } from '../graphql/resolvers';
 //import { AppContext } from '../graphql/types';
 
-const app = express();
+//const app = express();
 const options: SqlServerConnectionOptions = {
   type: 'mssql',
   //url:'localhost://127.0.0.1:1433;databaseName=SQL_DB;',
@@ -28,20 +28,20 @@ const options: SqlServerConnectionOptions = {
     trustServerCertificate: true
   }
 };
-const dataSource = new DataSource(options);
+export const dataSource = new DataSource(options);
 
-dataSource.initialize()
+/*dataSource.initialize()
   .then(() => {   
       const server = new ApolloServer({
         typeDefs,
-        resolvers
-        // context: ({req, res})=> {
-        //   const myStr = "hello"
-        //   console.log('this is context function. is it being called?', req)
-        //   return {
-        //     myStr
-        //   }
-        // }
+        resolvers,
+        context: ({req, res})=> {
+          const myStr = "hello"
+          console.log('this is context function. is it being called?', req)
+          return {
+            myStr
+          }
+        }
       });
       
       server.start().then(()=> {
@@ -63,4 +63,4 @@ dataSource.initialize()
       console.error("Error during Data Source initialization", err)
   }); 
 
-export default dataSource;
+export default dataSource;*/
