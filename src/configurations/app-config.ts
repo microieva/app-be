@@ -16,8 +16,6 @@ import http from 'http'
 import { dataSource } from './db.config';
 import {expressMiddleware} from "@apollo/server/express4";
 //import { AppContext } from '../graphql/types';
-//import { WebSocketServer } from 'ws';
-//import { useServer } from 'graphql-ws/lib/use/ws';
 //import { startStandaloneServer } from '@apollo/server/standalone';
 
 export const configureApp = async (app: Application) => {
@@ -37,17 +35,10 @@ export const configureApp = async (app: Application) => {
     ),
   );
 
-  // const wsServer = new WebSocketServer({
-  //   server: httpServer,
-  //   path: '/graphql',
-  // });
-
   const execSchema = makeExecutableSchema({
     typeDefs,
     resolvers
   });
-
-  //const serverCleanup = useServer({ execSchema }, wsServer);
 
   const server = new ApolloServer({
     schema: execSchema,
@@ -55,15 +46,17 @@ export const configureApp = async (app: Application) => {
     plugins: [ ApolloServerPluginDrainHttpServer({httpServer}) ]
   });
 
-  await dataSource.initialize().then(async () => {
-    console.log("Datasource initialized");
-  }).catch(error => console.log(error));
+  await dataSource.initialize()
+    .then(async () => console.log('Datasource Initialized'))
+    .catch(error => console.log('Datasource Initialization Error: ', error));
 
-  await server.start();
+  await server.start()
+    .then(()=> console.log('Apollo Server Started'))
+    .catch(error => console.log('Apollo Server Error: ', error));
 
   const corsOptions: cors.CorsOptions = {
     origin: ['http://localhost:4000/graphql'],
-    credentials: false,
+    credentials: true,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     preflightContinue: false,
     optionsSuccessStatus: 204
@@ -79,12 +72,13 @@ export const configureApp = async (app: Application) => {
     express.json(),
     expressMiddleware(server, {
       context: async () => {
-      console.log(' IS THIS RUNNING ???')
-      const myStr = "hello"
-      return {
-        myStr
+        console.log('IS THIS RUNNING ???')
+        const myStr = "hello"
+        return {
+          myStr,
+          dataSource
+        }
       }
-    }
     })
   );
 };

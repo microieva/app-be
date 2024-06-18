@@ -1,4 +1,4 @@
-//import { AppDataSource } from "../configurations/db.config"
+import { dataSource } from "../configurations/db.config"
 
 export interface MutationResponse {
     success: boolean
@@ -7,6 +7,6 @@ export interface MutationResponse {
 
 export interface AppContext {
     authScope?: string
-    //dataSource: typeof AppDataSource
+    dataSource?: typeof dataSource
     myStr: string
   }
