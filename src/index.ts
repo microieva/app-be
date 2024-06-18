@@ -5,7 +5,7 @@ import app from './app';
 // const numCPUs = 1;
 const port = process.env.PORT || 4000;
 
-if (cluster.isMaster) {
+if (cluster.isPrimary) {
   console.log(`Master process (PID ${process.pid}) is running`);
 
   const numWorkers = os.cpus().length;

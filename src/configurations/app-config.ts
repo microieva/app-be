@@ -9,19 +9,22 @@ import { typeDefs } from '../schema';
 import { makeExecutableSchema } from '@graphql-tools/schema'
 import cors from 'cors';
 import { resolvers } from '../graphql/resolvers';
-import { AppContext } from '../graphql/types';
+//import { AppContext } from '../graphql/types';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
+//import { startStandaloneServer } from '@apollo/server/standalone';
 import http from 'http'
 import { dataSource } from './db.config';
-// import pkg from "body-parser"
-// const {json} = pkg;
-import {expressMiddleware} from "@apollo/server/express4"
+import {expressMiddleware} from "@apollo/server/express4";
+//import { AppContext } from '../graphql/types';
+//import { WebSocketServer } from 'ws';
+//import { useServer } from 'graphql-ws/lib/use/ws';
+//import { startStandaloneServer } from '@apollo/server/standalone';
 
 export const configureApp = async (app: Application) => {
   app.use(helmet());
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
-  //app.use(cors());
+  app.use(cors());
   const httpServer = http.createServer(app);
 
   // Serve Swagger UI
@@ -34,15 +37,22 @@ export const configureApp = async (app: Application) => {
     ),
   );
 
+  // const wsServer = new WebSocketServer({
+  //   server: httpServer,
+  //   path: '/graphql',
+  // });
+
   const execSchema = makeExecutableSchema({
     typeDefs,
     resolvers
   });
 
-  const server = new ApolloServer<AppContext>({
+  //const serverCleanup = useServer({ execSchema }, wsServer);
+
+  const server = new ApolloServer({
     schema: execSchema,
     introspection: true,
-    plugins: [ApolloServerPluginDrainHttpServer({httpServer})]
+    plugins: [ ApolloServerPluginDrainHttpServer({httpServer}) ]
   });
 
   await dataSource.initialize().then(async () => {
@@ -53,7 +63,7 @@ export const configureApp = async (app: Application) => {
 
   const corsOptions: cors.CorsOptions = {
     origin: ['http://localhost:4000/graphql'],
-    credentials: true,
+    credentials: false,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     preflightContinue: false,
     optionsSuccessStatus: 204
@@ -66,7 +76,7 @@ export const configureApp = async (app: Application) => {
     //   graphiql: true, // false in production
     // }),
     cors<cors.CorsRequest>(corsOptions),
-    //json(),
+    express.json(),
     expressMiddleware(server, {
       context: async () => {
       console.log(' IS THIS RUNNING ???')
@@ -77,6 +87,4 @@ export const configureApp = async (app: Application) => {
     }
     })
   );
-
-  await new Promise<void>((resolve) => httpServer.listen(resolve)).then(()=> console.log('http.server listen'));
 };

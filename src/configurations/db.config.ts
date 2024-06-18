@@ -3,8 +3,6 @@ import { DataSource } from 'typeorm';
 import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
 import { TestApp } from '../graphql/test-app/test-app.model';
 //import express from 'express';
-//import { ApolloServer } from 'apollo-server-express';
-//import { ApolloServer } from 'apollo-server-express';
 //import { startStandaloneServer } from '@apollo/server/standalone';
 // import { typeDefs } from '../schema';
 // import { resolvers } from '../graphql/resolvers';
