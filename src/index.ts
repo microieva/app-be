@@ -1,12 +1,9 @@
-// import cluster from 'cluster';
-// import os from 'os';
-//import app from './app'; 
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
-import { AppContext } from './graphql/types';
 import { typeDefs } from './schema';
 import { resolvers } from './graphql/resolvers';
 import { dataSource } from './configurations/db.config';
+import { AppContext } from './graphql/types';
 
 // const numCPUs = 1;
 const port = parseInt(process.env.PORT) || 4000;
@@ -22,12 +19,13 @@ const startServer = async () => {
       const authScope = "admin"
       return {
         authScope,
-        dataSource
+        //dataSource
       }
     },
     listen: { port },
   });
   console.log(`🚀  Server ready at ${url}`);
+
 }
 startServer();
 
@@ -49,9 +47,9 @@ startServer();
 //   });
 // } else {
 //   // This code will run for each worker
-//   const server = app.listen(port, () => {
+//   //const server = app.listen(port, () => {
 //     console.log(`Worker (PID ${process.pid}) is running on port ${port}`);
-//   });
+//   //});
 
 //   // Process error handler for the worker
 //   process.on('unhandledRejection', (reason, promise) => {

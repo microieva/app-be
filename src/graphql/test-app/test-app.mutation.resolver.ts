@@ -1,11 +1,11 @@
 import {dataSource} from "../../configurations/db.config";
-import { MutationResponse } from "../types";
+import { AppContext, MutationResponse } from "../types";
 import { TestAppInput } from "./test-app.input";
 import { TestApp } from "./test-app.model";
 
 export const testAppMutationResolver = {
     Mutation: {
-        saveTestApp: async (parent: TestApp, args: any, context: any) => {
+        saveTestApp: async (parent: TestApp, args: any, context: AppContext) => {
             const input: TestAppInput = args.testAppInput;
 
             const repo = dataSource
@@ -52,9 +52,7 @@ export const testAppMutationResolver = {
             }
 
         },
-        deleteTestApp: async (parent: TestApp, args: any, context: any)  => {
-            //const cntxt = context.myStr;
-            console.log('MUTATION---------------------------------------: ', context.myStr)
+        deleteTestApp: async (parent: TestApp, args: any, context: AppContext)  => {
             const id: number = args.testAppId;
 
             const repo = dataSource

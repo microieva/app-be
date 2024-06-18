@@ -1,11 +1,10 @@
 import {dataSource} from "../configurations/db.config";
 import { TestApp } from "./test-app/test-app.model";
+import { AppContext } from "./types";
 
 export const queries = {
     Query: {
-        testApps: async (parent: TestApp, args: any, context: any) => {
-            console.log('context - mystr: ', context.myStr)
-            console.log('context - res: ', context.res)
+        testApps: async (parent: TestApp, args: any, context: AppContext) => {
             try {
                 const repo = dataSource
                     .createQueryRunner().connection
@@ -17,7 +16,7 @@ export const queries = {
                 throw new Error("Unable to fetch testApps. Please try again later.");
             }
         },
-        testApp: async (parent: TestApp, args: any, context: any) => {
+        testApp: async (parent: TestApp, args: any, context: AppContext) => {
             const id: number = args.testAppId;
             try {
                 const repo = dataSource
