@@ -8,4 +8,6 @@ export interface MutationResponse {
 export interface AppContext {
     authScope?: string
     dataSource?: typeof dataSource
-  }
+}
+
+//export const Date = DateTime.local()

@@ -1,9 +1,18 @@
 import {dataSource} from "../configurations/db.config";
 import { TestApp } from "./test-app/test-app.model";
 import { AppContext } from "./types";
+import { User } from "./user/user.model";
 
 export const queries = {
     Query: {
+        login: async (parent: User, args: any, context: AppContext) => {
+            //const input = args.directLoginInput;
+            return {
+                success: true,
+                message: 'Logged In',
+                token: "xxx"
+            }
+        },
         testApps: async (parent: TestApp, args: any, context: AppContext) => {
             try {
                 const repo = dataSource

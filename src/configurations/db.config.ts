@@ -19,8 +19,8 @@ const options: SqlServerConnectionOptions = {
     TestApp,
     UserRole
   ],
-  //migrations: ["./src/migration/*.ts"],
-  migrations:[],
+  migrations: ["./src/migration/*.ts"],
+  //migrations:[],
   extra: {
     trustServerCertificate: true
   }
