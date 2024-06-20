@@ -14,7 +14,7 @@ export class User {
   lastName: string;
 
   @Column()
-  @OneToOne(() => UserRole, role => role.id)
+  @OneToOne(() => UserRole, role => role.userRole)
   userRoleId: number;
 
   @Column({nullable: false })
@@ -30,18 +30,18 @@ export class User {
   dob: Date;
 
   @Column({ length: 100, nullable: true })
-  streetAddress?: string;
+  streetAddress: string;
 
   @Column({ length: 25, nullable: true })
-  city?: string;
+  city: string;
 
   @Column({ length: 6, nullable: true })
-  postCode?: number;
+  postCode: number;
 
   @CreateDateColumn({type:'date'})
   createdAt: Date
 
   @Column({ type: 'date', nullable: true , default: (createdAt: Date)=> createdAt})
-  lastLoginAt: Date;
+  lastLogInAt: Date;
 }
 

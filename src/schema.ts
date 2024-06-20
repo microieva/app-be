@@ -9,11 +9,18 @@ export const schema = `
   type Mutation {
     saveTestApp(testAppInput: TestAppInput): MutationResponse!
     deleteTestApp(testAppId: Int!): MutationResponse!
+    saveDefaultUser(userInput: UserInput!): MutationResponse!
+  }
+
+  type LoginResponse {
+    success: Boolean!
+    message: String!
+    token: String
   }
 
   type MutationResponse {
-    success: Boolean
-    message: String
+    success: Boolean!
+    message: String!
   }
 
   type TestApp {
@@ -26,6 +33,19 @@ export const schema = `
     id: Int
     testAppName: String!
     isAppConnected: Boolean
+  }
+
+  input UserInput {
+    firstName: String!
+    lastName: String!
+    userRoleId: Int!
+    phone: Int!
+    email: String!
+    password: String
+    dob: Date
+    streetAddress: String
+    city: String
+    postCode: Int
   }
 `
 

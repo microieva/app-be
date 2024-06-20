@@ -12,6 +12,4 @@ export interface UserInput {
     streetAddress?: string
     city?: string
     postCode?: number
-    createdAt: Date
-    lastLoginAt: Date
 }
