@@ -1,7 +1,7 @@
 /* src/routers/profile.ts */
 
 import { Router } from 'express';
-import { UserController } from '../controllers';
+import { UserController } from '../_controllers';
 const router: Router = Router();
 
 router.post(

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import AuthController from '../controllers/auth.controller';
+import AuthController from '../_controllers/auth.controller';
 import { roles } from '../configurations/roles.config';
 // const { roles } = require('../roles')
 
