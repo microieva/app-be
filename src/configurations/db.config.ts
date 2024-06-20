@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
 import { TestApp } from '../graphql/test-app/test-app.model';
+import { UserRole } from '../graphql/user/user-role.model';
 
 const options: SqlServerConnectionOptions = {
   type: 'mssql',
@@ -14,8 +15,12 @@ const options: SqlServerConnectionOptions = {
   database: process.env.DB_NAME,
   logging: false,
   synchronize: true,
-  entities: [TestApp],
-  migrations: ["./src/migration/*.ts"],
+  entities: [
+    TestApp,
+    UserRole
+  ],
+  //migrations: ["./src/migration/*.ts"],
+  migrations:[],
   extra: {
     trustServerCertificate: true
   }
