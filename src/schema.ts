@@ -1,7 +1,10 @@
 import { gql } from "graphql-tag";
 
 export const schema = `
+  scalar Date
+
   type Query {
+    users: [User!]!
     testApps: [TestApp!]!
     testApp(testAppId: Int!): TestApp!
   }
@@ -46,6 +49,21 @@ export const schema = `
     streetAddress: String
     city: String
     postCode: Int
+  }
+
+  type User {
+    firstName: String!
+    lastName: String!
+    userRole: String!
+    phone: Int!
+    email: String!
+    password: String
+    dob: Date!
+    streetAddress: String
+    city: String
+    postCode: Int
+    createdAt: Date!
+    lastLogInAt: Date
   }
 `
 

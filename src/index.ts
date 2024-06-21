@@ -19,7 +19,7 @@ const startServer = async () => {
       const authScope = "admin"
       return {
         authScope,
-        //dataSource
+        dataSource
       }
     },
     listen: { port },
