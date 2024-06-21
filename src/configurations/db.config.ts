@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
 import { TestApp } from '../graphql/test-app/test-app.model';
 import { UserRole } from '../graphql/user/user-role.model';
+import { User } from '../graphql/user/user.model';
 
 const options: SqlServerConnectionOptions = {
   type: 'mssql',
@@ -17,7 +18,8 @@ const options: SqlServerConnectionOptions = {
   synchronize: true,
   entities: [
     TestApp,
-    UserRole
+    UserRole,
+    User
   ],
   //migrations: ["./src/migration/*.ts"],
   migrations:[],

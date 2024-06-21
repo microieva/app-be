@@ -9,3 +9,5 @@ export interface AppContext {
     authScope?: string
     dataSource?: typeof dataSource
   }
+
+export type DateTime = import('luxon').DateTime

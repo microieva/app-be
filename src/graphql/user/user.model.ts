@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToOne } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToOne, JoinColumn } from "typeorm";
 import { UserRole } from "./user-role.model";
 
 
@@ -16,6 +16,10 @@ export class User {
   @Column()
   @OneToOne(() => UserRole, role => role.userRole)
   userRoleId: number;
+
+  @OneToOne(() => UserRole, userRole => userRole.userRole)
+  @JoinColumn({ name: "userRoleId" }) 
+  userRole: string;
 
   @Column({nullable: false })
   phone: number;
@@ -35,13 +39,14 @@ export class User {
   @Column({ length: 25, nullable: true })
   city: string;
 
-  @Column({ length: 6, nullable: true })
+  @Column({ nullable: true })
   postCode: number;
 
   @CreateDateColumn({type:'date'})
-  createdAt: Date
+  createdAt: Date;
 
-  @Column({ type: 'date', nullable: true , default: (createdAt: Date)=> createdAt})
+  @Column({ type: 'date', nullable: true })
   lastLogInAt: Date;
 }
+
 

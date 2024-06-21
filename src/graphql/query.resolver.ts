@@ -1,10 +1,18 @@
-import {dataSource} from "../configurations/db.config";
+import { dataSource } from "../configurations/db.config";
+import { User } from "./user/user.model";
 import { TestApp } from "./test-app/test-app.model";
 import { AppContext } from "./types";
 
 export const queries = {
     Query: {
-        testApps: async (parent: TestApp, args: any, context: AppContext) => {
+        users: async (parent: null, args: any, context: AppContext) => {
+            try {
+                return await context.dataSource.getRepository(User).find()
+            } catch (error) {
+                throw new Error(`Error fetching users: ${error}`);
+            }
+        },
+        testApps: async (parent: null, args: any, context: AppContext) => {
             try {
                 const repo = dataSource
                     .createQueryRunner().connection
@@ -12,11 +20,10 @@ export const queries = {
                 
                 return await repo.find();
             } catch (error) {
-                console.error("Error fetching testApps:", error);
-                throw new Error("Unable to fetch testApps. Please try again later.");
+                throw new Error(`Error fetching testApps: ${error}`);
             }
         },
-        testApp: async (parent: TestApp, args: any, context: AppContext) => {
+        testApp: async (parent: null, args: any, context: AppContext) => {
             const id: number = args.testAppId;
             try {
                 const repo = dataSource
@@ -26,8 +33,7 @@ export const queries = {
                 return await repo.findOneByOrFail({id});
 
             } catch (error) {
-                console.error("Error fetching testApp", error);
-                throw new Error("Unable to fetch testApp. Please try again later.");
+                throw new Error(`Test App not found: ${error}`);
             }
 
         }

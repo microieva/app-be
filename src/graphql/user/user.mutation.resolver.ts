@@ -1,11 +1,12 @@
 import { dataSource } from "../../configurations/db.config";
-import { AppContext, MutationResponse } from "../types";
 import { User } from "./user.model";
+import { AppContext, MutationResponse } from "../types";
+import { UserInput } from "./user.input";
 
 export const userMutationResolver = {
     Mutation: {
         saveDefaultUser: async(parent: null, args: any, context: AppContext)=> {
-            const input = args.userInput;
+            const input: UserInput = args.userInput;
             
             const repo = dataSource
                 .createQueryRunner().connection
@@ -21,10 +22,11 @@ export const userMutationResolver = {
                     newUser.phone = input.phone;
                     newUser.email = input.email;
                     newUser.password = input?.password;
-                    newUser.dob = input.dob; // fromISO 
+                    newUser.dob = new Date(input.dob.toString());
                     newUser.streetAddress = input?.streetAddress;
                     newUser.city = input?.city;
                     newUser.postCode = input?.postCode;
+                    newUser.lastLogInAt = new Date(input.lastLogInAt.toString());
 
                     await repo.save(newUser);
 
