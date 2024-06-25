@@ -2,11 +2,6 @@ import 'dotenv/config';
 require("reflect-metadata");
 import express, { Application, NextFunction, Request, Response } from 'express';
 import { configureApp } from './configurations/app-config';
-import { configureSession } from './configurations/session-config';
-import * as Routes from './routers';
-import { formDataHandler } from './middlewares/formdata-handler';
-import { errorHandler } from './middlewares/error-handler';
-import logger from './configurations/logger';
 
 class App {
   public express: Application = express();
@@ -70,9 +65,6 @@ class App {
       next();
     });
 
-    this.express.use(`${process.env.API_BASE}/`, Routes.ProfileRouter);
-    this.express.use('/', Routes.HealthRouter);
-
     // Handle 404
     this.express.use((req, res) => {
       res.status(404).json({
@@ -80,15 +72,10 @@ class App {
         message: 'Not Found.',
       });
     });
-
-    this.express.use(errorHandler);
   }
 
   private async config(): Promise<void> {
     configureApp(this.express);
-    configureSession(this.express);
-    this.express.use(formDataHandler);
-    logger.info('App configuration completed');
   }
 }
 

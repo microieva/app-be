@@ -1,6 +1,6 @@
 import passport from 'passport';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';   
 import jwt from 'jsonwebtoken';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';   
 import { dataSource } from './db.config';
 import { User } from '../graphql/user/user.model';
 
