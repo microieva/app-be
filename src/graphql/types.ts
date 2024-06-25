@@ -6,7 +6,7 @@ export interface MutationResponse {
 }
 
 export interface AppContext {
-    authScope?: string
+    user: any,
     dataSource?: typeof dataSource
   }
 

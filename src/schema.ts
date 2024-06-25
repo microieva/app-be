@@ -4,7 +4,9 @@ export const schema = `
   scalar Date
 
   type Query {
+    me: User!
     users: [User!]!
+    login(directLoginInput: LoginInput!): String!
     testApps: [TestApp!]!
     testApp(testAppId: Int!): TestApp!
   }
@@ -13,12 +15,7 @@ export const schema = `
     saveTestApp(testAppInput: TestAppInput): MutationResponse!
     deleteTestApp(testAppId: Int!): MutationResponse!
     saveDefaultUser(userInput: UserInput!): MutationResponse!
-  }
-
-  type LoginResponse {
-    success: Boolean!
-    message: String!
-    token: String
+    deleteUser(userId: Int!): MutationResponse!
   }
 
   type MutationResponse {
@@ -39,16 +36,23 @@ export const schema = `
   }
 
   input UserInput {
+    id: Int
     firstName: String!
     lastName: String!
     userRoleId: Int!
     phone: Int!
     email: String!
     password: String
-    dob: Date
+    dob: Date!
     streetAddress: String
     city: String
     postCode: Int
+    lastLogInAt: Date
+  }
+
+  input LoginInput {
+    email: String!
+    password: String!
   }
 
   type User {

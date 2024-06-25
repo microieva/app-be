@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToOne, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToOne, JoinColumn, BeforeInsert } from "typeorm";
+import bcrypt from "bcryptjs";
 import { UserRole } from "./user-role.model";
 
 
@@ -29,6 +30,15 @@ export class User {
 
   @Column({nullable: true })
   password: string;
+
+  @BeforeInsert()
+  async hashPassword() {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
+
+  async validatePassword(password: string): Promise<boolean> {
+    return bcrypt.compare(password, this.password);
+  }
 
   @Column({type: 'date', nullable: false})
   dob: Date;

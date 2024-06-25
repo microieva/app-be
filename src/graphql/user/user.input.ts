@@ -1,4 +1,4 @@
-import { DateTime } from "../types"
+//import { DateTime } from "../types"
 
 export interface UserInput {
     id?: number
@@ -8,9 +8,9 @@ export interface UserInput {
     phone: number
     email: string
     password?: string
-    dob: DateTime
+    dob: string
     streetAddress?: string
     city?: string
     postCode?: number
-    lastLogInAt?: DateTime
+    lastLogInAt?: string
 }

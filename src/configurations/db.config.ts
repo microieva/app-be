@@ -25,6 +25,9 @@ const options: SqlServerConnectionOptions = {
   //migrations:[],
   extra: {
     trustServerCertificate: true
+  },
+  options: {
+    encrypt: true
   }
 };
 export const dataSource = new DataSource(options);

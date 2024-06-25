@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { typeDefs } from './schema';
@@ -15,11 +16,23 @@ const startServer = async () => {
     .catch(error => console.log('Datasource Initialization Error: ', error));
 
   const { url } = await startStandaloneServer(server, {
-    context: async () => {
-      const authScope = "admin"
+    context: async ({ req }) => {
+      const token = req.headers.authorization?.split(' ')[1];
+
+      let user;
+
+      if (token) {
+        try {
+          const payload = jwt.verify(token, process.env.JWT_SECRET!);
+          user = { userId: (payload as any).userId };
+        } catch (error) {
+          console.error('Authorization error: ', error);
+        }
+      }
+
       return {
-        authScope,
-        dataSource
+        dataSource,
+        user
       }
     },
     listen: { port },
