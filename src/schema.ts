@@ -16,6 +16,7 @@ export const schema = `
     deleteTestApp(testAppId: Int!): MutationResponse!
     saveDefaultUser(userInput: UserInput!): MutationResponse!
     deleteUser(userId: Int!): MutationResponse!
+    loginWithGoogle(googleCredential: String!): String!
   }
 
   type MutationResponse {
@@ -37,13 +38,13 @@ export const schema = `
 
   input UserInput {
     id: Int
-    firstName: String!
-    lastName: String!
-    userRoleId: Int!
-    phone: Int!
-    email: String!
+    firstName: String
+    lastName: String
+    userRoleId: Int
+    phone: Int
+    email: String
     password: String
-    dob: Date!
+    dob: Date
     streetAddress: String
     city: String
     postCode: Int
@@ -56,17 +57,18 @@ export const schema = `
   }
 
   type User {
-    firstName: String!
-    lastName: String!
-    userRole: String!
-    phone: Int!
-    email: String!
+    id: Int!
+    firstName: String
+    lastName: String
+    userRole: String
+    phone: Int
+    email: String
     password: String
-    dob: Date!
+    dob: Date
     streetAddress: String
     city: String
     postCode: Int
-    createdAt: Date!
+    createdAt: Date
     lastLogInAt: Date
   }
 `

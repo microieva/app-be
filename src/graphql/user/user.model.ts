@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToOne, JoinColumn, BeforeInsert } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, JoinColumn, ManyToOne } from "typeorm";
 import bcrypt from "bcryptjs";
 import { UserRole } from "./user-role.model";
 
@@ -15,14 +15,14 @@ export class User {
   lastName: string;
 
   @Column()
-  @OneToOne(() => UserRole, role => role.userRole)
+  //@OneToOne(() => UserRole, role => role.id)
   userRoleId: number;
 
-  @OneToOne(() => UserRole, userRole => userRole.userRole)
+  @ManyToOne(() => UserRole, userRole => userRole.users)
   @JoinColumn({ name: "userRoleId" }) 
-  userRole: string;
+  userRole: UserRole;
 
-  @Column({nullable: false })
+  @Column({nullable: true })
   phone: number;
 
   @Column({nullable: false })
@@ -40,7 +40,7 @@ export class User {
     return bcrypt.compare(password, this.password);
   }
 
-  @Column({type: 'date', nullable: false})
+  @Column({type: 'date', nullable: true })
   dob: Date;
 
   @Column({ length: 100, nullable: true })

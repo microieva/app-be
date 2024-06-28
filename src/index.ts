@@ -5,26 +5,10 @@ import { typeDefs } from './schema';
 import { resolvers } from './graphql/resolvers';
 import { dataSource } from './configurations/db.config';
 import { AppContext } from './graphql/types';
-import app from "./app";
-import session from "express-session";
-import passport from "passport";
 
 // const numCPUs = 1;
 const port = parseInt(process.env.PORT) || 4000;
 const server = new ApolloServer<AppContext>({ typeDefs, resolvers });
-
-app.use(session({ secret: process.env.SESSION_SECRET, resave: false, saveUninitialized: true }));
-app.use(passport.initialize());
-app.use(passport.session());
-
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }),
-  (req, res) => {
-    // On authentication, redirect home.
-    res.redirect('/');
-  }
-);
 
 const startServer = async () => {
   await dataSource.initialize()
