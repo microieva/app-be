@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, JoinColumn, ManyToOne } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, JoinColumn, ManyToOne, UpdateDateColumn } from "typeorm";
 import bcrypt from "bcryptjs";
 import { UserRole } from "./user-role.model";
 
@@ -23,7 +23,7 @@ export class User {
   userRole: UserRole;
 
   @Column({nullable: true })
-  phone: number;
+  phone: string;
 
   @Column({nullable: false })
   email: string;
@@ -50,13 +50,16 @@ export class User {
   city: string;
 
   @Column({ nullable: true })
-  postCode: number;
+  postCode: string;
 
   @CreateDateColumn({type:'date'})
   createdAt: Date;
 
   @Column({ type: 'date', nullable: true })
   lastLogInAt: Date;
+
+  @UpdateDateColumn({type: 'date', nullable: true})
+  updatedAt: Date;
 }
 
 

@@ -14,9 +14,10 @@ export const schema = `
   type Mutation {
     saveTestApp(testAppInput: TestAppInput): MutationResponse!
     deleteTestApp(testAppId: Int!): MutationResponse!
-    saveDefaultUser(userInput: UserInput!): MutationResponse!
+    saveUser(userInput: UserInput!): MutationResponse!
     deleteUser(userId: Int!): MutationResponse!
     loginWithGoogle(googleCredential: String!): String!
+    loginWithSignicat(signicatAccessToken: String!): String!
   }
 
   type MutationResponse {
@@ -41,13 +42,13 @@ export const schema = `
     firstName: String
     lastName: String
     userRoleId: Int
-    phone: Int
+    phone: String
     email: String
     password: String
     dob: Date
     streetAddress: String
     city: String
-    postCode: Int
+    postCode: String
     lastLogInAt: Date
   }
 
@@ -61,15 +62,16 @@ export const schema = `
     firstName: String
     lastName: String
     userRole: String
-    phone: Int
+    phone: String
     email: String
     password: String
     dob: Date
     streetAddress: String
     city: String
-    postCode: Int
+    postCode: String
     createdAt: Date
     lastLogInAt: Date
+    updatedAt: Date
   }
 `
 

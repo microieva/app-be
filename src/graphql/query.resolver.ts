@@ -25,7 +25,7 @@ export const queries = {
             }
         },
         me: async (parent: null, args: any, context: AppContext)=> {
-            const userId = context.user.userId;
+            const userId = context.me.userId;
             const repo = context.dataSource.getRepository(User);
             const dbUser = await repo.findOneBy({id: userId});
 

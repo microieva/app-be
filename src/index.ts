@@ -18,11 +18,11 @@ const startServer = async () => {
   const { url } = await startStandaloneServer(server, {
     context: async ({ req }) => {
       const token = req.headers.authorization?.split(' ')[1];
-      let user;
+      let me;
       if (token) {
         try {
           const payload = jwt.verify(token, process.env.JWT_SECRET!);
-          user = { userId: (payload as any).userId };
+          me = { userId: (payload as any).userId };
         } catch (error) {
           console.error('Authorization error: ', error);
         }
@@ -30,7 +30,7 @@ const startServer = async () => {
 
       return {
         dataSource,
-        user
+        me
       }
     },
     listen: { port },

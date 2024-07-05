@@ -1,13 +1,12 @@
 import { User } from "./user.model";
 import { AppContext, MutationResponse } from "../types";
 import { UserInput } from "./user.input";
-//import { DateTime } from "luxon";
 import { OAuth2Client } from 'google-auth-library';
 import jwt from "jsonwebtoken";
 
 export const userMutationResolver = {
     Mutation: {
-        saveDefaultUser: async(parent: null, args: any, context: AppContext)=> {
+        saveUser: async(parent: null, args: any, context: AppContext)=> {
             const input: UserInput = args.userInput;            
             const repo = context.dataSource.getRepository(User);
 
@@ -16,6 +15,7 @@ export const userMutationResolver = {
                 if (input.id) {
                     const dbUser = await repo.findOneBy({id: input.id});
                     if (dbUser) {
+                        dbUser.id = input.id;
                         dbUser.firstName = input.firstName && input.firstName !== "" ? input.firstName : dbUser.firstName;
                         dbUser.lastName = input.lastName && input.lastName !== "" ? input.lastName : dbUser.lastName;
                         dbUser.userRoleId = !input.userRoleId ? dbUser.userRoleId : input.userRoleId;
@@ -28,6 +28,11 @@ export const userMutationResolver = {
                         dbUser.postCode = !input.postCode ? dbUser.postCode : input.postCode;
                         dbUser.lastLogInAt = input.lastLogInAt ? new Date(input.lastLogInAt) : dbUser.lastLogInAt;
                         await repo.save(dbUser);
+
+                        return {
+                            success: true,
+                            message: "User saved"
+                        } as MutationResponse;
                     }
                 }
 
@@ -36,12 +41,13 @@ export const userMutationResolver = {
                 newUser.userRoleId = input.userRoleId;
                 newUser.phone = input.phone;
                 newUser.email = input.email;
-                newUser.password = input?.password;
-                newUser.dob =new Date(input.dob);
+                newUser.password = input.password;
+                newUser.dob = new Date(input?.dob) || null;
                 newUser.streetAddress = input?.streetAddress;
                 newUser.city = input?.city;
                 newUser.postCode = input?.postCode;
                 newUser.lastLogInAt = input.lastLogInAt ? new Date(input.lastLogInAt) : null;
+                newUser.updatedAt = null;
                 await repo.save(newUser);
 
                 return {
@@ -56,7 +62,14 @@ export const userMutationResolver = {
             }
         },
         deleteUser: async (parent: null, args: any, context: AppContext)=> {
-            const userId: number = args.userId;   
+            const userId: number = args.userId;  
+
+            if (userId !== context.me.userId) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                } as MutationResponse;
+            }
             const repo = context.dataSource.getRepository(User);
             const dbUser = await repo.findOneOrFail({ where: { id: userId } });
 
@@ -104,6 +117,7 @@ export const userMutationResolver = {
                 newUser.lastName = payload.family_name;
                 newUser.userRoleId = 2;
                 newUser.password = "";
+                newUser.updatedAt = null;
 
                 try {
                     const newDbUser = await repo.save(newUser);
@@ -114,6 +128,20 @@ export const userMutationResolver = {
             } else {
                 return jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
             }
+        },
+        loginWithSignicat: (parent: null, args: any, context: AppContext)=> {
+            const accessToken = args.signicatAccessToken;
+            console.log('SIGNICAT TOKEN ??? ', accessToken);
+            try {
+                const decodedToken = jwt.verify(accessToken, process.env.SIGNICAT_PUBLIC_KEY);
+                // Now you can access the payload from `decodedToken`
+                console.log("DECODED TOKEN: ", decodedToken);
+                // Handle the payload as needed (e.g., extract user information)
+            } catch (error) {
+                console.error('Error decoding token:', error.message);
+                // Handle the error (e.g., invalid token)
+            }
+
         }
     }
 }
