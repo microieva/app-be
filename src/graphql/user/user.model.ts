@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, JoinColumn, ManyToOne, UpdateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, JoinColumn, ManyToOne, UpdateDateColumn, OneToMany } from "typeorm";
 import bcrypt from "bcryptjs";
 import { UserRole } from "./user-role.model";
+import { Appointment } from "../appointment/appointment.model";
 
 
 @Entity()
@@ -15,7 +16,6 @@ export class User {
   lastName: string;
 
   @Column()
-  //@OneToOne(() => UserRole, role => role.id)
   userRoleId: number;
 
   @ManyToOne(() => UserRole, userRole => userRole.users)
@@ -60,6 +60,13 @@ export class User {
 
   @UpdateDateColumn({type: 'date', nullable: true})
   updatedAt: Date;
+
+  @OneToMany(()=> Appointment, appointment => appointment.customerId)
+  patientAppointments: Appointment[]
+
+
+  @OneToMany(()=> Appointment, appointment => appointment.doctorId)
+  doctorAppointments: Appointment[]
 }
 
 

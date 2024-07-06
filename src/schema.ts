@@ -3,12 +3,15 @@ import { gql } from "graphql-tag";
 export const schema = `
   scalar Date
 
+  union Paginated = Appointment
+
   type Query {
     me: User!
     users: [User!]!
     login(directLoginInput: LoginInput!): String!
     testApps: [TestApp!]!
     testApp(testAppId: Int!): TestApp!
+    appointments(userId: Int!): PagedAppointments!
   }
 
   type Mutation {
@@ -18,6 +21,7 @@ export const schema = `
     deleteUser(userId: Int!): MutationResponse!
     loginWithGoogle(googleCredential: String!): String!
     loginWithSignicat(signicatAccessToken: String!): String!
+    saveAppointment(userId: Int!, appointmentInput: AppointmentInput!): MutationResponse!
   }
 
   type MutationResponse {
@@ -25,10 +29,47 @@ export const schema = `
     message: String!
   }
 
+  type Paged {
+    slice: [Paginated!]!
+    length: Int!
+  }
+
+  type PagedAppointments {
+    pending: Paged!
+    upcoming: Paged!
+    past: Paged!
+  }
+
   type TestApp {
     id: Int!
     testAppName: String!
     isAppConnected: Boolean
+  }
+
+  type User {
+    id: Int!
+    firstName: String
+    lastName: String
+    userRole: String
+    phone: String
+    email: String
+    password: String
+    dob: Date
+    streetAddress: String
+    city: String
+    postCode: String
+    createdAt: Date
+    lastLogInAt: Date
+    updatedAt: Date
+    countAppointments: Int!
+  }
+
+  type Appointment {
+    id: Int!
+    doctorId: Int
+    customerId: Int!
+    createdAt: Date
+    updatedAt: Date
   }
 
   input TestAppInput {
@@ -57,21 +98,9 @@ export const schema = `
     password: String!
   }
 
-  type User {
-    id: Int!
-    firstName: String
-    lastName: String
-    userRole: String
-    phone: String
-    email: String
-    password: String
-    dob: Date
-    streetAddress: String
-    city: String
-    postCode: String
-    createdAt: Date
-    lastLogInAt: Date
-    updatedAt: Date
+  input AppointmentInput {
+    id: Int
+    customerId: Int!
   }
 `
 

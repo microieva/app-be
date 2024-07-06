@@ -17,13 +17,6 @@ export const queries = {
             const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
             return token;
         },
-        users: async (parent: null, args: any, context: AppContext) => {
-            try {
-                return await context.dataSource.getRepository(User).find()
-            } catch (error) {
-                throw new Error(`Error fetching users: ${error}`);
-            }
-        },
         me: async (parent: null, args: any, context: AppContext)=> {
             const userId = context.me.userId;
             const repo = context.dataSource.getRepository(User);
@@ -31,6 +24,16 @@ export const queries = {
 
             if (!dbUser) throw new Error('User not found');
             return dbUser;
+        },
+        users: async (parent: null, args: any, context: AppContext) => {
+            try {
+                return await context.dataSource.getRepository(User).find()
+            } catch (error) {
+                throw new Error(`Error fetching users: ${error}`);
+            }
+        },
+        appointments: async (parent: null, args: any, context: AppContext) => {
+            console.log('query appointments args: ', args)
         },
         testApps: async (parent: null, args: any, context: AppContext) => {
             try {
