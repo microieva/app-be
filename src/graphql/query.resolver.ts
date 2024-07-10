@@ -3,6 +3,7 @@ import { dataSource } from "../configurations/db.config";
 import { User } from "./user/user.model";
 import { TestApp } from "./test-app/test-app.model";
 import { AppContext } from "./types";
+import { Appointment } from "./appointment/appointment.model";
 
 export const queries = {
     Query: {
@@ -33,7 +34,11 @@ export const queries = {
             }
         },
         appointments: async (parent: null, args: any, context: AppContext) => {
-            console.log('query appointments args: ', args)
+            try {
+                return await context.dataSource.getRepository(Appointment).find();
+            } catch (error) {
+                throw new Error(`Error fetching appointments: ${error}`);
+            }
         },
         testApps: async (parent: null, args: any, context: AppContext) => {
             try {

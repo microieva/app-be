@@ -1,9 +1,12 @@
 export interface Appointment {
     id: number
     doctorId?: number
-    customerId: number
+    patientId: number
     updatedAt?: string
-    customerNotes?: string
-    doctorNoted?: string
+    end: string
+    start: string
+    allDay: boolean
+    //customerNotes?: string
+    //doctorNoted?: string
     //medicalRedords: MedicalRecord[]
 }

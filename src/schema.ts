@@ -11,7 +11,7 @@ export const schema = `
     login(directLoginInput: LoginInput!): String!
     testApps: [TestApp!]!
     testApp(testAppId: Int!): TestApp!
-    appointments(userId: Int!): PagedAppointments!
+    appointments: [Appointment!]!
   }
 
   type Mutation {
@@ -21,7 +21,7 @@ export const schema = `
     deleteUser(userId: Int!): MutationResponse!
     loginWithGoogle(googleCredential: String!): String!
     loginWithSignicat(signicatAccessToken: String!): String!
-    saveAppointment(userId: Int!, appointmentInput: AppointmentInput!): MutationResponse!
+    saveAppointment(appointmentInput: AppointmentInput!): MutationResponse!
   }
 
   type MutationResponse {
@@ -67,9 +67,12 @@ export const schema = `
   type Appointment {
     id: Int!
     doctorId: Int
-    customerId: Int!
+    patientId: Int!
     createdAt: Date
     updatedAt: Date
+    start: Date!
+    end: Date!
+    allDay: Boolean
   }
 
   input TestAppInput {
@@ -82,7 +85,6 @@ export const schema = `
     id: Int
     firstName: String
     lastName: String
-    userRoleId: Int
     phone: String
     email: String
     password: String
@@ -100,7 +102,9 @@ export const schema = `
 
   input AppointmentInput {
     id: Int
-    customerId: Int!
+    start: Date!
+    end: Date!
+    allDay: Boolean!
   }
 `
 

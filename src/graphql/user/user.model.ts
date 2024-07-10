@@ -61,7 +61,7 @@ export class User {
   @UpdateDateColumn({type: 'date', nullable: true})
   updatedAt: Date;
 
-  @OneToMany(()=> Appointment, appointment => appointment.customerId)
+  @OneToMany(()=> Appointment, appointment => appointment.patientId)
   patientAppointments: Appointment[]
 
 

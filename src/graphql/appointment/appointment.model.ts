@@ -7,11 +7,11 @@ export class Appointment {
     id: number;
 
     @Column({ nullable: false })
-    customerId: number;
+    patientId: number;
 
     @ManyToOne(() => User, user => user.patientAppointments)
-    @JoinColumn({ name: "customerId" }) 
-    customer: User;
+    @JoinColumn({ name: "patientId" }) 
+    patient: User;
 
     @Column({ default: null })
     doctorId: number;
@@ -24,5 +24,14 @@ export class Appointment {
     createdAt: Date;
 
     @UpdateDateColumn({type: 'date', nullable: true})
-    updatedAt: Date;
+    updatedAt: Date; // set updated in mutation
+
+    @Column({ type: 'date' })
+    start: Date;
+
+    @Column({ type: 'date' })
+    end: Date;
+
+    @Column({ default: false })
+    allDay: boolean;
 }

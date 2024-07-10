@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import jwt , {JwtPayload } from "jsonwebtoken";
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { typeDefs } from './schema';
@@ -16,18 +16,30 @@ const startServer = async () => {
     .catch(error => console.log('Datasource Initialization Error: ', error));
 
   const { url } = await startStandaloneServer(server, {
-    context: async ({ req }) => {
+    context: async ({ req, res }) => {
       const token = req.headers.authorization?.split(' ')[1];
-      let me;
+      let me = null;
+
       if (token) {
         try {
-          const payload = jwt.verify(token, process.env.JWT_SECRET!);
-          me = { userId: (payload as any).userId };
+          const payload = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+          const currentTime = Math.floor(Date.now() / 1000);
+
+          if (payload.exp && currentTime < payload.exp) {
+            //me = { userId: (payload as any).userId };
+            me = { userId : payload.userId }
+            console.log('TOKEN WORKING')
+          } else {
+            me = null;
+            console.error('TOKEN EXPIRED')
+            throw new Error("Token expired")
+          }
         } catch (error) {
-          console.error('Authorization error: ', error);
+          console.error('AUTHORIZATION ERROR')
+          throw new Error(`Authorization arror: ${error}`);
         }
       }
-
+      
       return {
         dataSource,
         me
