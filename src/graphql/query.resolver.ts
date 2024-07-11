@@ -40,6 +40,41 @@ export const queries = {
                 throw new Error(`Error fetching appointments: ${error}`);
             }
         },
+        pendingAppointments: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+
+            if (me) {
+                switch (me.userRoleId) {
+                    case 3:
+                        try {
+                            return await context.dataSource.getRepository(Appointment).find({
+                                where: {
+                                    patientId: me.id,
+                                    doctorId: null
+                                }
+                            });
+                        } catch (error) {
+                            throw new Error(`Error fetching appointments: ${error}`);
+                        }
+                    case 2:
+                        try {
+                            return await context.dataSource.getRepository(Appointment).find({
+                                where: { // fix doctor should see ALL pending appointments from all patients
+                                    updatedAt: null,
+                                    doctorId: me.id
+                                }
+                            });
+                        } catch (error) {
+                            throw new Error(`Error fetching appointments: ${error}`);
+                        }
+                    default:
+                    throw new Error('Action unauthorized')
+                }
+            } else {
+                throw new Error('Authenticate yourself')
+            }
+
+        },
         testApps: async (parent: null, args: any, context: AppContext) => {
             try {
                 const repo = dataSource

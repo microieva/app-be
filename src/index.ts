@@ -21,7 +21,6 @@ const startServer = async () => {
       let me = null;
 
       if (token) {
-        try {
           const payload = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
           const currentTime = Math.floor(Date.now() / 1000);
 
@@ -29,15 +28,7 @@ const startServer = async () => {
             //me = { userId: (payload as any).userId };
             me = { userId : payload.userId }
             console.log('TOKEN WORKING')
-          } else {
-            me = null;
-            console.error('TOKEN EXPIRED')
-            throw new Error("Token expired")
-          }
-        } catch (error) {
-          console.error('AUTHORIZATION ERROR')
-          throw new Error(`Authorization arror: ${error}`);
-        }
+          } 
       }
       
       return {

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, JoinColumn, ManyToOne, UpdateDateColumn, OneToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, ManyToOne, UpdateDateColumn, OneToMany, JoinColumn } from "typeorm";
 import bcrypt from "bcryptjs";
 import { UserRole } from "./user-role.model";
 import { Appointment } from "../appointment/appointment.model";
@@ -18,9 +18,9 @@ export class User {
   @Column()
   userRoleId: number;
 
-  @ManyToOne(() => UserRole, userRole => userRole.users)
-  @JoinColumn({ name: "userRoleId" }) 
-  userRole: UserRole;
+  @ManyToOne(() => UserRole, userRole => userRole.userRole)
+  @JoinColumn({ name: "userRole" }) 
+  userRole: string;
 
   @Column({nullable: true })
   phone: string;

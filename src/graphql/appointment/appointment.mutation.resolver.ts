@@ -7,8 +7,7 @@ export const appointmentMutationResolver = {
     Mutation: {
         saveAppointment: async (parent: null, args: any, context: AppContext) => {
             const input: AppointmentInput = args.appointmentInput;
-            console.log('INPUT from saveAppointment: ', input);
-            const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId})
+            const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
 
             if (dbMe && dbMe.userRoleId !== 3) {
                 return {
@@ -25,8 +24,8 @@ export const appointmentMutationResolver = {
                         dbAppointment.id = input.id;
                         dbAppointment.patientId;
                         dbAppointment.doctorId = dbMe.id;
-                        dbAppointment.start = new Date(input.start);
-                        dbAppointment.end = new Date(input.end);
+                        dbAppointment.start = new Date(input.start.toString())
+                        dbAppointment.end = new Date(input.end.toString())
                         dbAppointment.allDay;
 
                         await repo.save(dbAppointment);
@@ -61,5 +60,31 @@ export const appointmentMutationResolver = {
         // to avoid creating if conditions to check user role in saveAppointment mutation, we can create saving action for doctors as a seperate mutation name
         
         //saveAllDayEvent: ()=> { FOR DOCTORS TO MARK ALL DAY }
+        deleteAppointment: async (parent: null, args: any, context: AppContext) => {
+            const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            
+            if (!dbMe || dbMe.userRoleId === 1) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                } as MutationResponse;
+            } else {
+                const id = args.appointmentId;
+                const repo = context.dataSource.getRepository(Appointment);
+
+                try {
+                    await repo.delete({id});
+                    return {
+                        success: true,
+                        message: "Appointment deleted"
+                    } as MutationResponse;
+                } catch (error) {
+                    return {
+                        success: false,
+                        message: error
+                    } as MutationResponse;
+                }
+            }
+        }
     }
 }

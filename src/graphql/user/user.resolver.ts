@@ -7,15 +7,15 @@ export const userResolver = {
         userRole: async (parent: User, args: any, context: AppContext)=> {
             const id = parent.userRoleId;
             try {
-                return await context.dataSource
+                const role = await context.dataSource
                     .getRepository(UserRole)
                     .findOne({
                         where: {
                             id: id
                         },
-                        relations: ['users'],
-                    })
-                    .then(role => role.userRole);
+                        //relations: ['users'],
+                })
+                return role.userRole;
             } catch (error) {
                 return {
                     success: false,
@@ -24,7 +24,7 @@ export const userResolver = {
             }
         },
         countAppointments: async (parent: User, args: any, context: AppContext)=> {
-            const role = parent.userRole.userRole;
+            const role = parent.userRole;
             switch (role) {
                 case 'admin':
                     throw new Error('Unauthorized action');

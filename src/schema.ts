@@ -12,6 +12,7 @@ export const schema = `
     testApps: [TestApp!]!
     testApp(testAppId: Int!): TestApp!
     appointments: [Appointment!]!
+    pendingAppointments: [Appointment!]!
   }
 
   type Mutation {
@@ -22,6 +23,7 @@ export const schema = `
     loginWithGoogle(googleCredential: String!): String!
     loginWithSignicat(signicatAccessToken: String!): String!
     saveAppointment(appointmentInput: AppointmentInput!): MutationResponse!
+    deleteAppointment(appointmentId: Int!): MutationResponse!
   }
 
   type MutationResponse {
