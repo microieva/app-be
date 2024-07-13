@@ -9,7 +9,7 @@ export const appointmentMutationResolver = {
             const input: AppointmentInput = args.appointmentInput;
             const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
 
-            if (dbMe && dbMe.userRoleId !== 3) {
+            if (!dbMe || (dbMe && dbMe.userRoleId === 1)) {
                 return {
                     success: false,
                     message: 'Unauthorized action'
@@ -27,7 +27,6 @@ export const appointmentMutationResolver = {
                         dbAppointment.start = new Date(input.start.toString())
                         dbAppointment.end = new Date(input.end.toString())
                         dbAppointment.allDay;
-
                         await repo.save(dbAppointment);
                         return {
                             success: true,
@@ -81,7 +80,7 @@ export const appointmentMutationResolver = {
                 } catch (error) {
                     return {
                         success: false,
-                        message: error
+                        message: "Error while deleting appointment: "+ error
                     } as MutationResponse;
                 }
             }

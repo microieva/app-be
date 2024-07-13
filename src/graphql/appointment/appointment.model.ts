@@ -1,18 +1,6 @@
 import { BeforeInsert, Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { User } from "../user/user.model";
 import { DateTime } from "luxon";
-//import { DateTime } from "luxon";
-
-// const LocalDateTransformer = {
-//     to: (entityValue: Date) => {
-//         console.log('TO - IS THIS RUNNING: ', entityValue);
-//       return DateTime.fromJSDate(entityValue).toISO();
-//     },
-//     from: (databaseValue: string) => {
-//         console.log('FROM - IS THIS RUNNING: ', databaseValue);
-//       return DateTime.fromISO(databaseValue).toJSDate();
-//     }
-//   };
 
 @Entity()
 export class Appointment {
@@ -41,8 +29,8 @@ export class Appointment {
         this.createdAt = DateTime.local().toJSDate();
     }
 
-    @UpdateDateColumn({type: 'date', nullable: true})
-    updatedAt: Date; // set updated in mutation
+    @UpdateDateColumn({type: 'datetime', nullable: true})
+    updatedAt: Date;
 
     @Column({ type: 'datetime' })
     start: Date;

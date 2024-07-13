@@ -18,9 +18,9 @@ export class User {
   @Column()
   userRoleId: number;
 
-  @ManyToOne(() => UserRole, userRole => userRole.userRole)
-  @JoinColumn({ name: "userRole" }) 
-  userRole: string;
+  @ManyToOne(() => UserRole )
+  @JoinColumn({ name: "userRoleId" }) 
+  userRole: UserRole;
 
   @Column({nullable: true })
   phone: string;

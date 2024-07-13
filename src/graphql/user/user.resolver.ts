@@ -12,8 +12,7 @@ export const userResolver = {
                     .findOne({
                         where: {
                             id: id
-                        },
-                        //relations: ['users'],
+                        }
                 })
                 return role.userRole;
             } catch (error) {
@@ -23,7 +22,7 @@ export const userResolver = {
                 }
             }
         },
-        countAppointments: async (parent: User, args: any, context: AppContext)=> {
+        /*countAppointments: async (parent: User, args: any, context: AppContext)=> {
             const role = parent.userRole;
             switch (role) {
                 case 'admin':
@@ -36,6 +35,6 @@ export const userResolver = {
                     throw new Error('Unauthorized action');
             }
             
-        }
+        }*/
     }
 }

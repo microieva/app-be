@@ -4,6 +4,8 @@ import { User } from "./user/user.model";
 import { TestApp } from "./test-app/test-app.model";
 import { AppContext } from "./types";
 import { Appointment } from "./appointment/appointment.model";
+import { IsNull, MoreThan, Not } from "typeorm";
+import { DateTime } from "luxon";
 
 export const queries = {
     Query: {
@@ -20,11 +22,14 @@ export const queries = {
         },
         me: async (parent: null, args: any, context: AppContext)=> {
             const userId = context.me.userId;
+            
             const repo = context.dataSource.getRepository(User);
-            const dbUser = await repo.findOneBy({id: userId});
-
-            if (!dbUser) throw new Error('User not found');
-            return dbUser;
+            try {
+                const me = await repo.findOne({where: {id: userId}, relations: ['userRole'] });
+                return me;
+            } catch (error) {
+                throw new Error(`who am I? ${error}`)
+            }
         },
         users: async (parent: null, args: any, context: AppContext) => {
             try {
@@ -50,7 +55,7 @@ export const queries = {
                             return await context.dataSource.getRepository(Appointment).find({
                                 where: {
                                     patientId: me.id,
-                                    doctorId: null
+                                    doctorId: IsNull()
                                 }
                             });
                         } catch (error) {
@@ -59,9 +64,8 @@ export const queries = {
                     case 2:
                         try {
                             return await context.dataSource.getRepository(Appointment).find({
-                                where: { // fix doctor should see ALL pending appointments from all patients
-                                    updatedAt: null,
-                                    doctorId: me.id
+                                where: { 
+                                    updatedAt: IsNull()
                                 }
                             });
                         } catch (error) {
@@ -73,7 +77,44 @@ export const queries = {
             } else {
                 throw new Error('Authenticate yourself')
             }
+        },
+        upcomingAppointments: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
 
+            if (me) {
+                const now = DateTime.now().toISO();
+
+                switch (me.userRoleId) {
+                    case 3:
+                        try {
+                            return await context.dataSource.getRepository(Appointment).find({
+                                where: {
+                                    patientId: me.id,
+                                    doctorId: Not(IsNull()),
+                                    start: MoreThan(new Date(now)) // doesnt work ?
+                                }
+                            });
+                        } catch (error) {
+                            throw new Error(`Error fetching appointments: ${error}`);
+                        }
+                    case 2:
+                        try {
+                            return await context.dataSource.getRepository(Appointment).find({
+                                where: { 
+                                    updatedAt: Not(IsNull()),
+                                    doctorId: me.id,
+                                    start: MoreThan(new Date(now))
+                                }
+                            });
+                        } catch (error) {
+                            throw new Error(`Error fetching appointments: ${error}`);
+                        }
+                    default:
+                    throw new Error('Action unauthorized')
+                }
+            } else {
+                throw new Error('Authenticate yourself')
+            }
         },
         testApps: async (parent: null, args: any, context: AppContext) => {
             try {
@@ -101,4 +142,4 @@ export const queries = {
 
         }
     }
-}
+} 

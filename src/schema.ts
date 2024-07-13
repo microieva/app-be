@@ -13,6 +13,7 @@ export const schema = `
     testApp(testAppId: Int!): TestApp!
     appointments: [Appointment!]!
     pendingAppointments: [Appointment!]!
+    upcomingAppointments: [Appointment!]!
   }
 
   type Mutation {
@@ -52,7 +53,7 @@ export const schema = `
     id: Int!
     firstName: String
     lastName: String
-    userRole: String
+    userRole: String!
     phone: String
     email: String
     password: String
@@ -85,6 +86,7 @@ export const schema = `
 
   input UserInput {
     id: Int
+    userRoleId: Int
     firstName: String
     lastName: String
     phone: String
