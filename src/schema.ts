@@ -11,9 +11,12 @@ export const schema = `
     login(directLoginInput: LoginInput!): String!
     testApps: [TestApp!]!
     testApp(testAppId: Int!): TestApp!
+    allAppointments: [Appointment!]!
     appointments: [Appointment!]!
+    appointment (appointmentId: Int!): Appointment!
     pendingAppointments: [Appointment!]!
     upcomingAppointments: [Appointment!]!
+    pastAppointments: [Appointment!]!
   }
 
   type Mutation {
@@ -70,12 +73,14 @@ export const schema = `
   type Appointment {
     id: Int!
     doctorId: Int
-    patientId: Int!
+    patientId: Int
     createdAt: Date
     updatedAt: Date
     start: Date!
     end: Date!
     allDay: Boolean
+    patient: User
+    doctor: User
   }
 
   input TestAppInput {

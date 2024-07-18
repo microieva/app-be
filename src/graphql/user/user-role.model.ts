@@ -8,7 +8,4 @@ export class UserRole {
 
   @Column()
   userRole: string;
-  
-  // @OneToMany(()=> User, user => user.userRole)
-  // users: User[]
 }

@@ -5,6 +5,7 @@ import { userResolver } from "./user/user.resolver";
 import { userMutationResolver } from "./user/user.mutation.resolver";
 import { testAppMutationResolver } from "./test-app/test-app.mutation.resolver";
 import { appointmentMutationResolver } from "./appointment/appointment.mutation.resolver";
+import { appointmentResolver } from "./appointment/appointment.resolver";
 //import { DateTime } from "./types";
 
 const scalars = {
@@ -60,6 +61,7 @@ export const resolvers = [
     queries,
     testAppMutationResolver,
     userMutationResolver,
+    userResolver,
     appointmentMutationResolver,
-    userResolver
+    appointmentResolver
 ]

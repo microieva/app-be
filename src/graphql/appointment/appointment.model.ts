@@ -7,17 +7,17 @@ export class Appointment {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column({ nullable: false })
+    @Column({ default: null, nullable: true })
     patientId: number;
 
-    @ManyToOne(() => User, user => user.patientAppointments)
+    @ManyToOne(() => User)
     @JoinColumn({ name: "patientId" }) 
     patient: User;
 
-    @Column({ default: null })
+    @Column({ default: null, nullable: true })
     doctorId: number;
 
-    @ManyToOne(() => User, user => user.doctorAppointments)
+    @ManyToOne(() => User)
     @JoinColumn({ name: "doctorId" }) 
     doctor: User;
 

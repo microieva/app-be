@@ -1,7 +1,10 @@
+//import { DateTime } from "luxon";
+import { DateTime } from "luxon";
 import { AppContext, MutationResponse } from "../types"
 import { User } from "../user/user.model";
 import { AppointmentInput } from "./appointment.input";
 import { Appointment } from "./appointment.model";
+import { Not, IsNull } from "typeorm";
 
 export const appointmentMutationResolver = {
     Mutation: {
@@ -17,43 +20,93 @@ export const appointmentMutationResolver = {
             }
 
             const repo = context.dataSource.getRepository(Appointment);
-            try {
-                if (input.id) {
-                    const dbAppointment = await repo.findOneBy({id: input.id});
-                    if (dbAppointment) {
-                        dbAppointment.id = input.id;
-                        dbAppointment.patientId;
-                        dbAppointment.doctorId = dbMe.id;
-                        dbAppointment.start = new Date(input.start.toString())
-                        dbAppointment.end = new Date(input.end.toString())
-                        dbAppointment.allDay;
-                        await repo.save(dbAppointment);
+
+            const inputStart = DateTime.fromJSDate(new Date(input.start));
+            const startOfDay = inputStart.startOf('day').toJSDate();
+            const endOfDay = inputStart.endOf('day').toJSDate();
+
+            const queryBuilder = repo
+                .createQueryBuilder('appointment')
+                .where('appointment.start BETWEEN :startOfDay AND :endOfDay', {
+                    startOfDay,
+                    endOfDay
+                })
+                //{updatedAt: Not(IsNull())});
+
+            if (dbMe.userRoleId === 3) {
+                queryBuilder
+                    .andWhere('appointment.patientId = :patientId', { patientId: context.me.userId })
+            } else if (dbMe.userRoleId === 2) {
+                queryBuilder
+                    .andWhere('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
+                    //.andWhere('appointment.updatedAt = :updatedAt', {updatedAt: true})
+            }
+
+            const isReserved = await queryBuilder
+                .andWhere({updatedAt: Not(IsNull())})
+                .getExists();
+
+            console.log('IS RESERVED:  ', isReserved)
+
+            if (input.id) {
+                const dbAppointment = await repo.findOneBy({id: input.id});
+                dbAppointment.id = input.id;
+                dbAppointment.patientId;
+                dbAppointment.doctorId = dbMe.id;
+                dbAppointment.start = new Date(input.start);
+                dbAppointment.end = new Date(input.end);
+                dbAppointment.allDay;
+
+                try {
+                    await repo.save(dbAppointment);
+                    return {
+                        success: true,
+                        message: 'Appointment updated'
+                    } as MutationResponse;
+                } catch (error) {
+                    return {
+                        success: false,
+                        message: 'Unexpected error while updating appointment: '+error
+                    } as MutationResponse;
+                }
+            } else {
+                if (isReserved) {
+                    return {
+                        success: false,
+                        message: 'Time overlap!'
+                    } as MutationResponse;
+                } 
+                const newAppointment = new Appointment();
+                newAppointment.start =  new Date(input.start);
+                newAppointment.end =  new Date(input.end);
+                newAppointment.allDay = input.allDay;
+
+                if (dbMe.userRoleId === 3) {
+                    if (input.allDay) {
                         return {
-                            success: true,
-                            message: "Appointment updated"
+                            success: false,
+                            message: 'Unauthorized action'
                         } as MutationResponse;
                     }
+                    newAppointment.patientId = dbMe.id;
+                    newAppointment.updatedAt = null;
+                } else {
+                    newAppointment.doctorId = dbMe.id;
                 }
-                const newAppointment = new Appointment();
 
-                newAppointment.patientId = dbMe.id;
-                newAppointment.updatedAt = null;
-                newAppointment.doctorId;
-                newAppointment.start = new Date(input.start);
-                newAppointment.end = new Date(input.end);
-                newAppointment.allDay = false;
-
-                await repo.save(newAppointment);
-                return {
-                    success: true,
-                    message: 'Appointment saved'
-                } as MutationResponse;
-
-            } catch (error){
-                return {
-                    success: false,
-                    message: `Appointment could not be created: ${error}`
-                } as MutationResponse;
+                try {
+                    await repo.save(newAppointment);      
+                    return {
+                        success: true,
+                        message: 'Appointment created'
+                    } as MutationResponse;
+                } catch (error) {
+                    return {
+                        success: false,
+                        message: 'Unexpected error while creating appointment: '+error
+                    } as MutationResponse;
+                }
+                
             }
         },
         // to avoid creating if conditions to check user role in saveAppointment mutation, we can create saving action for doctors as a seperate mutation name

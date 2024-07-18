@@ -5,6 +5,7 @@ export interface AppointmentInput {
     // updatedAt?: string
     start: string
     end: string
+    allDay: boolean
     //customerNotes?: string
     //doctorNoted?: string
     //medicalRedords: MedicalRecord[]

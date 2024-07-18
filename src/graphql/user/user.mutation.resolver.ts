@@ -3,6 +3,8 @@ import { AppContext, MutationResponse } from "../types";
 import { UserInput } from "./user.input";
 import { OAuth2Client } from 'google-auth-library';
 import jwt from "jsonwebtoken";
+import { Appointment } from "../appointment/appointment.model";
+import { In } from "typeorm";
 
 export const userMutationResolver = {
     Mutation: {
@@ -71,20 +73,28 @@ export const userMutationResolver = {
                 } as MutationResponse;
             }
             const repo = context.dataSource.getRepository(User);
+            const appointmentsRepo = context.dataSource.getRepository(Appointment);
             const dbUser = await repo.findOneOrFail({ where: { id: userId } });
 
             if (dbUser) {
+                const dbUserAppointments = await appointmentsRepo
+                    .createQueryBuilder("appointment")
+                    .where({patientId: userId})
+                    .orWhere({doctorId: userId})
+                    .getMany();
                 try {
                     await repo.delete({id: dbUser.id});
+                    await appointmentsRepo.delete({id: In(dbUserAppointments)})
+                    // will have to add the same for medical records
                     return {
                         success: true,
                         message: `User deleted successfuly`
-                    }
+                    } as MutationResponse;
                 }catch (error) {
                     return {
                         success: false,
                         message: `Unexpected error on deleting user: ${error}`
-                    }
+                    } as MutationResponse;
                 }
 
             } else {
