@@ -42,6 +42,8 @@ export const schema = `
     countPendingAppointments: Int!
     countUpcomingAppointments: Int!
     countPastAppointments: Int!
+    nextAppointment: Appointment
+    currentAppointment (appointmentId: Int!): Appointment
   }
 
   type Mutation {
