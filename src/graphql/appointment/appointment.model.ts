@@ -1,6 +1,6 @@
 import { BeforeInsert, Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { User } from "../user/user.model";
 import { DateTime } from "luxon";
+import { User } from "../user/user.model";
 
 @Entity()
 export class Appointment {
@@ -40,4 +40,10 @@ export class Appointment {
 
     @Column({ default: false })
     allDay: boolean;
+
+    @Column({ default: null, type: "nvarchar", length: 700})
+    patientMessage: string;
+
+    @Column({ default: null, type: "nvarchar", length: 700})
+    doctorMessage: string;
 }

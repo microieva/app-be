@@ -1,10 +1,9 @@
-//import { DateTime } from "luxon";
 import { DateTime } from "luxon";
-import { AppContext, MutationResponse } from "../types"
-import { User } from "../user/user.model";
-import { AppointmentInput } from "./appointment.input";
-import { Appointment } from "./appointment.model";
 import { Not, IsNull } from "typeorm";
+import { User } from "../user/user.model";
+import { Appointment } from "./appointment.model";
+import { AppointmentInput } from "./appointment.input";
+import { AppContext, MutationResponse } from "../types"
 
 export const appointmentMutationResolver = {
     Mutation: {
@@ -30,16 +29,14 @@ export const appointmentMutationResolver = {
                 .where('appointment.start BETWEEN :startOfDay AND :endOfDay', {
                     startOfDay,
                     endOfDay
-                })
-                //{updatedAt: Not(IsNull())});
+                });
 
             if (dbMe.userRoleId === 3) {
                 queryBuilder
-                    .andWhere('appointment.patientId = :patientId', { patientId: context.me.userId })
+                    .andWhere('appointment.patientId = :patientId', { patientId: context.me.userId });
             } else if (dbMe.userRoleId === 2) {
                 queryBuilder
-                    .andWhere('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
-                    //.andWhere('appointment.updatedAt = :updatedAt', {updatedAt: true})
+                    .andWhere('appointment.doctorId = :doctorId', { doctorId: context.me.userId });
             }
 
             const isReserved = await queryBuilder
@@ -51,11 +48,20 @@ export const appointmentMutationResolver = {
             if (input.id) {
                 const dbAppointment = await repo.findOneBy({id: input.id});
                 dbAppointment.id = input.id;
-                dbAppointment.patientId;
-                dbAppointment.doctorId = dbMe.id;
                 dbAppointment.start = new Date(input.start);
                 dbAppointment.end = new Date(input.end);
                 dbAppointment.allDay;
+                if (dbMe.userRoleId === 3) {
+                    if (dbAppointment.doctorId) {
+                        return {
+                            success: false,
+                            message: 'Forbidden action: the appointment cannot be moved because it has been already accepted... Consider cancelling and making a new one on more suitable date.'
+                        } as MutationResponse;
+                    }
+                    dbAppointment.patientId = dbMe.id;
+                } else {
+                    dbAppointment.doctorId = dbMe.id;
+                }
 
                 try {
                     await repo.save(dbAppointment);
@@ -90,8 +96,10 @@ export const appointmentMutationResolver = {
                     }
                     newAppointment.patientId = dbMe.id;
                     newAppointment.updatedAt = null;
+                    newAppointment.patientMessage = input.patientMessage;
                 } else {
                     newAppointment.doctorId = dbMe.id;
+                    newAppointment.doctorMessage = input.doctorMessage;
                 }
 
                 try {
@@ -109,9 +117,6 @@ export const appointmentMutationResolver = {
                 
             }
         },
-        // to avoid creating if conditions to check user role in saveAppointment mutation, we can create saving action for doctors as a seperate mutation name
-        
-        //saveAllDayEvent: ()=> { FOR DOCTORS TO MARK ALL DAY }
         deleteAppointment: async (parent: null, args: any, context: AppContext) => {
             const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             
@@ -136,6 +141,118 @@ export const appointmentMutationResolver = {
                         message: "Error while deleting appointment: "+ error
                     } as MutationResponse;
                 }
+            }
+        },
+        saveAppointmentMessage: async(parent: null, args: any, context: AppContext)=> {
+            const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Appointment);
+
+            const id = args.appointmentId;
+            const message = args.appointmentMessage;
+
+            if (!dbMe || dbMe && dbMe.userRoleId === 1) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                } as MutationResponse;
+            }
+
+            const dbAppointment = await repo.findOneBy({id});
+
+            if (!dbAppointment) {
+                return {
+                    success: false,
+                    message: "Appointment not found"
+                } as MutationResponse;
+            }
+            try {
+                if (dbMe.userRoleId === 3) {
+                    dbAppointment.patientMessage = message;
+                } else {
+                    dbAppointment.doctorMessage = message;
+                }
+                await repo.save(dbAppointment);
+                return {
+                    success: true,
+                    message: "Message saved"
+                } as MutationResponse;
+            } catch (error) {
+                return {
+                    success: false,
+                    message: "Error saving appointment message: "+error
+                } as MutationResponse;
+            }
+
+        },
+        deleteAppointmentMessage: async (parent: null, args: any, context: AppContext)=> {
+            const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Appointment);
+            const id = args.appointmentId;
+
+            if (!dbMe || dbMe && dbMe.userRoleId === 1) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                } as MutationResponse;
+            }
+
+            const dbAppointment = await repo.findOneBy({id});
+
+            if (!dbAppointment) {
+                return {
+                    success: false,
+                    message: "Appointment not found"
+                } as MutationResponse;
+            }
+            try {
+                if (dbMe.userRoleId === 3) {
+                    dbAppointment.patientMessage = null;
+                } else {
+                    dbAppointment.doctorMessage = null;
+                }
+                await repo.save(dbAppointment);
+                return {
+                    success: true,
+                    message: "Message removed"
+                } as MutationResponse;
+            } catch (error) {
+                return {
+                    success: false,
+                    message: "Error removing appointment message: "+error
+                } as MutationResponse;
+            }
+        },
+        acceptAppointment: async (parent: null, args: any, context: AppContext) => {
+            const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Appointment);
+            const dbAppointment = await repo.findOneBy({id: args.appointmentId});
+
+            if (!dbMe || dbMe.userRoleId !== 2) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                } as MutationResponse
+            }
+
+            if (!dbAppointment) {
+                return {
+                    success: false,
+                    message: "Appointment not found"
+                } as MutationResponse
+            }
+
+            try {
+                dbAppointment.doctorId = dbMe.id;
+                await repo.save(dbAppointment);
+                return {
+                    success: true,
+                    message: "Appointment accepted. Doctor id saved"
+                } as MutationResponse
+            } catch (error) {
+                return {
+                    success: false,
+                    message: "Unable to save doctor id to accept appointment: "+error
+                } as MutationResponse
             }
         }
     }

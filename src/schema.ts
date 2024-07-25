@@ -3,7 +3,7 @@ import { gql } from "graphql-tag";
 export const schema = `
   scalar Date
 
-  union Paginated = Appointment
+  union Paginated = Appointment | User
 
   type Query {
     me: User!
@@ -14,9 +14,34 @@ export const schema = `
     allAppointments: [Appointment!]!
     appointments: [Appointment!]!
     appointment (appointmentId: Int!): Appointment!
-    pendingAppointments: [Appointment!]!
-    upcomingAppointments: [Appointment!]!
-    pastAppointments: [Appointment!]!
+    calendarPendingAppointments: [Appointment!]!
+    calendarUpcomingAppointments: [Appointment!]!
+    calendarPastAppointments: [Appointment!]!
+    pendingAppointments (
+      pageIndex: Int!, 
+      pageLimit: Int!, 
+      sortActive: String, 
+      sortDirection: String
+      filterInput: String
+    ): Paged!
+    upcomingAppointments (
+      pageIndex: Int!, 
+      pageLimit: Int!, 
+      sortActive: String, 
+      sortDirection: String
+      filterInput: String
+    ): Paged!
+    pastAppointments (
+      pageIndex: Int!, 
+      pageLimit: Int!, 
+      sortActive: String, 
+      sortDirection: String
+      filterInput: String
+    ): Paged!
+    isReservedDay(date: Date!):Boolean
+    countPendingAppointments: Int!
+    countUpcomingAppointments: Int!
+    countPastAppointments: Int!
   }
 
   type Mutation {
@@ -28,16 +53,14 @@ export const schema = `
     loginWithSignicat(signicatAccessToken: String!): String!
     saveAppointment(appointmentInput: AppointmentInput!): MutationResponse!
     deleteAppointment(appointmentId: Int!): MutationResponse!
+    saveAppointmentMessage(appointmentId: Int!, appointmentMessage: String!): MutationResponse!
+    deleteAppointmentMessage(appointmentId: Int!): MutationResponse!
+    acceptAppointment(appointmentId: Int!): MutationResponse!
   }
 
   type MutationResponse {
     success: Boolean!
     message: String!
-  }
-
-  type Paged {
-    slice: [Paginated!]!
-    length: Int!
   }
 
   type PagedAppointments {
@@ -81,6 +104,13 @@ export const schema = `
     allDay: Boolean
     patient: User
     doctor: User
+    patientMessage: String
+    doctorMessage: String
+  }
+
+  type Paged {
+    slice: [Paginated!]!
+    length: Int!
   }
 
   input TestAppInput {
@@ -114,6 +144,8 @@ export const schema = `
     start: Date!
     end: Date!
     allDay: Boolean!
+    doctorMessage: String
+    patientMessage: String
   }
 `
 

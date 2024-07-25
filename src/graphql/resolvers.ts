@@ -1,12 +1,25 @@
 import { GraphQLScalarType, Kind } from "graphql";
-//import { DateTime } from "luxon";
 import { queries } from "./query.resolver";
 import { userResolver } from "./user/user.resolver";
 import { userMutationResolver } from "./user/user.mutation.resolver";
 import { testAppMutationResolver } from "./test-app/test-app.mutation.resolver";
 import { appointmentMutationResolver } from "./appointment/appointment.mutation.resolver";
 import { appointmentResolver } from "./appointment/appointment.resolver";
-//import { DateTime } from "./types";
+import { Appointment } from "./appointment/appointment.model";
+
+const unions = {
+  Paginated: {
+    __resolveType(obj: any) {
+      if (obj instanceof Appointment) {
+            return "Appointment"
+        }
+        // if (obj instanceof User) {
+        //     return 'User';
+        // }
+        return null; 
+    }
+}
+}
 
 const scalars = {
     Date: new GraphQLScalarType({
@@ -58,6 +71,7 @@ const scalars = {
 
 export const resolvers = [
     scalars,
+    unions,
     queries,
     testAppMutationResolver,
     userMutationResolver,
