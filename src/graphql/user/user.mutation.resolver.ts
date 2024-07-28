@@ -1,10 +1,11 @@
 import { User } from "./user.model";
-import { AppContext, MutationResponse } from "../types";
+import { AppContext, LoginResponse, MutationResponse } from "../types";
 import { UserInput } from "./user.input";
 import { OAuth2Client } from 'google-auth-library';
 import jwt from "jsonwebtoken";
 import { Appointment } from "../appointment/appointment.model";
 import { In } from "typeorm";
+import { DateTime } from "luxon";
 
 export const userMutationResolver = {
     Mutation: {
@@ -131,12 +132,28 @@ export const userMutationResolver = {
 
                 try {
                     const newDbUser = await repo.save(newUser);
-                    return jwt.sign({ userId: newDbUser.id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+                    const token = jwt.sign({ userId: newDbUser.id }, process.env.JWT_SECRET!, { expiresIn: '10h' });
+                    const currentTime = DateTime.now();
+                    const expirationTime = currentTime.plus({ hours: 10 });
+                    const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
+
+                    return {
+                        token: token, 
+                        expiresAt: expirationTimeInFinnishTime
+                    } as LoginResponse;
                 } catch (error) {
                     throw new Error(`error saving new user: ${error}`);
                 }
             } else {
-                return jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+                const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET!, { expiresIn: '10h' });
+                const currentTime = DateTime.now();
+                const expirationTime = currentTime.plus({ hours: 10 });
+                const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
+                
+                return {
+                    token: token, 
+                    expiresAt: expirationTimeInFinnishTime
+                } as LoginResponse;
             }
         },
         loginWithSignicat: (parent: null, args: any, context: AppContext)=> {

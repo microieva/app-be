@@ -8,7 +8,7 @@ export const schema = `
   type Query {
     me: User!
     users: [User!]!
-    login(directLoginInput: LoginInput!): String!
+    login(directLoginInput: LoginInput!): LoginResponse!
     testApps: [TestApp!]!
     testApp(testAppId: Int!): TestApp!
     allAppointments: [Appointment!]!
@@ -42,8 +42,7 @@ export const schema = `
     countPendingAppointments: Int!
     countUpcomingAppointments: Int!
     countPastAppointments: Int!
-    nextAppointment: Appointment
-    currentAppointment (appointmentId: Int!): Appointment
+    nextAppointment: NextAppointmentResponse!
   }
 
   type Mutation {
@@ -51,7 +50,7 @@ export const schema = `
     deleteTestApp(testAppId: Int!): MutationResponse!
     saveUser(userInput: UserInput!): MutationResponse!
     deleteUser(userId: Int!): MutationResponse!
-    loginWithGoogle(googleCredential: String!): String!
+    loginWithGoogle(googleCredential: String!): LoginResponse!
     loginWithSignicat(signicatAccessToken: String!): String!
     saveAppointment(appointmentInput: AppointmentInput!): MutationResponse!
     deleteAppointment(appointmentId: Int!): MutationResponse!
@@ -63,6 +62,17 @@ export const schema = `
   type MutationResponse {
     success: Boolean!
     message: String!
+  }
+
+  type LoginResponse {
+    token: String!
+    expiresAt: Date!
+  }
+
+  type NextAppointmentResponse {
+    nextStart: Date
+    nextEnd: Date
+    nextId: Int
   }
 
   type PagedAppointments {

@@ -4,6 +4,15 @@ export interface MutationResponse {
     success: boolean
     message: string | null 
 }
+export interface LoginResponse {
+  token: string
+  expiresAt: string
+}
+export interface NextAppointmentResponse {
+  nextId: number
+  nextStart: string
+  nextEnd: string
+}
 
 export interface AppContext {
     me: any,

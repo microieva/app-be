@@ -1,11 +1,11 @@
 import jwt from "jsonwebtoken";
 import { Not, IsNull, MoreThan, LessThan, In } from "typeorm";
 import { DateTime } from "luxon";
-import { dataSource } from "../configurations/db.config";
 import { User } from "./user/user.model";
 import { TestApp } from "./test-app/test-app.model";
 import { Appointment } from "./appointment/appointment.model";
-import { AppContext } from "./types";
+import { AppContext, LoginResponse, NextAppointmentResponse } from "./types";
+import { dataSource } from "../configurations/db.config";
 
 export const queries = {
     Query: {
@@ -17,8 +17,27 @@ export const queries = {
             const isValid = await dbUser.validatePassword(input.password);
             if (!isValid) throw new Error('Invalid password');
 
-            const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-            return token;
+            let expiresIn = '1h'; 
+            if (dbUser.userRoleId === 2) {
+                expiresIn = '10h';
+            }
+
+            const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET, { expiresIn });
+            const currentTime = DateTime.now();
+            let expirationTime;
+
+            if (expiresIn === '1h') {
+                expirationTime = currentTime.plus({ hours: 1 });
+            } else if (expiresIn === '10h') {
+                expirationTime = currentTime.plus({ hours: 10 });
+            }
+
+            const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
+
+            return {
+                token: token,
+                expiresAt: expirationTimeInFinnishTime
+            } as LoginResponse;
         },
         me: async (parent: null, args: any, context: AppContext)=> {
             const userId = context.me.userId;
@@ -338,7 +357,7 @@ export const queries = {
                 throw new Error('Unauthorized action')
             }
             if (me) {
-                const now = DateTime.now().toISO(); // be should use fi-FI locale
+                const now = DateTime.now().toISO(); // be should use fi-FI locale ???
 
                 switch (me.userRoleId) {
                     case 3:
@@ -386,7 +405,7 @@ export const queries = {
             }
             
             if (me) {
-                const now = DateTime.now().toJSDate(); // should use fi-Fi locale
+                const now = DateTime.now().toJSDate(); // should use fi-Fi locale ???
 
                 switch (me.userRoleId) {
                     case 3:
@@ -462,10 +481,24 @@ export const queries = {
                         .andWhere('appointment.doctorId IS NULL')
                         .getCount()
                 } else {
-                    return await repo
-                        .createQueryBuilder('appointment')
-                        .andWhere('appointment.patientId IS NOT NULL')
-                        .getCount()
+                        const reservedTimes = await repo
+                            .createQueryBuilder('appointment')
+                            .select('appointment.start')
+                            .where('appointment.doctorId = :doctorId', { doctorId: me.id })
+                            .getRawMany();
+
+                        const formattedReservedTimes: string[] = reservedTimes.map(rt => DateTime.fromJSDate(rt.appointment_start).toISO({ includeOffset: false }));
+
+                        const queryBuilder = repo
+                            .createQueryBuilder('appointment')
+                            .leftJoinAndSelect('appointment.patient', 'patient')
+                            .where('appointment.doctorId IS NULL')
+                        
+                        if (formattedReservedTimes.length>0) {
+                            queryBuilder.andWhere('appointment.start NOT IN (:...reservedTimes)', { reservedTimes: formattedReservedTimes });
+                        }
+
+                        return queryBuilder.getCount()
                 }
             } catch (error) {
                 throw new Error('Unexpected error when counting pending appointments: '+error)
@@ -491,7 +524,7 @@ export const queries = {
                     return await repo
                         .createQueryBuilder('appointment')
                         .where('appointment.doctorId = :doctorId', { doctorId: me.id })
-                        .andWhere('appointment.patientId IS NOT NULL')
+                        .andWhere('appointment.allDay IS NOT NULL')
                         .getCount()
                 }
             } catch (error) {
@@ -537,44 +570,32 @@ export const queries = {
                 throw new Error("Unauthorized action")
             }
             try {
-                const now = DateTime.now();
-                const fiveMinutesFromNow = now.plus({ minutes: 5 });
-                
-                const queryBuilder = repo
+                const now = DateTime.now().toISO({ includeOffset: false });
+        
+                const nextAppointment = await repo
                     .createQueryBuilder('appointment')
                     .leftJoinAndSelect('appointment.patient', 'patient')
                     .where('appointment.doctorId = :doctorId', { doctorId: me.id })
-                    .andWhere('appointment.start BETWEEN :now AND :fiveMinutesFromNow', {
-                        now: now.toISO({ includeOffset: false }),
-                        fiveMinutesFromNow: fiveMinutesFromNow.toISO({ includeOffset: false })
-                    });
-                return queryBuilder.getOne();
+                    .andWhere('appointment.start > :now', { now })
+                    .orderBy('appointment.start', 'ASC')  
+                    .getOne();
+        
+                if (nextAppointment) {
+                    return {
+                        nextStart: DateTime.fromJSDate(nextAppointment.start).setZone('Europe/Helsinki').toISO(),
+                        nextEnd: DateTime.fromJSDate(nextAppointment.end).setZone('Europe/Helsinki').toISO(),
+                        nextId: nextAppointment.id
+                    } as NextAppointmentResponse;
+                } else {
+                    return {
+                        nextStart: null,
+                        nextEnd: null,
+                        nextId: null
+                    } as NextAppointmentResponse;
+                }
 
             } catch (error) {
                 throw new Error("Unexpected error from time tracker :"+error)
-            }
-        },
-        currentAppointment: async (parent: null, args: any, context: AppContext) => {
-            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
-            const repo = context.dataSource.getRepository(Appointment);
-
-            if (!me || me.userRoleId !== 2) {
-                throw new Error("Unauthorized action")
-            }
-            try {
-                const now = DateTime.now().toISO({ includeOffset: false })
-                
-                const queryBuilder = repo
-                    .createQueryBuilder('appointment')
-                    .leftJoinAndSelect('appointment.patient', 'patient')
-                    .where('appointment.doctorId = :doctorId', { doctorId: me.id })
-                    .andWhere('appointment.start <= :now', { now })
-                .andWhere('appointment.end > :now', { now });
-                console.log('current APPOINTMENT: ', queryBuilder.getOne())
-                return queryBuilder.getOne();
-
-            } catch (error) {
-                throw new Error("Unexpected error from current appointment time tracker :"+error)
             }
         },
         testApps: async (parent: null, args: any, context: AppContext) => {
