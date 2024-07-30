@@ -1,7 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, ManyToOne, UpdateDateColumn, OneToMany, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, ManyToOne, UpdateDateColumn, JoinColumn } from "typeorm";
 import bcrypt from "bcryptjs";
 import { UserRole } from "./user-role.model";
-import { Appointment } from "../appointment/appointment.model";
 
 
 @Entity()
@@ -60,13 +59,6 @@ export class User {
 
   @UpdateDateColumn({type: 'date', nullable: true})
   updatedAt: Date;
-
-  @OneToMany(()=> Appointment, appointment => appointment.patientId)
-  patientAppointments: Appointment[]
-
-
-  @OneToMany(()=> Appointment, appointment => appointment.doctorId)
-  doctorAppointments: Appointment[]
 }
 
 

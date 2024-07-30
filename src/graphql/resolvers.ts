@@ -6,6 +6,8 @@ import { testAppMutationResolver } from "./test-app/test-app.mutation.resolver";
 import { appointmentMutationResolver } from "./appointment/appointment.mutation.resolver";
 import { appointmentResolver } from "./appointment/appointment.resolver";
 import { Appointment } from "./appointment/appointment.model";
+import { recordMutationResolver } from "./record/record.mutation.resolver";
+import { recordResolver } from "./record/record.resolver";
 
 const unions = {
   Paginated: {
@@ -77,5 +79,7 @@ export const resolvers = [
     userMutationResolver,
     userResolver,
     appointmentMutationResolver,
-    appointmentResolver
+    appointmentResolver,
+    recordMutationResolver,
+    recordResolver
 ]

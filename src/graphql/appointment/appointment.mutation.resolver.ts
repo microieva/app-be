@@ -76,12 +76,12 @@ export const appointmentMutationResolver = {
                     } as MutationResponse;
                 }
             } else {
-                if (isReserved) {
+                /*if (isReserved) {
                     return {
                         success: false,
                         message: 'Time overlap!'
                     } as MutationResponse;
-                } 
+                } */
                 const newAppointment = new Appointment();
                 newAppointment.start =  new Date(input.start);
                 newAppointment.end =  new Date(input.end);

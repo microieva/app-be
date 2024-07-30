@@ -6,6 +6,7 @@ import { TestApp } from "./test-app/test-app.model";
 import { Appointment } from "./appointment/appointment.model";
 import { AppContext, LoginResponse, NextAppointmentResponse } from "./types";
 import { dataSource } from "../configurations/db.config";
+import { Record } from "./record/record.model";
 
 export const queries = {
     Query: {
@@ -596,6 +597,64 @@ export const queries = {
 
             } catch (error) {
                 throw new Error("Unexpected error from time tracker :"+error)
+            }
+        },
+        record: async (parent: null, args: any, context: AppContext) => {
+            try {
+                return await context.dataSource.getRepository(Record)
+                    .findOneBy({appointmentId: args.appointmentId});
+            } catch (error) {
+                throw new Error(`Error fetching record: ${error}`);
+            }
+        },
+        records: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Record);
+
+            if (!me || me.userRoleId === 1) {
+                throw new Error("Unauthorized action")
+            }
+
+            if (me.userRoleId === 3) {
+                try {
+                    return await repo
+                        .createQueryBuilder('record')
+                        .leftJoinAndSelect('record.appointment', 'appointment')
+                        .where('appointment.patientId = :patientId', {patientId: me.id})
+                        .getMany();
+                } catch (error) {
+                    throw new Error("Unexpected error while fetching medical records: "+error)
+                }
+            } else {
+                try {
+                    return await repo
+                        .createQueryBuilder('record')
+                        .leftJoinAndSelect('record.appointment', 'appointment')
+                        .where('appointment.doctorId = :doctorId', {doctorId: me.id})
+                        .andWhere('record.draft IS FALSE')
+                        .getMany();
+                } catch (error) {
+                    throw new Error("Unexpected error while fetching medical records: "+error)
+                }
+            }
+        },
+        drafts: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Record);
+
+            if (!me || me.userRoleId !== 2) {
+                throw new Error("Unauthorized action")
+            }
+
+            try {
+                return await repo
+                    .createQueryBuilder('record')
+                    .leftJoinAndSelect('record.appointment', 'appointment')
+                    .where('appointment.doctortId = :doctortId', {doctorId: me.id})
+                    .andWhere('record.draft IS TRUE')
+                    .getMany();
+            } catch (error) {
+                throw new Error("Unexpected error while fetching drafts: "+error)
             }
         },
         testApps: async (parent: null, args: any, context: AppContext) => {

@@ -43,6 +43,9 @@ export const schema = `
     countUpcomingAppointments: Int!
     countPastAppointments: Int!
     nextAppointment: NextAppointmentResponse!
+    record(appointmentId: Int!): Record
+    records: [Record!]!
+    drafts: [Record!]!
   }
 
   type Mutation {
@@ -57,6 +60,8 @@ export const schema = `
     saveAppointmentMessage(appointmentId: Int!, appointmentMessage: String!): MutationResponse!
     deleteAppointmentMessage(appointmentId: Int!): MutationResponse!
     acceptAppointment(appointmentId: Int!): MutationResponse!
+    saveRecord(recordInput: RecordInput!): MutationResponse!
+    deleteRecord(appointmentId: Int!): MutationResponse!
   }
 
   type MutationResponse {
@@ -73,12 +78,6 @@ export const schema = `
     nextStart: Date
     nextEnd: Date
     nextId: Int
-  }
-
-  type PagedAppointments {
-    pending: Paged!
-    upcoming: Paged!
-    past: Paged!
   }
 
   type TestApp {
@@ -118,6 +117,18 @@ export const schema = `
     doctor: User
     patientMessage: String
     doctorMessage: String
+    record: Record
+  }
+
+  type Record {
+    id: Int!
+    title: String
+    text: String
+    createdAt: Date!
+    updatedAt: Date!
+    appointmentId: Int!
+    appointment: Appointment!
+    draft: Boolean
   }
 
   type Paged {
@@ -158,6 +169,14 @@ export const schema = `
     allDay: Boolean!
     doctorMessage: String
     patientMessage: String
+  }
+
+  input RecordInput {
+    id: Int
+    title: String
+    text: String
+    appointmentId: Int!
+    draft: Boolean
   }
 `
 

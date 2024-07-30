@@ -1,0 +1,21 @@
+import { AppContext } from "../types";
+import { Record } from "../record/record.model";
+import { Appointment } from "../appointment/appointment.model";
+
+export const recordResolver = {
+    Record: {
+        appointment: async (parent: Record, args: any, context: AppContext)=> {
+            try {
+                if (parent.appointmentId) {
+                    return await context.dataSource.getRepository(Appointment)
+                        .findOneBy({id: parent.appointmentId})
+                } else {
+                    return null;
+                }
+            } catch (error) {
+                throw new Error(`Unexpected error while fetching record appointment: ${error}`)
+            }
+        }
+    }
+}
+         
