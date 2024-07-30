@@ -232,9 +232,7 @@ export const queries = {
             return {
                 length,
                 slice
-            }
-
-            
+            }    
         },
         pastAppointments: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
@@ -578,7 +576,6 @@ export const queries = {
                     .leftJoinAndSelect('appointment.patient', 'patient')
                     .where('appointment.doctorId = :doctorId', { doctorId: me.id })
                     .andWhere('appointment.start > :now', { now })
-                    .orderBy('appointment.start', 'ASC')  
                     .getOne();
         
                 if (nextAppointment) {
@@ -608,8 +605,13 @@ export const queries = {
             }
         },
         records: async (parent: null, args: any, context: AppContext) => {
-            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+
             const repo = context.dataSource.getRepository(Record);
+            const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+
+            let length: number = 0;
+            let slice: Record[] = []; 
 
             if (!me || me.userRoleId === 1) {
                 throw new Error("Unauthorized action")
@@ -617,44 +619,139 @@ export const queries = {
 
             if (me.userRoleId === 3) {
                 try {
+                    const [records, count]: [Record[], number] = await repo
+                        .createQueryBuilder('record')
+                        .leftJoinAndSelect('record.appointment', 'appointment')
+                        .where('appointment.patientId = :patientId', {patientId: me.id})
+                        .andWhere('record.draft IS FALSE')
+                        .orderBy(`record.${sortActive}` || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
+                        .limit(pageLimit)
+                        .offset(pageIndex * pageLimit)
+                        .getManyAndCount()
+
+                    length = count;
+                    slice = records
+                } catch (error) {
+                    throw new Error(`Error fetching records: ${error}`);
+                }
+            } else {
+                try {
+                    const queryBuilder = repo
+                        .createQueryBuilder('record')
+                        .leftJoinAndSelect('record.appointment', 'appointment')
+                        .leftJoinAndSelect('appointment.patient', 'patient') 
+                        .where('appointment.doctorId = :doctorId', {doctorId: me.id})
+                        .andWhere('record.draft IS FALSE')
+    
+                    if (filterInput) {
+                        queryBuilder.andWhere(
+                            '(patient.firstName LIKE :filter OR patient.lastName LIKE :filter)',
+                            { filter: `%${filterInput}%` }
+                        );
+                    }
+                    const [records, count]: [Record[], number] = await queryBuilder
+                        .orderBy(`record.${sortActive}` || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
+                        .limit(pageLimit)
+                        .offset(pageIndex * pageLimit)
+                        .getManyAndCount()
+
+                    length = count;
+                    slice = records
+                } catch (error) {
+                    throw new Error(`Error fetching records: ${error}`);
+                }
+            }
+            return {
+                length,
+                slice
+            }
+        },
+        drafts: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+
+            const repo = context.dataSource.getRepository(Record);
+            const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+
+            let length: number = 0;
+            let slice: Record[] = []; 
+
+            if (!me || me.userRoleId === 1) {
+                throw new Error("Unauthorized action")
+            }
+
+            if (me.userRoleId === 3) {
+                try {
+                    const [records, count]: [Record[], number] = await repo
+                        .createQueryBuilder('record')
+                        .leftJoinAndSelect('record.appointment', 'appointment')
+                        .where('appointment.patientId = :patientId', {patientId: me.id})
+                        .andWhere('record.draft IS TRUE')
+                        .orderBy(`record.${sortActive}` || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
+                        .limit(pageLimit)
+                        .offset(pageIndex * pageLimit)
+                        .getManyAndCount()
+
+                    length = count;
+                    slice = records
+                } catch (error) {
+                    throw new Error(`Error fetching records: ${error}`);
+                }
+            } else {
+                try {
+                    const queryBuilder = repo
+                        .createQueryBuilder('record')
+                        .leftJoinAndSelect('record.appointment', 'appointment')
+                        .leftJoinAndSelect('appointment.patient', 'patient') 
+                        .where('appointment.doctorId = :doctorId', {doctorId: me.id})
+                        .andWhere('record.draft IS TRUE')
+    
+                    if (filterInput) {
+                        queryBuilder.andWhere(
+                            '(patient.firstName LIKE :filter OR patient.lastName LIKE :filter)',
+                            { filter: `%${filterInput}%` }
+                        );
+                    }
+                    const [records, count]: [Record[], number] = await queryBuilder
+                        .orderBy(`record.${sortActive}` || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
+                        .limit(pageLimit)
+                        .offset(pageIndex * pageLimit)
+                        .getManyAndCount()
+
+                    length = count;
+                    slice = records
+                } catch (error) {
+                    throw new Error(`Error fetching records: ${error}`);
+                }
+            }
+            return {
+                length,
+                slice
+            }
+        },
+        countUserRecords: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Record);
+
+            if (!me || me.userRoleId === 1) {
+                throw new Error('Unauthorized action')
+            }
+
+            try {
+                if (me.userRoleId === 3) {
                     return await repo
                         .createQueryBuilder('record')
                         .leftJoinAndSelect('record.appointment', 'appointment')
                         .where('appointment.patientId = :patientId', {patientId: me.id})
-                        .getMany();
-                } catch (error) {
-                    throw new Error("Unexpected error while fetching medical records: "+error)
-                }
-            } else {
-                try {
+                        .getCount();
+                } else {
                     return await repo
                         .createQueryBuilder('record')
                         .leftJoinAndSelect('record.appointment', 'appointment')
                         .where('appointment.doctorId = :doctorId', {doctorId: me.id})
-                        .andWhere('record.draft IS FALSE')
-                        .getMany();
-                } catch (error) {
-                    throw new Error("Unexpected error while fetching medical records: "+error)
+                        .getCount();
                 }
-            }
-        },
-        drafts: async (parent: null, args: any, context: AppContext) => {
-            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
-            const repo = context.dataSource.getRepository(Record);
-
-            if (!me || me.userRoleId !== 2) {
-                throw new Error("Unauthorized action")
-            }
-
-            try {
-                return await repo
-                    .createQueryBuilder('record')
-                    .leftJoinAndSelect('record.appointment', 'appointment')
-                    .where('appointment.doctortId = :doctortId', {doctorId: me.id})
-                    .andWhere('record.draft IS TRUE')
-                    .getMany();
             } catch (error) {
-                throw new Error("Unexpected error while fetching drafts: "+error)
+                throw new Error('Unexpected error getting record count: '+error)
             }
         },
         testApps: async (parent: null, args: any, context: AppContext) => {

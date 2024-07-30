@@ -3,7 +3,7 @@ import { gql } from "graphql-tag";
 export const schema = `
   scalar Date
 
-  union Paginated = Appointment | User
+  union Paginated = Appointment | Record
 
   type Query {
     me: User!
@@ -44,8 +44,21 @@ export const schema = `
     countPastAppointments: Int!
     nextAppointment: NextAppointmentResponse!
     record(appointmentId: Int!): Record
-    records: [Record!]!
-    drafts: [Record!]!
+    records(
+      pageIndex: Int!, 
+      pageLimit: Int!, 
+      sortActive: String, 
+      sortDirection: String
+      filterInput: String
+    ): Paged!
+    drafts(
+      pageIndex: Int!, 
+      pageLimit: Int!, 
+      sortActive: String, 
+      sortDirection: String
+      filterInput: String
+    ): Paged!
+    countUserRecords: Int!
   }
 
   type Mutation {
@@ -101,19 +114,18 @@ export const schema = `
     createdAt: Date
     lastLogInAt: Date
     updatedAt: Date
-    countAppointments: Int!
   }
 
   type Appointment {
     id: Int!
     doctorId: Int
-    patientId: Int
-    createdAt: Date
+    patientId: Int!
+    createdAt: Date!
     updatedAt: Date
     start: Date!
     end: Date!
     allDay: Boolean
-    patient: User
+    patient: User!
     doctor: User
     patientMessage: String
     doctorMessage: String

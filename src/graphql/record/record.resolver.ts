@@ -6,12 +6,8 @@ export const recordResolver = {
     Record: {
         appointment: async (parent: Record, args: any, context: AppContext)=> {
             try {
-                if (parent.appointmentId) {
-                    return await context.dataSource.getRepository(Appointment)
-                        .findOneBy({id: parent.appointmentId})
-                } else {
-                    return null;
-                }
+                return await context.dataSource.getRepository(Appointment)
+                    .findOneBy({id: parent.appointmentId})
             } catch (error) {
                 throw new Error(`Unexpected error while fetching record appointment: ${error}`)
             }

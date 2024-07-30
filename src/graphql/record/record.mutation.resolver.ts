@@ -42,6 +42,7 @@ export const recordMutationResolver = {
                 newRecord.text = input.text;
                 newRecord.appointmentId = input.appointmentId;
                 newRecord.draft = input.draft;
+                newRecord.updatedAt = null;
 
                 try {
                     await repo.save(newRecord);
