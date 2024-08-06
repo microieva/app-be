@@ -577,6 +577,7 @@ export const queries = {
                     .where('appointment.doctorId = :doctorId', { doctorId: me.id })
                     .andWhere('appointment.allDay = :allDay', {allDay: false})
                     .andWhere('appointment.start > :now', { now })
+                    .orderBy('appointment.start', 'ASC')
                     .getOne();
         
                 return {
