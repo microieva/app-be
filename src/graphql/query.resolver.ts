@@ -112,7 +112,7 @@ export const queries = {
                     try {
                         const [appointments, count]: [Appointment[], number] = await repo
                             .createQueryBuilder('appointment')
-                            .where('appointment.patientId = :patientId', { patientId: me.id })
+                            .where('appointment.patientId = :patientId', { patientId: context.me.userId })
                             .andWhere('appointment.doctorId IS NULL')
                             .orderBy(`appointment.${sortActive}` || 'appointment.start', `${sortDirection}` as 'ASC' | 'DESC')
                             .limit(pageLimit)
@@ -130,7 +130,7 @@ export const queries = {
                         const reservedTimes = await repo
                             .createQueryBuilder('appointment')
                             .select('appointment.start')
-                            .where('appointment.doctorId = :doctorId', { doctorId: me.id })
+                            .where('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
                             .getRawMany();
 
                         const formattedReservedTimes: string[] = reservedTimes.map(rt => DateTime.fromJSDate(rt.appointment_start).toISO({ includeOffset: false }));
@@ -179,14 +179,15 @@ export const queries = {
 
             let length: number = 0;
             let slice: Appointment[] = [];   
-
+            const now = DateTime.now().toISO(); 
             if (me) {
                 if (me.userRoleId === 3) {
                     try {
                         const [appointments, count]: [Appointment[], number] = await repo
                             .createQueryBuilder('appointment')
-                            .where('appointment.patientId = :patientId', { patientId: me.id })
+                            .where('appointment.patientId = :patientId', { patientId: context.me.userId })
                             .andWhere('appointment.doctorId IS NOT NULL')
+                            .andWhere('appointment.start > :now', { now: new Date(now) })
                             .orderBy(`appointment.${sortActive}` || 'appointment.start', `${sortDirection}` as 'ASC' | 'DESC')
                             .limit(pageLimit)
                             .offset(pageIndex * pageLimit)
@@ -199,7 +200,6 @@ export const queries = {
                     }
 
                 } else {
-                    const now = DateTime.now().toJSDate(); 
                     try {
                         const queryBuilder = repo.createQueryBuilder('appointment')
                             .leftJoinAndSelect('appointment.patient', 'patient')
@@ -242,7 +242,7 @@ export const queries = {
 
             let length: number = 0;
             let slice: Appointment[] = [];   
-            const now = DateTime.now().toJSDate(); 
+            const now = DateTime.now().toISO(); 
             if (me) {
                 if (me.userRoleId === 3) {
                     try {
@@ -363,7 +363,7 @@ export const queries = {
                         try {
                             return await context.dataSource.getRepository(Appointment).find({
                                 where: {
-                                    patientId: me.id,
+                                    patientId: context.me.userId,
                                     doctorId: Not(IsNull()),
                                     start: MoreThan(new Date(now)) 
                                 },
@@ -379,7 +379,7 @@ export const queries = {
                             return await context.dataSource.getRepository(Appointment).find({
                                 where: { 
                                     patientId: Not(IsNull()),
-                                    doctorId: me.id,
+                                    doctorId: context.me.userId,
                                     start: MoreThan(new Date(now))
                                 },
                                 order: {
@@ -411,7 +411,7 @@ export const queries = {
                         try {
                             return await context.dataSource.getRepository(Appointment).find({
                                 where: {
-                                    patientId: me.id,
+                                    patientId: context.me.userId,
                                     doctorId: Not(IsNull()),
                                     end: LessThan(new Date(now))
                                 },
@@ -427,7 +427,7 @@ export const queries = {
                             return await context.dataSource.getRepository(Appointment).find({
                                 where: { 
                                     patientId: Not(IsNull()),
-                                    doctorId: me.id,
+                                    doctorId: context.me.userId,
                                     end: LessThan(new Date(now))
                                 },
                                 order: {
@@ -453,7 +453,7 @@ export const queries = {
                 try {
                     return repo
                         .createQueryBuilder('appointment')
-                        .where({doctorId: me.id})
+                        .where({doctorId: context.me.userId})
                         .andWhere('appointment.allDay = TRUE AND appointment.start = :start', {start: date})
                         .getExists()
                 } catch (error) {
@@ -477,7 +477,7 @@ export const queries = {
                     return await repo
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId = :patientId', { patientId: me.id })
-                        .andWhere('appointment.doctorId IS NULL')
+                        .andWhere('appointment.doctorId = :doctorId', {doctorId: IsNull()})
                         .getCount()
                 } else {
                         const reservedTimes = await repo
@@ -517,13 +517,13 @@ export const queries = {
                     return await repo
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId = :patientId', { patientId: me.id })
-                        .andWhere('appointment.doctorId IS NOT NULL')
+                        .andWhere('appointment.doctorId = :doctorId', {doctorId: Not(IsNull())})
                         .getCount()
                 } else {
                     return await repo
                         .createQueryBuilder('appointment')
                         .where('appointment.doctorId = :doctorId', { doctorId: me.id })
-                        .andWhere('appointment.allDay IS NOT NULL')
+                        .andWhere('appointment.allDay = :allDay', {allDay: false}) 
                         .getCount()
                 }
             } catch (error) {
@@ -545,14 +545,14 @@ export const queries = {
                     return await repo
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId = :patientId', { patientId: me.id })
-                        .andWhere('appointment.doctorId IS NOT NULL')
+                        .andWhere('appointment.doctorId = :doctorId', {doctorId: Not(IsNull())})
                         .andWhere('appointment.start < :now', { now: new Date(now) })
                         .getCount()
                 } else {
                     return await repo
                         .createQueryBuilder('appointment')
                         .where('appointment.doctorId = :doctorId', { doctorId: me.id })
-                        .andWhere('appointment.patientId IS NOT NULL')
+                        .andWhere('appointment.patientId = :patientId', {patientId: Not(IsNull())})
                         .andWhere('appointment.start < :now', { now: new Date(now) })
                         .getCount()
                 }
@@ -575,31 +575,32 @@ export const queries = {
                     .createQueryBuilder('appointment')
                     .leftJoinAndSelect('appointment.patient', 'patient')
                     .where('appointment.doctorId = :doctorId', { doctorId: me.id })
+                    .andWhere('appointment.allDay = :allDay', {allDay: false})
                     .andWhere('appointment.start > :now', { now })
                     .getOne();
         
-                if (nextAppointment) {
-                    return {
-                        nextStart: DateTime.fromJSDate(nextAppointment.start).setZone('Europe/Helsinki').toISO(),
-                        nextEnd: DateTime.fromJSDate(nextAppointment.end).setZone('Europe/Helsinki').toISO(),
-                        nextId: nextAppointment.id
-                    } as NextAppointmentResponse;
-                } else {
-                    return {
-                        nextStart: null,
-                        nextEnd: null,
-                        nextId: null
-                    } as NextAppointmentResponse;
-                }
+                return {
+                    nextStart: DateTime.fromJSDate(nextAppointment.start).setZone('Europe/Helsinki').toISO(),
+                    nextEnd: DateTime.fromJSDate(nextAppointment.end).setZone('Europe/Helsinki').toISO(),
+                    nextId: nextAppointment.id
+                } as NextAppointmentResponse;
 
             } catch (error) {
                 throw new Error("Unexpected error from time tracker :"+error)
             }
         },
         record: async (parent: null, args: any, context: AppContext) => {
+            const recordId = args.recordId;
+            const appointmentId = args.appointmentId;
+
             try {
-                return await context.dataSource.getRepository(Record)
-                    .findOneBy({appointmentId: args.appointmentId});
+                if (appointmentId) {
+                    return await context.dataSource.getRepository(Record)
+                    .findOneBy({appointmentId: appointmentId});
+                } else {
+                    return await context.dataSource.getRepository(Record)
+                        .findOneBy({id: recordId});
+                }
             } catch (error) {
                 throw new Error(`Error fetching record: ${error}`);
             }
@@ -623,7 +624,7 @@ export const queries = {
                         .createQueryBuilder('record')
                         .leftJoinAndSelect('record.appointment', 'appointment')
                         .where('appointment.patientId = :patientId', {patientId: me.id})
-                        .andWhere('record.draft IS FALSE')
+                        .andWhere('record.draft = :draft', {draft: false})
                         .orderBy(`record.${sortActive}` || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
                         .limit(pageLimit)
                         .offset(pageIndex * pageLimit)
@@ -641,7 +642,7 @@ export const queries = {
                         .leftJoinAndSelect('record.appointment', 'appointment')
                         .leftJoinAndSelect('appointment.patient', 'patient') 
                         .where('appointment.doctorId = :doctorId', {doctorId: me.id})
-                        .andWhere('record.draft IS FALSE')
+                        .andWhere('record.draft = :draft', {draft: false})
     
                     if (filterInput) {
                         queryBuilder.andWhere(
@@ -675,53 +676,33 @@ export const queries = {
             let length: number = 0;
             let slice: Record[] = []; 
 
-            if (!me || me.userRoleId === 1) {
+            if (!me || me.userRoleId !== 2) {
                 throw new Error("Unauthorized action")
             }
+            try {
+                const queryBuilder = repo
+                    .createQueryBuilder('record')
+                    .leftJoinAndSelect('record.appointment', 'appointment')
+                    .leftJoinAndSelect('appointment.patient', 'patient') 
+                    .where('appointment.doctorId = :doctorId', {doctorId: me.id})
+                    .andWhere('record.draft = :draft', {draft: true})
 
-            if (me.userRoleId === 3) {
-                try {
-                    const [records, count]: [Record[], number] = await repo
-                        .createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .where('appointment.patientId = :patientId', {patientId: me.id})
-                        .andWhere('record.draft IS TRUE')
-                        .orderBy(`record.${sortActive}` || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
-                        .limit(pageLimit)
-                        .offset(pageIndex * pageLimit)
-                        .getManyAndCount()
-
-                    length = count;
-                    slice = records
-                } catch (error) {
-                    throw new Error(`Error fetching records: ${error}`);
+                if (filterInput) {
+                    queryBuilder.andWhere(
+                        '(patient.firstName LIKE :filter OR patient.lastName LIKE :filter)',
+                        { filter: `%${filterInput}%` }
+                    );
                 }
-            } else {
-                try {
-                    const queryBuilder = repo
-                        .createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .leftJoinAndSelect('appointment.patient', 'patient') 
-                        .where('appointment.doctorId = :doctorId', {doctorId: me.id})
-                        .andWhere('record.draft IS TRUE')
-    
-                    if (filterInput) {
-                        queryBuilder.andWhere(
-                            '(patient.firstName LIKE :filter OR patient.lastName LIKE :filter)',
-                            { filter: `%${filterInput}%` }
-                        );
-                    }
-                    const [records, count]: [Record[], number] = await queryBuilder
-                        .orderBy(`record.${sortActive}` || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
-                        .limit(pageLimit)
-                        .offset(pageIndex * pageLimit)
-                        .getManyAndCount()
+                const [records, count]: [Record[], number] = await queryBuilder
+                    .orderBy(`record.${sortActive}` || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
+                    .limit(pageLimit)
+                    .offset(pageIndex * pageLimit)
+                    .getManyAndCount()
 
-                    length = count;
-                    slice = records
-                } catch (error) {
-                    throw new Error(`Error fetching records: ${error}`);
-                }
+                length = count;
+                slice = records
+            } catch (error) {
+                throw new Error(`Error fetching records: ${error}`);
             }
             return {
                 length,
@@ -738,17 +719,36 @@ export const queries = {
 
             try {
                 if (me.userRoleId === 3) {
-                    return await repo
+                    const recordCount = await repo
                         .createQueryBuilder('record')
                         .leftJoinAndSelect('record.appointment', 'appointment')
                         .where('appointment.patientId = :patientId', {patientId: me.id})
+                        .andWhere('record.draft = :draft', {draft: false})
                         .getCount();
+
+                    return {
+                        countRecords: recordCount,
+                        countDrafts: 0
+                    }
                 } else {
-                    return await repo
+                    const recordCount = await repo
                         .createQueryBuilder('record')
                         .leftJoinAndSelect('record.appointment', 'appointment')
                         .where('appointment.doctorId = :doctorId', {doctorId: me.id})
+                        .andWhere('record.draft = :draft', {draft: false})
                         .getCount();
+
+                    const draftCount = await repo
+                        .createQueryBuilder('record')
+                        .leftJoinAndSelect('record.appointment', 'appointment')
+                        .where('appointment.doctorId = :doctorId', {doctorId: me.id})
+                        .andWhere('record.draft = :draft', {draft: true})
+                        .getCount();
+
+                    return {
+                        countRecords: recordCount,
+                        countDrafts: draftCount
+                    }
                 }
             } catch (error) {
                 throw new Error('Unexpected error getting record count: '+error)

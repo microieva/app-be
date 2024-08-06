@@ -25,7 +25,6 @@ const startServer = async () => {
           const currentTime = Math.floor(Date.now() / 1000);
 
           if (payload.exp && currentTime < payload.exp) {
-            //me = { userId: (payload as any).userId };
             me = { userId : payload.userId }
             console.log('TOKEN WORKING')
           } 

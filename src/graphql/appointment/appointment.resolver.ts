@@ -1,3 +1,4 @@
+import { Record } from "../record/record.model";
 import { AppContext } from "../types";
 import { User } from "../user/user.model";
 import { Appointment } from "./appointment.model";
@@ -28,5 +29,13 @@ export const appointmentResolver = {
                 throw new Error(`Unexpected error while fetching appointment patient: ${error}`)
             }
         },
+        record: async (parent: Appointment, args: any, context: AppContext) => {
+            try {
+                return await context.dataSource.getRepository(Record)
+                    .findOneBy({appointmentId: parent.id})
+            } catch (error) {
+                throw new Error(`Unexpected error while fetching appointment patient: ${error}`)
+            }
+        }
     }
 }

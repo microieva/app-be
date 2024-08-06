@@ -8,19 +8,20 @@ import { appointmentResolver } from "./appointment/appointment.resolver";
 import { Appointment } from "./appointment/appointment.model";
 import { recordMutationResolver } from "./record/record.mutation.resolver";
 import { recordResolver } from "./record/record.resolver";
+import { Record } from "./record/record.model";
 
 const unions = {
-  Paginated: {
-    __resolveType(obj: any) {
-      if (obj instanceof Appointment) {
-            return "Appointment"
+    Paginated: {
+        __resolveType(obj: any) {
+            if (obj instanceof Appointment) {
+                return "Appointment"
+            }
+            if (obj instanceof Record) {
+                return 'Record';
+            }
+            return null; 
         }
-        // if (obj instanceof User) {
-        //     return 'User';
-        // }
-        return null; 
     }
-}
 }
 
 const scalars = {

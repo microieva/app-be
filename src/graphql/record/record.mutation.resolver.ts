@@ -69,7 +69,7 @@ export const recordMutationResolver = {
             }
 
             const repo = context.dataSource.getRepository(Record);
-            const dbRecord = await repo.findOneBy({appointmentId: args.appointmentId});
+            const dbRecord = await repo.findOneBy({id: args.recordId});
 
             if (!dbRecord) {
                 return {
@@ -78,7 +78,7 @@ export const recordMutationResolver = {
                 } as MutationResponse;
             }
             try {
-                await repo.delete({id: dbRecord.id});
+                await repo.delete({id: args.recordId});
                 return {
                     success: true,
                     message: 'Record deleted'

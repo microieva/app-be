@@ -28,7 +28,7 @@ export class Record {
   @Column({ nullable: false })
   appointmentId: number;
 
-  @OneToOne(() => Appointment)
+  @OneToOne(() => Appointment, appointment => appointment.record)
   @JoinColumn({ name: 'appointmentId' }) 
   appointment: Appointment;
 
