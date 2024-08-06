@@ -9,8 +9,6 @@ export const schema = `
     me: User!
     users: [User!]!
     login(directLoginInput: LoginInput!): LoginResponse!
-    testApps: [TestApp!]!
-    testApp(testAppId: Int!): TestApp!
     allAppointments: [Appointment!]!
     appointments: [Appointment!]!
     appointment (appointmentId: Int!): Appointment!
@@ -62,8 +60,6 @@ export const schema = `
   }
 
   type Mutation {
-    saveTestApp(testAppInput: TestAppInput): MutationResponse!
-    deleteTestApp(testAppId: Int!): MutationResponse!
     saveUser(userInput: UserInput!): MutationResponse!
     deleteUser(userId: Int!): MutationResponse!
     loginWithGoogle(googleCredential: String!): LoginResponse!
@@ -101,12 +97,6 @@ export const schema = `
   type RecordCountResponse {
     countRecords: Int!
     countDrafts: Int!
-  }
-
-  type TestApp {
-    id: Int!
-    testAppName: String!
-    isAppConnected: Boolean
   }
 
   type User {
@@ -151,12 +141,6 @@ export const schema = `
     appointmentId: Int!
     appointment: Appointment!
     draft: Boolean
-  }
-
-  input TestAppInput {
-    id: Int
-    testAppName: String!
-    isAppConnected: Boolean
   }
 
   input UserInput {

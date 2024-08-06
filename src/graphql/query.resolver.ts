@@ -2,10 +2,8 @@ import jwt from "jsonwebtoken";
 import { Not, IsNull, MoreThan, LessThan, In } from "typeorm";
 import { DateTime } from "luxon";
 import { User } from "./user/user.model";
-import { TestApp } from "./test-app/test-app.model";
 import { Appointment } from "./appointment/appointment.model";
 import { AppContext, LoginResponse, NextAppointmentResponse } from "./types";
-import { dataSource } from "../configurations/db.config";
 import { Record } from "./record/record.model";
 
 export const queries = {
@@ -754,31 +752,6 @@ export const queries = {
             } catch (error) {
                 throw new Error('Unexpected error getting record count: '+error)
             }
-        },
-        testApps: async (parent: null, args: any, context: AppContext) => {
-            try {
-                const repo = dataSource
-                    .createQueryRunner().connection
-                    .getRepository(TestApp);
-                
-                return await repo.find();
-            } catch (error) {
-                throw new Error(`Error fetching testApps: ${error}`);
-            }
-        },
-        testApp: async (parent: null, args: any, context: AppContext) => {
-            const id: number = args.testAppId;
-            try {
-                const repo = dataSource
-                    .createQueryRunner().connection
-                    .getRepository(TestApp);
-                
-                return await repo.findOneByOrFail({id});
-
-            } catch (error) {
-                throw new Error(`Test App not found: ${error}`);
-            }
-
         }
     }
 } 

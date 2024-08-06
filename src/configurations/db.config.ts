@@ -1,7 +1,6 @@
 import 'dotenv/config'; 
 import { DataSource } from 'typeorm';
 import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
-import { TestApp } from '../graphql/test-app/test-app.model';
 import { UserRole } from '../graphql/user/user-role.model';
 import { User } from '../graphql/user/user.model';
 import { Appointment } from '../graphql/appointment/appointment.model';
@@ -19,7 +18,6 @@ const options: SqlServerConnectionOptions = {
   logging: false,
   synchronize: true,
   entities: [
-    TestApp,
     UserRole,
     User,
     Appointment,
