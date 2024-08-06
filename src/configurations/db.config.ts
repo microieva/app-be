@@ -5,6 +5,7 @@ import { UserRole } from '../graphql/user/user-role.model';
 import { User } from '../graphql/user/user.model';
 import { Appointment } from '../graphql/appointment/appointment.model';
 import { Record } from '../graphql/record/record.model';
+import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
 
 const options: SqlServerConnectionOptions = {
   type: 'mssql',
@@ -21,7 +22,8 @@ const options: SqlServerConnectionOptions = {
     UserRole,
     User,
     Appointment,
-    Record
+    Record,
+    DoctorRequest
   ],
   migrations: ["./src/migration/*.ts"],
   //migrations:[],

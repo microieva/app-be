@@ -5,6 +5,7 @@ import { User } from "./user/user.model";
 import { Appointment } from "./appointment/appointment.model";
 import { AppContext, LoginResponse, NextAppointmentResponse } from "./types";
 import { Record } from "./record/record.model";
+import { DoctorRequest } from "./doctor-request/doctor-request.model";
 
 export const queries = {
     Query: {
@@ -40,20 +41,93 @@ export const queries = {
         },
         me: async (parent: null, args: any, context: AppContext)=> {
             const userId = context.me.userId;
-            
+            const requestRepo = context.dataSource.getRepository(DoctorRequest);
             const repo = context.dataSource.getRepository(User);
+
+            const myAccount = await repo.findOne({where: {id: userId}, relations: ['userRole'] });
+            const myRequest = await requestRepo.findOneBy({id: userId});
+
+            if (myRequest) {
+                throw new Error(`This account request is in process. Please try later`);
+            }
+            return myAccount;
+        },
+        doctors: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+            const repo = context.dataSource.getRepository(User);
+            const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+
+            if (!me || me.userRoleId !== 1) {
+                throw new Error("Unauthorized action")
+            }
+            let slice: User[];
+            let length: number = 0;
+
             try {
-                const me = await repo.findOne({where: {id: userId}, relations: ['userRole'] });
-                return me;
+                const queryBuilder = repo
+                    .createQueryBuilder('user')
+                    .where('user.userRoleId = :userRoleId', { userRoleId: 2});
+    
+                if (filterInput) {
+                    queryBuilder.andWhere(
+                        '(user.firstName LIKE :filter OR user.lastName LIKE :filter)',
+                        { filter: `%${filterInput}%` }
+                    );
+                }
+                const [doctors, count]: [User[], number] = await queryBuilder
+                    .orderBy(`user.${sortActive}` || 'user.firstName', `${sortDirection}` as 'ASC' | 'DESC')
+                    .limit(pageLimit)
+                    .offset(pageIndex * pageLimit)
+                    .getManyAndCount();
+
+
+                length = count;
+                slice = doctors
             } catch (error) {
-                throw new Error(`who am I? ${error}`)
+                throw new Error(`Error fetching pending appointments: ${error}`);
+            }
+            return {
+                slice,
+                length
             }
         },
-        users: async (parent: null, args: any, context: AppContext) => {
+        requests: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+            const repo = context.dataSource.getRepository(DoctorRequest);
+            const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+
+            if (!me || me.userRoleId !== 1) {
+                throw new Error("Unauthorized action")
+            }
+
+            let slice: DoctorRequest[];
+            let length: number = 0;
+
             try {
-                return await context.dataSource.getRepository(User).find()
+                const queryBuilder = repo
+                    .createQueryBuilder('doctor_request')
+    
+                if (filterInput) {
+                    queryBuilder.andWhere(
+                        '(doctor_request.firstName LIKE :filter OR doctor_request.lastName LIKE :filter)',
+                        { filter: `%${filterInput}%` }
+                    );
+                }
+                const [requests, count]: [DoctorRequest[], number] = await queryBuilder
+                    .orderBy(`doctor_request.${sortActive}` || 'doctor_request.firstName', `${sortDirection}` as 'ASC' | 'DESC')
+                    .limit(pageLimit)
+                    .offset(pageIndex * pageLimit)
+                    .getManyAndCount();
+
+
+                length = count;
+                slice = requests
             } catch (error) {
-                throw new Error(`Error fetching users: ${error}`);
+                throw new Error(`Error fetching pending appointments: ${error}`);
+            }
+            return {
+                slice,
+                length
             }
         },
         allAppointments: async (parent: null, args: any, context: AppContext) => {
@@ -82,7 +156,6 @@ export const queries = {
                     const queryBuilder = repo
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId = :patientId', {patientId: me.id})
-                        //.orWhere({ allDay: true })
 
                     return await queryBuilder.getMany();
                 } else {
@@ -446,7 +519,7 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const date: Date = args.date;
-            // DOESNT WORK !!!!!
+            // TO DO: fix reserved days
             if (me.userRoleId === 2) {
                 try {
                     return repo

@@ -3,11 +3,24 @@ import { gql } from "graphql-tag";
 export const schema = `
   scalar Date
 
-  union Paginated = Appointment | Record
+  union Paginated = Appointment | Record | User | DoctorRequest
 
   type Query {
-    me: User!
-    users: [User!]!
+    me: User
+    doctors(
+      pageIndex: Int!, 
+      pageLimit: Int!, 
+      sortActive: String, 
+      sortDirection: String
+      filterInput: String
+    ): Paged!
+    requests(
+      pageIndex: Int!, 
+      pageLimit: Int!, 
+      sortActive: String, 
+      sortDirection: String
+      filterInput: String
+    ): Paged!
     login(directLoginInput: LoginInput!): LoginResponse!
     allAppointments: [Appointment!]!
     appointments: [Appointment!]!
@@ -143,6 +156,16 @@ export const schema = `
     draft: Boolean
   }
 
+  type DoctorRequest {
+    id: Int!
+    createdAt: Date!
+    updatedAt: Date
+    email: String!
+    firstName: String!
+    lastName: String!
+    userRoleId: Int!
+  }
+
   input UserInput {
     id: Int
     userRoleId: Int
@@ -178,6 +201,14 @@ export const schema = `
     text: String
     appointmentId: Int!
     draft: Boolean
+  }
+
+  input DoctorRequestInput {
+    updatedAt: Date
+    email: String!
+    firstName: String!
+    lastName: String!
+    userRoleId: Int! 
   }
 `
 

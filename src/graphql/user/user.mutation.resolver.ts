@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { Appointment } from "../appointment/appointment.model";
 import { In } from "typeorm";
 import { DateTime } from "luxon";
+import { DoctorRequest } from "../doctor-request/doctor-request.model";
 
 export const userMutationResolver = {
     Mutation: {
@@ -119,32 +120,12 @@ export const userMutationResolver = {
             }
 
             const repo = context.dataSource.getRepository(User);
+            const requestRepo = context.dataSource.getRepository(DoctorRequest);
             const dbUser = await repo.findOneBy({email: payload.email});
+            const dbRequest = await requestRepo.findOneBy({email: payload.email});
+            console.log('BD USER: ', dbUser, 'dbRequest: ', dbRequest, 'requestRepo: ', requestRepo)
 
-            if (!dbUser) {
-                const newUser = new User();
-                newUser.email = payload.email;
-                newUser.firstName = payload.given_name;
-                newUser.lastName = payload.family_name;
-                newUser.userRoleId = 2;
-                newUser.password = "";
-                newUser.updatedAt = null;
-
-                try {
-                    const newDbUser = await repo.save(newUser);
-                    const token = jwt.sign({ userId: newDbUser.id }, process.env.JWT_SECRET!, { expiresIn: '10h' });
-                    const currentTime = DateTime.now();
-                    const expirationTime = currentTime.plus({ hours: 10 });
-                    const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
-
-                    return {
-                        token: token, 
-                        expiresAt: expirationTimeInFinnishTime
-                    } as LoginResponse;
-                } catch (error) {
-                    throw new Error(`error saving new user: ${error}`);
-                }
-            } else {
+            if (dbUser) {
                 const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET!, { expiresIn: '10h' });
                 const currentTime = DateTime.now();
                 const expirationTime = currentTime.plus({ hours: 10 });
@@ -154,6 +135,33 @@ export const userMutationResolver = {
                     token: token, 
                     expiresAt: expirationTimeInFinnishTime
                 } as LoginResponse;
+            } else {
+                if (dbRequest) {
+                    console.log('ONLY REQUEST: ', dbRequest)
+                    throw new Error(`This account request is in process. Please try later`);
+                } else {
+                    const newRequest = new DoctorRequest();
+                    newRequest.email = payload.email;
+                    newRequest.firstName = payload.given_name;
+                    newRequest.lastName = payload.family_name;
+                    newRequest.userRoleId = 2;
+                    newRequest.updatedAt = null;
+    
+                    try {
+                        const newDoctorRequest = await requestRepo.save(newRequest);
+                        const token = jwt.sign({ userId: newDoctorRequest.id }, process.env.JWT_SECRET!, { expiresIn: '10h' });
+                        const currentTime = DateTime.now();
+                        const expirationTime = currentTime.plus({ hours: 10 });
+                        const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
+    
+                        return {
+                            token: token, 
+                            expiresAt: expirationTimeInFinnishTime
+                        } as LoginResponse;
+                    } catch (error) {
+                        throw new Error(`error saving new request: ${error}`);
+                    }
+                }
             }
         },
         loginWithSignicat: (parent: null, args: any, context: AppContext)=> {

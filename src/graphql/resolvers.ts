@@ -8,6 +8,8 @@ import { Appointment } from "./appointment/appointment.model";
 import { recordMutationResolver } from "./record/record.mutation.resolver";
 import { recordResolver } from "./record/record.resolver";
 import { Record } from "./record/record.model";
+import { DoctorRequest } from "./doctor-request/doctor-request.model";
+import { User } from "./user/user.model";
 
 const unions = {
     Paginated: {
@@ -17,6 +19,12 @@ const unions = {
             }
             if (obj instanceof Record) {
                 return 'Record';
+            }
+            if (obj instanceof DoctorRequest) {
+                return 'DoctorRequest';
+            }
+            if (obj instanceof User) {
+                return 'User';
             }
             return null; 
         }
