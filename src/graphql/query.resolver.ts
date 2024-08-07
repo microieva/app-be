@@ -52,6 +52,32 @@ export const queries = {
             }
             return myAccount;
         },
+        user: async (parent: null, args: any, context: AppContext)=> {
+            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+            const repo = context.dataSource.getRepository(User);
+
+            if (!me || me.userRoleId !== 1) {
+                throw new Error("Unauthorized action")
+            }
+            try {
+                return await repo.findOneBy({id: args.userId});
+            } catch (error) {
+                throw new Error("user not found: "+error);
+            }
+        },
+        request: async (parent: null, args: any, context: AppContext)=> {
+            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+            const repo = context.dataSource.getRepository(DoctorRequest);
+
+            if (!me || me.userRoleId !== 1) {
+                throw new Error("Unauthorized action")
+            }
+            try {
+                return await repo.findOneBy({id: args.userId});
+            } catch (error) {
+                throw new Error("Doctor account request not found: "+error);
+            }
+        },
         doctors: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
             const repo = context.dataSource.getRepository(User);
@@ -80,9 +106,9 @@ export const queries = {
                     .offset(pageIndex * pageLimit)
                     .getManyAndCount();
 
-
+                console.log('DOCTORS: ', doctors, 'LENGTH: ', count)
                 length = count;
-                slice = doctors
+                slice = doctors;
             } catch (error) {
                 throw new Error(`Error fetching pending appointments: ${error}`);
             }
@@ -118,7 +144,6 @@ export const queries = {
                     .limit(pageLimit)
                     .offset(pageIndex * pageLimit)
                     .getManyAndCount();
-
 
                 length = count;
                 slice = requests

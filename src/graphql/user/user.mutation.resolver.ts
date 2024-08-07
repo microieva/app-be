@@ -10,6 +10,48 @@ import { DoctorRequest } from "../doctor-request/doctor-request.model";
 
 export const userMutationResolver = {
     Mutation: {
+        saveDoctor: async(parent: null, args: any, context: AppContext)=> {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const requestRepo = context.dataSource.getRepository(DoctorRequest);
+            const userRepo = context.dataSource.getRepository(User);
+            const dbDoctorRequest = await requestRepo.findOneBy({id: args.doctorRequestId});
+
+            if (!me && me.userRoleId !== 1) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                }
+            }
+            if (!dbDoctorRequest) {
+                return {
+                    success: false,
+                    message: "Doctor request id not found"
+                }
+            }
+            const newUser = new User();
+
+            newUser.email = dbDoctorRequest.email;
+            newUser.firstName = dbDoctorRequest.firstName;
+            newUser.lastName = dbDoctorRequest.lastName;
+            newUser.password = "";
+            newUser.userRoleId = dbDoctorRequest.userRoleId;
+            newUser.updatedAt = null;
+
+            try {
+                await userRepo.save(newUser);
+                await requestRepo.delete({id: dbDoctorRequest.id});
+
+                return {
+                    success: true,
+                    message: "User details moved to user table"
+                }
+            } catch (error) {
+                return {
+                    success: false,
+                    message: "Cannot move user details: "+error
+                }
+            }
+        },
         saveUser: async(parent: null, args: any, context: AppContext)=> {
             const input: UserInput = args.userInput;            
             const repo = context.dataSource.getRepository(User);
@@ -66,44 +108,65 @@ export const userMutationResolver = {
             }
         },
         deleteUser: async (parent: null, args: any, context: AppContext)=> {
-            const userId: number = args.userId;  
+            const userId: number | null = args.userId;  
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
 
-            if (userId !== context.me.userId) {
+            if (!me) {
                 return {
                     success: false,
                     message: "Unauthorized action"
                 } as MutationResponse;
             }
+
             const repo = context.dataSource.getRepository(User);
             const appointmentsRepo = context.dataSource.getRepository(Appointment);
-            const dbUser = await repo.findOneOrFail({ where: { id: userId } });
 
-            if (dbUser) {
+            if (!userId) {
                 const dbUserAppointments = await appointmentsRepo
                     .createQueryBuilder("appointment")
-                    .where({patientId: userId})
-                    .orWhere({doctorId: userId})
+                    .where({patientId: me.id})
+                    .orWhere({doctorId: me.id})
                     .getMany();
+
                 try {
-                    await repo.delete({id: dbUser.id});
-                    await appointmentsRepo.delete({id: In(dbUserAppointments)})
-                    // will have to add the same for medical records
+                    await appointmentsRepo.delete({id: In(dbUserAppointments)});
+                    await repo.delete({id: me.id});
                     return {
                         success: true,
-                        message: `User deleted successfuly`
-                    } as MutationResponse;
-                }catch (error) {
+                        message: "User data removed"
+                    } as MutationResponse
+                } catch (error) {
                     return {
                         success: false,
-                        message: `Unexpected error on deleting user: ${error}`
-                    } as MutationResponse;
+                        message: "Error deleting user data: "+error
+                    } as MutationResponse
                 }
 
-            } else {
+            }
+
+            const dbUserAppointments = await appointmentsRepo
+                .createQueryBuilder("appointment")
+                .where({patientId: userId})
+                .orWhere({doctorId: userId})
+                .getMany();
+
+            try {
+                if (dbUserAppointments.length> 0) {
+                    await appointmentsRepo.delete({id: In(dbUserAppointments)});
+                }
+
+                await repo.delete({id: userId});
+
+                return {
+                    success: true,
+                    message: "User data removed"
+                } as MutationResponse;
+
+            } catch (error) {
                 return {
                     success: false,
-                    message: "User not found"
-                }
+                    message: "Error deleting user data: "+error
+                } as MutationResponse;
             }
         },
         loginWithGoogle: async (parent: null, args: any, context: AppContext) => {
@@ -123,7 +186,6 @@ export const userMutationResolver = {
             const requestRepo = context.dataSource.getRepository(DoctorRequest);
             const dbUser = await repo.findOneBy({email: payload.email});
             const dbRequest = await requestRepo.findOneBy({email: payload.email});
-            console.log('BD USER: ', dbUser, 'dbRequest: ', dbRequest, 'requestRepo: ', requestRepo)
 
             if (dbUser) {
                 const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET!, { expiresIn: '10h' });
@@ -137,7 +199,6 @@ export const userMutationResolver = {
                 } as LoginResponse;
             } else {
                 if (dbRequest) {
-                    console.log('ONLY REQUEST: ', dbRequest)
                     throw new Error(`This account request is in process. Please try later`);
                 } else {
                     const newRequest = new DoctorRequest();

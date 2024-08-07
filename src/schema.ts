@@ -7,6 +7,8 @@ export const schema = `
 
   type Query {
     me: User
+    user(userId: Int!): User
+    request(userId: Int!): DoctorRequest
     doctors(
       pageIndex: Int!, 
       pageLimit: Int!, 
@@ -74,7 +76,7 @@ export const schema = `
 
   type Mutation {
     saveUser(userInput: UserInput!): MutationResponse!
-    deleteUser(userId: Int!): MutationResponse!
+    deleteUser(userId: Int): MutationResponse!
     loginWithGoogle(googleCredential: String!): LoginResponse!
     loginWithSignicat(signicatAccessToken: String!): String!
     saveAppointment(appointmentInput: AppointmentInput!): MutationResponse!
@@ -84,6 +86,8 @@ export const schema = `
     acceptAppointment(appointmentId: Int!): MutationResponse!
     saveRecord(recordInput: RecordInput!): MutationResponse!
     deleteRecord(recordId: Int!): MutationResponse!
+    saveDoctor(doctorRequestId: Int!): MutationResponse!
+    deleteDoctorRequest(doctorRequestId: Int!): MutationResponse!
   }
 
   type Paged {

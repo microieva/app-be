@@ -10,6 +10,7 @@ import { recordResolver } from "./record/record.resolver";
 import { Record } from "./record/record.model";
 import { DoctorRequest } from "./doctor-request/doctor-request.model";
 import { User } from "./user/user.model";
+import { doctorRequestMutationResolver } from "./doctor-request/doctor-request.mutation.resolver";
 
 const unions = {
     Paginated: {
@@ -83,6 +84,7 @@ export const resolvers = [
     scalars,
     unions,
     queries,
+    doctorRequestMutationResolver,
     userMutationResolver,
     userResolver,
     appointmentMutationResolver,
