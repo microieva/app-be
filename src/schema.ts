@@ -16,6 +16,13 @@ export const schema = `
       sortDirection: String
       filterInput: String
     ): Paged!
+    patients(
+      pageIndex: Int!, 
+      pageLimit: Int!, 
+      sortActive: String, 
+      sortDirection: String
+      filterInput: String
+    ): Paged!
     requests(
       pageIndex: Int!, 
       pageLimit: Int!, 
@@ -27,9 +34,10 @@ export const schema = `
     allAppointments: [Appointment!]!
     appointments: [Appointment!]!
     appointment (appointmentId: Int!): Appointment!
-    calendarPendingAppointments: [Appointment!]!
-    calendarUpcomingAppointments: [Appointment!]!
-    calendarPastAppointments: [Appointment!]!
+    justCreatedAppointment(patientId: Int!): Appointment
+    calendarPendingAppointments (patientId: Int): [Appointment!]!
+    calendarUpcomingAppointments (patientId: Int): [Appointment!]!
+    calendarPastAppointments (patientId: Int): [Appointment!]!
     pendingAppointments (
       pageIndex: Int!, 
       pageLimit: Int!, 
@@ -136,13 +144,13 @@ export const schema = `
   type Appointment {
     id: Int!
     doctorId: Int
-    patientId: Int!
+    patientId: Int
     createdAt: Date!
     updatedAt: Date
     start: Date!
     end: Date!
     allDay: Boolean
-    patient: User!
+    patient: User
     doctor: User
     patientMessage: String
     doctorMessage: String
@@ -197,6 +205,7 @@ export const schema = `
     allDay: Boolean!
     doctorMessage: String
     patientMessage: String
+    patientId: Int
   }
 
   input RecordInput {

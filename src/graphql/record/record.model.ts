@@ -7,7 +7,7 @@ export class Record {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ nullable: true, type: "nvarchar", length: 20})
+  @Column({ nullable: true, type: "nvarchar", length: 50})
   title: string;
 
   @Column({ nullable: true, type: "nvarchar", length: 4000})

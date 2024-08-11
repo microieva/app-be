@@ -11,7 +11,7 @@ export const appointmentMutationResolver = {
             const input: AppointmentInput = args.appointmentInput;
             const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
 
-            if (!dbMe || (dbMe && dbMe.userRoleId === 1)) {
+            if (!dbMe) {
                 return {
                     success: false,
                     message: 'Unauthorized action'
@@ -37,6 +37,9 @@ export const appointmentMutationResolver = {
             } else if (dbMe.userRoleId === 2) {
                 queryBuilder
                     .andWhere('appointment.doctorId = :doctorId', { doctorId: context.me.userId });
+            } else {
+                queryBuilder
+                    .andWhere('appointment.patientId = :patientId', { patientId: input.patientId });
             }
 
             const isReserved = await queryBuilder
@@ -59,8 +62,11 @@ export const appointmentMutationResolver = {
                         } as MutationResponse;
                     }
                     dbAppointment.patientId = dbMe.id;
-                } else {
+                } else if (dbMe.userRoleId === 2){
                     dbAppointment.doctorId = dbMe.id;
+                } else {
+                    dbAppointment.patientId = input.patientId;
+                    dbAppointment.updatedAt = null;
                 }
 
                 try {
@@ -97,9 +103,13 @@ export const appointmentMutationResolver = {
                     newAppointment.patientId = dbMe.id;
                     newAppointment.updatedAt = null;
                     newAppointment.patientMessage = input.patientMessage;
-                } else {
+                } else if (dbMe.userRoleId === 2){
                     newAppointment.doctorId = dbMe.id;
                     newAppointment.doctorMessage = input.doctorMessage;
+                } else {
+                    newAppointment.patientId = input.patientId;
+                    newAppointment.updatedAt = null;
+                    newAppointment.patientMessage = input.patientMessage;
                 }
 
                 try {
@@ -113,14 +123,13 @@ export const appointmentMutationResolver = {
                         success: false,
                         message: 'Unexpected error while creating appointment: '+error
                     } as MutationResponse;
-                }
-                
+                }    
             }
         },
         deleteAppointment: async (parent: null, args: any, context: AppContext) => {
             const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             
-            if (!dbMe || dbMe.userRoleId === 1) {
+            if (!dbMe) {
                 return {
                     success: false,
                     message: "Unauthorized action"
@@ -150,7 +159,7 @@ export const appointmentMutationResolver = {
             const id = args.appointmentId;
             const message = args.appointmentMessage;
 
-            if (!dbMe || dbMe && dbMe.userRoleId === 1) {
+            if (!dbMe) {
                 return {
                     success: false,
                     message: "Unauthorized action"
@@ -168,8 +177,19 @@ export const appointmentMutationResolver = {
             try {
                 if (dbMe.userRoleId === 3) {
                     dbAppointment.patientMessage = message;
-                } else {
+                    if (!dbAppointment.updatedAt) {
+                        dbAppointment.updatedAt = null; 
+                    }
+                } else if (dbMe.userRoleId === 2){
                     dbAppointment.doctorMessage = message;
+                    if (!dbAppointment.updatedAt) {
+                        dbAppointment.updatedAt = null; 
+                    }
+                } else {
+                    dbAppointment.patientMessage = message;
+                    if (!dbAppointment.updatedAt) {
+                        dbAppointment.updatedAt = null; 
+                    }
                 }
                 await repo.save(dbAppointment);
                 return {
@@ -189,7 +209,7 @@ export const appointmentMutationResolver = {
             const repo = context.dataSource.getRepository(Appointment);
             const id = args.appointmentId;
 
-            if (!dbMe || dbMe && dbMe.userRoleId === 1) {
+            if (!dbMe) {
                 return {
                     success: false,
                     message: "Unauthorized action"
@@ -205,10 +225,10 @@ export const appointmentMutationResolver = {
                 } as MutationResponse;
             }
             try {
-                if (dbMe.userRoleId === 3) {
-                    dbAppointment.patientMessage = null;
-                } else {
+                if (dbMe.userRoleId === 2) {
                     dbAppointment.doctorMessage = null;
+                } else {
+                    dbAppointment.patientMessage = null;
                 }
                 await repo.save(dbAppointment);
                 return {

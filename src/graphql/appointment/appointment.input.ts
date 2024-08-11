@@ -5,4 +5,5 @@ export interface AppointmentInput {
     allDay: boolean
     patientMessage: string
     doctorMessage: string
+    patientId?: number
 }

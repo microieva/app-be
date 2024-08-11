@@ -1,12 +1,12 @@
-import { User } from "./user.model";
-import { AppContext, LoginResponse, MutationResponse } from "../types";
-import { UserInput } from "./user.input";
+import { DateTime } from "luxon";
+import { In } from "typeorm";
 import { OAuth2Client } from 'google-auth-library';
 import jwt from "jsonwebtoken";
+import { User } from "./user.model";
+import { UserInput } from "./user.input";
 import { Appointment } from "../appointment/appointment.model";
-import { In } from "typeorm";
-import { DateTime } from "luxon";
 import { DoctorRequest } from "../doctor-request/doctor-request.model";
+import { AppContext, LoginResponse, MutationResponse } from "../types";
 
 export const userMutationResolver = {
     Mutation: {
