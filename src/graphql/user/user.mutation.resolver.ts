@@ -94,11 +94,12 @@ export const userMutationResolver = {
                 newUser.postCode = input?.postCode;
                 newUser.lastLogInAt = input.lastLogInAt ? new Date(input.lastLogInAt) : null;
                 newUser.updatedAt = null;
-                await repo.save(newUser);
+                const user = await repo.save(newUser);
 
                 return {
                     success: true,
-                    message: "User saved"
+                    message: "User saved",
+                    createdAt: user.createdAt
                 } as MutationResponse;
             } catch (error) {
                 return {

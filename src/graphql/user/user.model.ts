@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, ManyToOne, UpdateDateColumn, JoinColumn } from "typeorm";
 import bcrypt from "bcryptjs";
 import { UserRole } from "./user-role.model";
+import { DateTime } from "luxon";
 
 
 @Entity()
@@ -51,7 +52,14 @@ export class User {
   @Column({ nullable: true })
   postCode: string;
 
-  @CreateDateColumn({type:'date'})
+
+  @BeforeInsert()
+  dateToLocalTime() {
+    const created = DateTime.local().toISO({includeOffset: true})
+    this.createdAt = new Date(created);
+  }
+
+  @CreateDateColumn({type:'datetime'})
   createdAt: Date;
 
   @Column({ type: 'date', nullable: true })

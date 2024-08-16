@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import { Not, IsNull, MoreThan, LessThan, In } from "typeorm";
 import { DateTime } from "luxon";
 import { User } from "./user/user.model";
 import { Appointment } from "./appointment/appointment.model";
@@ -96,7 +95,7 @@ export const queries = {
     
                 if (filterInput) {
                     queryBuilder.andWhere(
-                        '(user.firstName LIKE :nameLike OR user.lastName LIKE :nameLike)',
+                        '(LOWER(user.firstName) LIKE :nameLike OR LOWER(user.lastName) LIKE :nameLike)',
                         { nameLike:  `%${filterInput}%` }
                     );
                 }
@@ -131,13 +130,13 @@ export const queries = {
                 const queryBuilder = repo
                     .createQueryBuilder('user')
                     .where('user.userRoleId = :userRoleId', { userRoleId: 3})
-                    .andWhere(
-                        '(user.firstName LIKE :nameLike OR user.lastName LIKE :nameLike)',
+                    queryBuilder.andWhere(
+                        '(LOWER(user.firstName) LIKE :nameLike OR LOWER(user.lastName) LIKE :nameLike)',
                         { nameLike:  `%${filterInput}%` }
                     );
     
                 const [patients, count]: [User[], number] = await queryBuilder
-                    .orderBy(`user.${sortActive}` || 'user.firstName', `${sortDirection}` as 'ASC' | 'DESC')
+                    .orderBy(`user.${sortActive}` || 'user.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
                     .limit(pageLimit)
                     .offset(pageIndex * pageLimit)
                     .getManyAndCount();
@@ -170,12 +169,12 @@ export const queries = {
     
                 if (filterInput) {
                     queryBuilder.andWhere(
-                        '(doctor_request.firstName LIKE :nameLike OR doctor_request.lastName LIKE :nameLike)',
+                        '(LOWER(doctor_request.firstName) LIKE :nameLike OR LOWER(doctor_request.lastName) LIKE :nameLike)',
                         { nameLike:  `%${filterInput}%` }
                     );
                 }
                 const [requests, count]: [DoctorRequest[], number] = await queryBuilder
-                    .orderBy(`doctor_request.${sortActive}` || 'doctor_request.firstName', `${sortDirection}` as 'ASC' | 'DESC')
+                    .orderBy(`doctor_request.${sortActive}` || 'doctor_request.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
                     .limit(pageLimit)
                     .offset(pageIndex * pageLimit)
                     .getManyAndCount();
@@ -183,7 +182,7 @@ export const queries = {
                 length = count;
                 slice = requests
             } catch (error) {
-                throw new Error(`Error fetching pending appointments: ${error}`);
+                throw new Error(`Error fetching doctor account requests: ${error}`);
             }
             return {
                 slice,
@@ -245,7 +244,7 @@ export const queries = {
         justCreatedAppointment: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
 
-            if (!me || me.userRoleId === 2) {
+            if (!me) {
                 throw new Error("Unauthorized action");
             }
 
@@ -262,10 +261,34 @@ export const queries = {
                 throw new Error("Failed refetching new appointment "+error)
             }
         },
+        nowAppointment: async (parent: null, args: any, context: AppContext)=> {
+            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+
+            if (!me || me.userRoleId !== 2) {
+                throw new Error("Unauthorized action")
+            }
+            const now = DateTime.now().toISO({ includeOffset: false });
+            const repo = context.dataSource.getRepository(Appointment);
+
+            try {
+                return await repo
+                    .createQueryBuilder('appointment')
+                    .leftJoinAndSelect('appointment.patient', 'patient')
+                    .where('appointment.patientId IS NOT NULL')
+                    .andWhere('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
+                    .andWhere(':now BETWEEN appointment.start AND appointment.end', { now })
+                    .getOne();
+
+            } catch (error) {
+                throw new Error("Error fetching now appointment: "+error)
+            }
+            
+        },
         pendingAppointments: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+            const now = DateTime.now().toISO({ includeOffset: false });
 
             let length: number = 0;
             let slice: Appointment[] = [];   
@@ -302,6 +325,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .leftJoinAndSelect('appointment.patient', 'patient')
                             .where('appointment.doctorId IS NULL')
+                            .andWhere('appointment.end > :now', {now})
                         
                         if (formattedReservedTimes.length>0) {
                             queryBuilder.andWhere('appointment.start NOT IN (:...reservedTimes)', { reservedTimes: formattedReservedTimes });
@@ -309,16 +333,23 @@ export const queries = {
 
                         if (filterInput) {
                             queryBuilder.andWhere(
-                                '(patient.firstName LIKE :nameLike OR patient.lastName LIKE :nameLike)',
-                                { nameLike: `%${filterInput}%` }
+                                '(LOWER(patient.firstName) LIKE :nameLike OR LOWER(patient.lastName) LIKE :nameLike)',
+                                { nameLike:  `%${filterInput}%` }
                             );
                         }
 
-                        const [appointments, count] = await queryBuilder
-                            .orderBy(`appointment.${sortActive || 'start'}`, sortDirection ? sortDirection.toUpperCase() as 'ASC' | 'DESC' : 'ASC')
+                        let orderByField: string;
+                        if (sortActive === 'firstName') {
+                            orderByField = 'patient.firstName';
+                        } else {
+                            orderByField = `appointment.${sortActive}` || 'appointment.start';
+                        }
+                        const [appointments, count]: [Appointment[], number] = await queryBuilder
+                            .orderBy(orderByField, `${sortDirection}` as 'ASC' | 'DESC')
                             .limit(pageLimit)
                             .offset(pageIndex * pageLimit)
                             .getManyAndCount();
+
 
                         length = count;
                         slice = appointments;
@@ -342,7 +373,8 @@ export const queries = {
 
             let length: number = 0;
             let slice: Appointment[] = [];   
-            const now = DateTime.now().toISO(); 
+            const now = DateTime.now().toISO({ includeOffset: false });
+
             if (me) {
                 if (me.userRoleId === 3) {
                     try {
@@ -366,18 +398,25 @@ export const queries = {
                     try {
                         const queryBuilder = repo.createQueryBuilder('appointment')
                             .leftJoinAndSelect('appointment.patient', 'patient')
-                            .where('appointment.doctorId = :doctorId', {doctorId: me.id})
+                            .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId })
                             .andWhere('appointment.patientId IS NOT NULL') 
                             .andWhere('appointment.start > :now', { now: new Date(now) })
             
                         if (filterInput) {
                             queryBuilder.andWhere(
-                                '(patient.firstName LIKE :nameLike OR patient.lastName LIKE :nameLike)',
+                                '(LOWER(patient.firstName) LIKE :nameLike OR LOWER(patient.lastName) LIKE :nameLike)',
                                 { nameLike:  `%${filterInput}%` }
                             );
                         }
+
+                        let orderByField: string;
+                        if (sortActive === 'firstName') {
+                            orderByField = 'patient.firstName';
+                        } else {
+                            orderByField = `appointment.${sortActive}` || 'appointment.start';
+                        }
                         const [appointments, count]: [Appointment[], number] = await queryBuilder
-                            .orderBy(`appointment.${sortActive}` || 'appointment.start', `${sortDirection}` as 'ASC' | 'DESC')
+                            .orderBy(orderByField, `${sortDirection}` as 'ASC' | 'DESC')
                             .limit(pageLimit)
                             .offset(pageIndex * pageLimit)
                             .getManyAndCount();
@@ -405,7 +444,9 @@ export const queries = {
 
             let length: number = 0;
             let slice: Appointment[] = [];   
-            const now = DateTime.now().toISO(); 
+
+            const now = DateTime.now().toISO({ includeOffset: false });
+
             if (me) {
                 if (me.userRoleId === 3) {
                     try {
@@ -429,21 +470,31 @@ export const queries = {
                     try {
                         const queryBuilder = repo.createQueryBuilder('appointment')
                             .leftJoinAndSelect('appointment.patient', 'patient')
-                            .where('appointment.doctorId = :doctorId', {doctorId: me.id})
+                            .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
                             .andWhere('appointment.patientId IS NOT NULL') 
                             .andWhere('appointment.end < :now', { now: new Date(now) })
             
                         if (filterInput) {
                             queryBuilder.andWhere(
-                                '(patient.firstName LIKE :nameLike OR patient.lastName LIKE :nameLike)',
+                                '(LOWER(patient.firstName) LIKE :nameLike OR LOWER(patient.lastName) LIKE :nameLike)',
                                 { nameLike:  `%${filterInput}%` }
                             );
                         }
+
+                        let orderByField: string;
+
+                        if (sortActive === 'firstName') {
+                            orderByField = 'patient.firstName';
+                        } else {
+                            orderByField = `appointment.${sortActive}` || 'appointment.end';
+                        }
+
                         const [appointments, count]: [Appointment[], number] = await queryBuilder
-                            .orderBy(`appointment.${sortActive}` || 'appointment.end', `${sortDirection}` as 'ASC' | 'DESC')
+                            .orderBy(orderByField, `${sortDirection}` as 'ASC' | 'DESC')
                             .limit(pageLimit)
                             .offset(pageIndex * pageLimit)
                             .getManyAndCount();
+
 
                         length = count;
                         slice = appointments
@@ -458,60 +509,278 @@ export const queries = {
             return {
                 length,
                 slice
+            }   
+        },
+        calendarAllAppointments:  async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Appointment);
+            const { monthStart, monthEnd, patientId } = args;
+
+            if (!me) {
+                throw new Error("Unauthorized action")
             }
-            
+
+            switch (me.userRoleId) {
+                case 3: 
+                    try {
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.patientId = :patientId', { patientId: context.me.userId })
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                        return {
+                            monthSlice
+                        }
+                    } catch (error) {
+                        throw new Error(`Error fetching all appointments: ${error}`);
+                    }
+                case 2: 
+                    try {
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
+                            .orWhere('appointment.doctorId IS NULL')
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart: new Date(monthStart),
+                                monthEnd:  new Date(monthEnd)
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart: new Date(monthStart),
+                                monthEnd:  new Date(monthEnd)
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                        return {
+                            monthSlice
+                        }
+                    } catch (error) {
+                        throw new Error(`Error fetching all appointments: ${error}`);
+                    }
+                case 1: 
+                    try {
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.patientId = :patientId', { patientId })
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                        return {
+                            monthSlice
+                        }
+                    } catch (error) {
+                        throw new Error(`Error fetching all appointments: ${error}`);
+                    }
+                default:
+                    throw new Error('Action unauthorized')
+            }
+        },
+        calendarMissedAppointments:  async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Appointment);
+            const { monthStart, monthEnd, patientId } = args;
+            const now = DateTime.now().toISO({ includeOffset: false });
+
+            if (!me) {
+                throw new Error("Unauthorized action")
+            }
+
+            switch (me.userRoleId) {
+                case 3: 
+                    try {
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.patientId = :patientId', { patientId: context.me.userId })
+                            .andWhere('appointment.doctorId IS NULL')
+                            .andWhere('appointment.start < :now', {now})
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                        return {
+                            monthSlice
+                        }
+                    } catch (error) {
+                        throw new Error(`Error fetching missed appointments: ${error}`);
+                    }
+                case 2: 
+                    const reservedTimes = await repo
+                        .createQueryBuilder('appointment')
+                        .select('appointment.start')
+                        .where('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
+                        .getRawMany();
+
+                    const formattedReservedTimes: string[] = reservedTimes.map(rt => DateTime.fromJSDate(rt.appointment_start).toISO({ includeOffset: false }));
+
+                    try {
+                        const queryBuilder = repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.doctorId IS NULL')
+                            .andWhere('appointment.start < :now', {now})
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart: new Date(monthStart),
+                                monthEnd:  new Date(monthEnd)
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart: new Date(monthStart),
+                                monthEnd:  new Date(monthEnd)
+                            });
+
+                        if (formattedReservedTimes.length>0) {
+                            queryBuilder.andWhere('appointment.start NOT IN (:...reservedTimes)', { reservedTimes: formattedReservedTimes });
+                        }
+
+                        const monthSlice = await queryBuilder
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany(); 
+
+                        return {
+                            monthSlice
+                        }
+                    } catch (error) {
+                        throw new Error(`Error fetching missed appointments: ${error}`);
+                    }
+                case 1: 
+                    try {
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.patientId = :patientId', { patientId })
+                            .andWhere('appointment.start < :now', {now})
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                        return {
+                            monthSlice
+                        }
+                    } catch (error) {
+                        throw new Error(`Error fetching missed appointments: ${error}`);
+                    }
+                default:
+                    throw new Error('Action unauthorized')
+            }
         },
         calendarPendingAppointments: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Appointment);
+            const { monthStart, monthEnd, patientId } = args;
+            const now = DateTime.now().toISO({ includeOffset: false });
 
             switch (me.userRoleId) {
                 case 3:
                     try {
-                        return await context.dataSource.getRepository(Appointment).find({
-                            where: {
-                                patientId: me.id,
-                                doctorId: IsNull()
-                            },
-                            order: {
-                                start: "DESC"
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.patientId = :patientId', { patientId: context.me.userId })
+                            .andWhere('appointment.doctorId IS NULL')
+                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                            return {
+                                monthSlice
                             }
-                        });
+
                     } catch (error) {
                         throw new Error(`Error fetching pending appointments: ${error}`);
                     }
                 case 2:
-                    const myAppointments = await context.dataSource.getRepository(Appointment).find({
-                        where: {
-                            doctorId: context.me.userId
-                        }
-                    })
-                    // THIS WILL HAVE TO BE FIXED FOR "inside" ALL DAY:
-                    const reservedTime = myAppointments.map(appointment => !appointment.allDay && appointment.start);
+                    const reservedTimes = await repo
+                            .createQueryBuilder('appointment')
+                            .select('appointment.start')
+                            .where('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
+                            .getRawMany();
+
+                    const formattedReservedTimes: string[] = reservedTimes.map(rt => DateTime.fromJSDate(rt.appointment_start).toISO({ includeOffset: false }));
 
                     try {
-                        return await context.dataSource.getRepository(Appointment).find({
-                            where: { 
-                                updatedAt: IsNull(),
-                                start: Not(In(reservedTime))
-                            },
-                            order: {
-                                start: "ASC"
-                            }
-                        });
+                        const queryBuilder = repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.doctorId IS NULL')
+                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart: new Date(monthStart),
+                                monthEnd:  new Date(monthEnd)
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart: new Date(monthStart),
+                                monthEnd:  new Date(monthEnd)
+                            });
+
+                        if (formattedReservedTimes.length>0) {
+                            queryBuilder.andWhere('appointment.start NOT IN (:...reservedTimes)', { reservedTimes: formattedReservedTimes });
+                        }
+
+                        const monthSlice = await queryBuilder
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany(); 
+
+                        return {
+                            monthSlice
+                        }
                     } catch (error) {
                         throw new Error(`Error fetching pending appointments: ${error}`);
                     }
                 case 1: {    
                     try {
-                        return await context.dataSource.getRepository(Appointment).find({
-                            where: { 
-                                updatedAt: IsNull(),
-                                patientId: args.patientId
-                            },
-                            order: {
-                                start: "ASC"
-                            }
-                        });
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.doctorId IS NULL')
+                            .andWhere('appointment.patientId = :patientId', {patientId})
+                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart: new Date(monthStart),
+                                monthEnd:  new Date(monthEnd)
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart: new Date(monthStart),
+                                monthEnd:  new Date(monthEnd)
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                        return {
+                            monthSlice
+                        }
                     } catch (error) {
                         throw new Error("Error fetching pending appointments: "+error)
                     }
@@ -522,55 +791,85 @@ export const queries = {
         },
         calendarUpcomingAppointments: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const { monthStart, monthEnd, patientId} = args;
+            const repo = context.dataSource.getRepository(Appointment);
 
             if (!me) {
                 throw new Error('Unauthorized action')
             }
-            const now = DateTime.now().toISO(); // be should use fi-FI locale ???
+
+            const now = DateTime.now().toISO({ includeOffset: false });
 
             switch (me.userRoleId) {
                 case 3:
                     try {
-                        return await context.dataSource.getRepository(Appointment).find({
-                            where: {
-                                patientId: context.me.userId,
-                                doctorId: Not(IsNull()),
-                                start: MoreThan(new Date(now)) 
-                            },
-                            order: {
-                                start: "ASC"
-                            }
-                        });
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.patientId = :patientId', { patientId: context.me.userId })
+                            .andWhere('appointment.doctorId IS NOT NULL')
+                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                        return {
+                            monthSlice
+                        }
                     } catch (error) {
                         throw new Error(`Error fetching upcoming appointments: ${error}`);
                     }
                 case 2:
                     try {
-                        return await context.dataSource.getRepository(Appointment).find({
-                            where: { 
-                                patientId: Not(IsNull()),
-                                doctorId: context.me.userId,
-                                start: MoreThan(new Date(now))
-                            },
-                            order: {
-                                start: "ASC"
-                            }
-                        });
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
+                            .andWhere('appointment.patientId IS NOT NULL')
+                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                        return {
+                            monthSlice
+                        }
                     } catch (error) {
                         throw new Error(`Error fetching upcoming appointments: ${error}`);
                     }
                 case 1: {    
                     try {
-                        return await context.dataSource.getRepository(Appointment).find({
-                            where: { 
-                                doctorId: Not(IsNull()),
-                                patientId: args.patientId,
-                                start: MoreThan(new Date(now))
-                            },
-                            order: {
-                                start: "ASC"
-                            }
-                        });
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.patientId = :patientId', { patientId })
+                            .andWhere('appointment.doctorId IS NOT NULL')
+                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                        return {
+                            monthSlice
+                        }
                     } catch (error) {
                         throw new Error("Error fetching pending appointments: "+error)
                     }
@@ -581,55 +880,85 @@ export const queries = {
         },
         calendarPastAppointments: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const { monthStart, monthEnd, patientId} = args;
+            const repo = context.dataSource.getRepository(Appointment);
 
             if (!me) {
                 throw new Error('Unauthorized action')
             }
-                const now = DateTime.now().toJSDate(); // should use fi-Fi locale ???
+
+            const now = DateTime.now().toISO({ includeOffset: false });
 
             switch (me.userRoleId) {
                 case 3:
                     try {
-                        return await context.dataSource.getRepository(Appointment).find({
-                            where: {
-                                patientId: context.me.userId,
-                                doctorId: Not(IsNull()),
-                                end: LessThan(new Date(now))
-                            },
-                            order: {
-                                end: "DESC"
-                            }
-                        });
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.patientId = :patientId', { patientId: context.me.userId })
+                            .andWhere('appointment.doctorId IS NOT NULL')
+                            .andWhere('appointment.start < :now', {now})
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                        return {
+                            monthSlice
+                        }
                     } catch (error) {
                         throw new Error(`Error fetching past appointments: ${error}`);
                     }
                 case 2:
                     try {
-                        return await context.dataSource.getRepository(Appointment).find({
-                            where: { 
-                                patientId: Not(IsNull()),
-                                doctorId: context.me.userId,
-                                end: LessThan(new Date(now))
-                            },
-                            order: {
-                                end: "DESC"
-                            }
-                        });
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.patientId IS NOT NULL', )
+                            .andWhere('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
+                            .andWhere('appointment.start < :now', {now})
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                        return {
+                            monthSlice
+                        }
                     } catch (error) {
                         throw new Error(`Error fetching past appointments: ${error}`);
                     }
                 case 1: {
                     try {
-                        return await context.dataSource.getRepository(Appointment).find({
-                            where: { 
-                                patientId: args.patientId,
-                                doctorId: Not(IsNull()),
-                                end: LessThan(new Date(now))
-                            },
-                            order: {
-                                end: "DESC"
-                            }
-                        });
+                        const monthSlice = await repo
+                            .createQueryBuilder('appointment')
+                            .where('appointment.patientId = :patientId', {patientId})
+                            .andWhere('appointment.doctorId IS NOT NULL')
+                            .andWhere('appointment.start < :now', {now})
+                            .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .andWhere('appointment.end BETWEEN :monthStart AND :monthEnd', {
+                                monthStart,
+                                monthEnd
+                            })
+                            .orderBy('appointment.start', 'DESC')
+                            .getMany();
+
+                        return {
+                            monthSlice
+                        }
                     } catch (error) {
                         throw new Error(`Error fetching past appointments: ${error}`);
                     }
@@ -661,6 +990,7 @@ export const queries = {
         countPendingAppointments: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
+            const now = DateTime.now().toISO({ includeOffset: false });
 
             if (!me || me.userRoleId === 1) {
                 throw new Error('Unauthorized action')
@@ -671,27 +1001,30 @@ export const queries = {
                     return await repo
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId = :patientId', { patientId: me.id })
-                        .andWhere('appointment.doctorId = :doctorId', {doctorId: IsNull()})
+                        .andWhere('appointment.doctorId IS NULL')
+                        .andWhere('appointment.start > :now', {now})
                         .getCount()
                 } else {
-                        const reservedTimes = await repo
-                            .createQueryBuilder('appointment')
-                            .select('appointment.start')
-                            .where('appointment.doctorId = :doctorId', { doctorId: me.id })
-                            .getRawMany();
+                    const reservedTimes = await repo
+                        .createQueryBuilder('appointment')
+                        .select('appointment.start')
+                        .where('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
+                        .getRawMany();
 
-                        const formattedReservedTimes: string[] = reservedTimes.map(rt => DateTime.fromJSDate(rt.appointment_start).toISO({ includeOffset: false }));
+                    const formattedReservedTimes: string[] = reservedTimes.map(rt => DateTime.fromJSDate(rt.appointment_start).toISO({ includeOffset: false }));
 
-                        const queryBuilder = repo
-                            .createQueryBuilder('appointment')
-                            .leftJoinAndSelect('appointment.patient', 'patient')
-                            .where('appointment.doctorId IS NULL')
-                        
-                        if (formattedReservedTimes.length>0) {
-                            queryBuilder.andWhere('appointment.start NOT IN (:...reservedTimes)', { reservedTimes: formattedReservedTimes });
-                        }
+                    const queryBuilder = repo
+                        .createQueryBuilder('appointment')
+                        .leftJoinAndSelect('appointment.patient', 'patient')
+                        .where('appointment.doctorId IS NULL')
+                        .andWhere('appointment.start > :now', {now})
+                        .groupBy('appointment.start')
+                    
+                    if (formattedReservedTimes.length>0) {
+                        queryBuilder.andWhere('appointment.start NOT IN (:...reservedTimes)', { reservedTimes: formattedReservedTimes });
+                    }
 
-                        return queryBuilder.getCount()
+                    return queryBuilder.getCount()
                 }
             } catch (error) {
                 throw new Error('Unexpected error when counting pending appointments: '+error)
@@ -705,30 +1038,33 @@ export const queries = {
             if (!me || me.userRoleId === 1) {
                 throw new Error('Unauthorized action')
             }
-
+            const now = DateTime.now().toISO({ includeOffset: false });
             try {
                 if (me.userRoleId === 3) {
                     return await repo
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId = :patientId', { patientId: me.id })
-                        .andWhere('appointment.doctorId = :doctorId', {doctorId: Not(IsNull())})
+                        .andWhere('appointment.doctorId IS NOT NULL')
+                        .andWhere('appointment.start > :now', {now: new Date(now)})
                         .getCount()
                 } else {
                     return await repo
                         .createQueryBuilder('appointment')
                         .where('appointment.doctorId = :doctorId', { doctorId: me.id })
-                        .andWhere('appointment.allDay = :allDay', {allDay: false}) 
+                        .andWhere('appointment.patientId IS NOT NULL')
+                        .andWhere('appointment.start > :now', {now: new Date(now)})
                         .getCount()
                 }
             } catch (error) {
-                throw new Error('Unexpected error when counting pending appointments: '+error)
+                throw new Error('Unexpected error when counting upcoming appointments: '+error)
 
             }
         },
         countPastAppointments: async (parent: null, args: any, context: AppContext) => {
-            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
-            const now = DateTime.now().toJSDate(); 
+            //const now = DateTime.now().toJSDate(); 
+            const now = DateTime.now().toISO({ includeOffset: false });
 
             if (!me || me.userRoleId === 1) {
                 throw new Error('Unauthorized action')
@@ -738,20 +1074,22 @@ export const queries = {
                 if (me.userRoleId === 3) {
                     return await repo
                         .createQueryBuilder('appointment')
-                        .where('appointment.patientId = :patientId', { patientId: me.id })
-                        .andWhere('appointment.doctorId = :doctorId', {doctorId: Not(IsNull())})
-                        .andWhere('appointment.start < :now', { now: new Date(now) })
-                        .getCount()
+                        .where('appointment.patientId = :patientId', { patientId: context.me.userId})
+                        .andWhere('appointment.doctorId IS NOT NULL')
+                        .andWhere('appointment.end < :now', { now: new Date(now) })
+                        .getCount();
                 } else {
-                    return await repo
+                    const count =  await repo
                         .createQueryBuilder('appointment')
-                        .where('appointment.doctorId = :doctorId', { doctorId: me.id })
-                        .andWhere('appointment.patientId = :patientId', {patientId: Not(IsNull())})
-                        .andWhere('appointment.start < :now', { now: new Date(now) })
-                        .getCount()
+                        .where('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
+                        .andWhere('appointment.patientId IS NOT NULL')
+                        .andWhere('appointment.end < :now', { now: new Date(now) })
+                        .getCount();
+
+                    return count;
                 }
             } catch (error) {
-                throw new Error('Unexpected error when counting pending appointments: '+error)
+                throw new Error('Unexpected error when counting past appointments: '+error)
 
             }
         },
@@ -841,7 +1179,7 @@ export const queries = {
     
                     if (filterInput) {
                         queryBuilder.andWhere(
-                            '(patient.firstName LIKE :nameLike OR patient.lastName LIKE :nameLike)',
+                            '(LOWER(patient.firstName) LIKE :nameLike OR LOWER(patient.lastName) LIKE :nameLike)',
                             { nameLike:  `%${filterInput}%` }
                         );
                     }
@@ -884,7 +1222,7 @@ export const queries = {
 
                 if (filterInput) {
                     queryBuilder.andWhere(
-                        '(patient.firstName LIKE :nameLike OR patient.lastName LIKE :nameLike)',
+                        '(LOWER(patient.firstName) LIKE :nameLike OR LOWER(patient.lastName) LIKE :nameLike)',
                         { nameLike:  `%${filterInput}%` }
                     );
                 }
@@ -947,6 +1285,20 @@ export const queries = {
                 }
             } catch (error) {
                 throw new Error('Unexpected error getting record count: '+error)
+            }
+        },
+        countDoctorRequests: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(DoctorRequest);
+
+            if (!me || me.userRoleId !== 1) {
+                throw new Error("Unauthorized action");
+            }
+
+            try {
+                return await repo.createQueryBuilder('doctor_request').getCount();
+            } catch (error) {
+                throw new Error("Unexpected error counting doctor requests: "+error);
             }
         }
     }

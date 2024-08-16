@@ -35,9 +35,12 @@ export const schema = `
     appointments: [Appointment!]!
     appointment (appointmentId: Int!): Appointment!
     justCreatedAppointment(patientId: Int!): Appointment
-    calendarPendingAppointments (patientId: Int): [Appointment!]!
-    calendarUpcomingAppointments (patientId: Int): [Appointment!]!
-    calendarPastAppointments (patientId: Int): [Appointment!]!
+    nowAppointment: Appointment
+    calendarAllAppointments (monthStart: Date!, monthEnd: Date!, patientId: Int): CalendarSlice!
+    calendarMissedAppointments (monthStart: Date!, monthEnd: Date!, patientId: Int): CalendarSlice!
+    calendarPendingAppointments (monthStart: Date!, monthEnd: Date!, patientId: Int): CalendarSlice!
+    calendarUpcomingAppointments (monthStart: Date!, monthEnd: Date!, patientId: Int): CalendarSlice!
+    calendarPastAppointments (monthStart: Date!, monthEnd: Date!, patientId: Int): CalendarSlice!
     pendingAppointments (
       pageIndex: Int!, 
       pageLimit: Int!, 
@@ -80,6 +83,7 @@ export const schema = `
       filterInput: String
     ): Paged!
     countUserRecords: RecordCountResponse!
+    countDoctorRequests: Int!
   }
 
   type Mutation {
@@ -101,6 +105,10 @@ export const schema = `
   type Paged {
     slice: [Paginated!]!
     length: Int!
+  }
+
+  type CalendarSlice {
+    monthSlice: [Appointment!]!
   }
 
   type MutationResponse {
@@ -212,7 +220,7 @@ export const schema = `
     id: Int
     title: String
     text: String
-    appointmentId: Int!
+    appointmentId: Int
     draft: Boolean
   }
 

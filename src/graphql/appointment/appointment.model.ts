@@ -27,8 +27,10 @@ export class Appointment {
 
     @BeforeInsert()
     dateToLocalTime() {
-        this.createdAt = DateTime.local().toJSDate();
-        this.updatedAt = DateTime.local().toJSDate();
+        const created = DateTime.local().toISO();
+        this.createdAt = new Date(created);
+        const updated = DateTime.local().toISO();
+        this.updatedAt = new Date(updated);
     }
 
     @UpdateDateColumn({type: 'datetime', nullable: true})
@@ -39,12 +41,6 @@ export class Appointment {
 
     @Column({ type: 'datetime' })
     end: Date;
-    // minus 5 seconds of every end time so it doesnt overlap with next start time
-    // @BeforeInsert()
-    // @BeforeUpdate()
-    // adjustEndDate() {
-    //     this.end = DateTime.fromJSDate(this.end).minus({ milliseconds: 5 }).toJSDate();
-    // }
 
     @Column({ default: false })
     allDay: boolean;
