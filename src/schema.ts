@@ -30,7 +30,6 @@ export const schema = `
       sortDirection: String
       filterInput: String
     ): Paged!
-    login(directLoginInput: LoginInput!): LoginResponse!
     allAppointments: [Appointment!]!
     appointments: [Appointment!]!
     appointment (appointmentId: Int!): Appointment!
@@ -84,11 +83,16 @@ export const schema = `
     ): Paged!
     countUserRecords: RecordCountResponse!
     countDoctorRequests: Int!
+    countDoctors: Int!
+    countPatients: Int!
+    countMissedAppointments: Int!
+    countRecords: Int!
   }
 
   type Mutation {
     saveUser(userInput: UserInput!): MutationResponse!
     deleteUser(userId: Int): MutationResponse!
+    login(directLoginInput: LoginInput!): LoginResponse!
     loginWithGoogle(googleCredential: String!): LoginResponse!
     loginWithSignicat(signicatAccessToken: String!): String!
     saveAppointment(appointmentInput: AppointmentInput!): MutationResponse!

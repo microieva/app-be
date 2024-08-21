@@ -1,6 +1,6 @@
-import { AppContext } from "../types";
 import { Record } from "../record/record.model";
 import { Appointment } from "../appointment/appointment.model";
+import { AppContext } from "../types";
 
 export const recordResolver = {
     Record: {

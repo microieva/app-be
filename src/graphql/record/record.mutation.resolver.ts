@@ -1,7 +1,7 @@
-import { AppContext, MutationResponse } from "../types";
 import { User } from "../user/user.model";
-import { RecordInput } from "./record.input";
 import { Record } from "./record.model";
+import { RecordInput } from "./record.input";
+import { AppContext, MutationResponse } from "../types";
 
 export const recordMutationResolver = {
     Mutation: {

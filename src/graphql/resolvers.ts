@@ -1,16 +1,16 @@
 import { GraphQLScalarType, Kind } from "graphql";
 import { queries } from "./query.resolver";
 import { userResolver } from "./user/user.resolver";
+import { doctorRequestMutationResolver } from "./doctor-request/doctor-request.mutation.resolver";
 import { userMutationResolver } from "./user/user.mutation.resolver";
 import { appointmentMutationResolver } from "./appointment/appointment.mutation.resolver";
 import { appointmentResolver } from "./appointment/appointment.resolver";
-import { Appointment } from "./appointment/appointment.model";
 import { recordMutationResolver } from "./record/record.mutation.resolver";
 import { recordResolver } from "./record/record.resolver";
+import { Appointment } from "./appointment/appointment.model";
 import { Record } from "./record/record.model";
 import { DoctorRequest } from "./doctor-request/doctor-request.model";
 import { User } from "./user/user.model";
-import { doctorRequestMutationResolver } from "./doctor-request/doctor-request.mutation.resolver";
 
 const unions = {
     Paginated: {

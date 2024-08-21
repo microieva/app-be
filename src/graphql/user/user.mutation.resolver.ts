@@ -3,9 +3,9 @@ import { In } from "typeorm";
 import { OAuth2Client } from 'google-auth-library';
 import jwt from "jsonwebtoken";
 import { User } from "./user.model";
-import { UserInput } from "./user.input";
 import { Appointment } from "../appointment/appointment.model";
 import { DoctorRequest } from "../doctor-request/doctor-request.model";
+import { UserInput } from "./user.input";
 import { AppContext, LoginResponse, MutationResponse } from "../types";
 
 export const userMutationResolver = {
@@ -170,6 +170,48 @@ export const userMutationResolver = {
                 } as MutationResponse;
             }
         },
+        login: async (parent: null, args: any, context: AppContext) => {
+            const input = args.directLoginInput;
+            const dbUser = await context.dataSource.getRepository(User).findOneBy({ email: input.email});
+            const repo = context.dataSource.getRepository(User);
+
+            if (!dbUser) throw new Error(`Incorrect email`);
+
+            const isValid = await dbUser.validatePassword(input.password);
+            if (!isValid) throw new Error('Invalid password');
+
+            let expiresIn = '1h'; 
+            if (dbUser.userRoleId === 2) {
+                expiresIn = '10h';
+            }
+
+            const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET, { expiresIn });
+            const currentTime = DateTime.now();
+            const lastLogin = currentTime.toISO({ includeOffset: true });
+
+            dbUser.lastLogInAt = new Date(lastLogin);
+            try {
+                await repo.save(dbUser);
+                let expirationTime;
+    
+                if (expiresIn === '1h') {
+                    expirationTime = currentTime.plus({ hours: 1 });
+                } else if (expiresIn === '10h') {
+                    expirationTime = currentTime.plus({ hours: 10 });
+                }
+    
+                const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
+    
+                return {
+                    token: token,
+                    expiresAt: expirationTimeInFinnishTime
+                } as LoginResponse;
+
+            } catch (error) {
+                throw new Error('Cannot login, '+error)
+            }
+
+        },
         loginWithGoogle: async (parent: null, args: any, context: AppContext) => {
             const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
             const credential = args.googleCredential;
@@ -193,7 +235,11 @@ export const userMutationResolver = {
                 const currentTime = DateTime.now();
                 const expirationTime = currentTime.plus({ hours: 10 });
                 const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
-                
+                const lastLogin = currentTime.toISO({ includeOffset: true });
+
+                dbUser.lastLogInAt = new Date(lastLogin);
+                await repo.save(dbUser);
+
                 return {
                     token: token, 
                     expiresAt: expirationTimeInFinnishTime

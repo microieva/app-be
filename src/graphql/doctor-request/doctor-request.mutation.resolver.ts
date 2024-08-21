@@ -1,6 +1,6 @@
-import { AppContext } from "../types";
 import { User } from "../user/user.model";
 import { DoctorRequest } from "./doctor-request.model";
+import { AppContext } from "../types";
 
 export const doctorRequestMutationResolver = {
     Mutation: {

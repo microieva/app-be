@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, ManyToOne, UpdateDateColumn, JoinColumn } from "typeorm";
 import bcrypt from "bcryptjs";
-import { UserRole } from "./user-role.model";
 import { DateTime } from "luxon";
+import { UserRole } from "./user-role.model";
 
 
 @Entity()
@@ -62,7 +62,7 @@ export class User {
   @CreateDateColumn({type:'datetime'})
   createdAt: Date;
 
-  @Column({ type: 'date', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   lastLogInAt: Date;
 
   @UpdateDateColumn({type: 'date', nullable: true})

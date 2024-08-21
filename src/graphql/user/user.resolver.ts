@@ -21,20 +21,6 @@ export const userResolver = {
                     message: `Cannot find userRole: ${error}`
                 }
             }
-        },
-        /*countAppointments: async (parent: User, args: any, context: AppContext)=> {
-            const role = parent.userRole;
-            switch (role) {
-                case 'admin':
-                    throw new Error('Unauthorized action');
-                case 'patient':
-                    return parent.patientAppointments.length;
-                case 'doctor':
-                    return parent.doctorAppointments.length;
-                default:
-                    throw new Error('Unauthorized action');
-            }
-            
-        }*/
+        }
     }
 }

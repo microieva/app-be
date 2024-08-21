@@ -1,43 +1,12 @@
-import jwt from "jsonwebtoken";
 import { DateTime } from "luxon";
 import { User } from "./user/user.model";
 import { Appointment } from "./appointment/appointment.model";
-import { AppContext, LoginResponse, NextAppointmentResponse } from "./types";
 import { Record } from "./record/record.model";
 import { DoctorRequest } from "./doctor-request/doctor-request.model";
+import { AppContext, NextAppointmentResponse } from "./types";
 
 export const queries = {
     Query: {
-        login: async (parent: null, args: any, context: AppContext) => {
-            const input = args.directLoginInput;
-            const dbUser = await context.dataSource.getRepository(User).findOneBy({ email: input.email});
-            if (!dbUser) throw new Error(`Incorrect email`);
-
-            const isValid = await dbUser.validatePassword(input.password);
-            if (!isValid) throw new Error('Invalid password');
-
-            let expiresIn = '1h'; 
-            if (dbUser.userRoleId === 2) {
-                expiresIn = '10h';
-            }
-
-            const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET, { expiresIn });
-            const currentTime = DateTime.now();
-            let expirationTime;
-
-            if (expiresIn === '1h') {
-                expirationTime = currentTime.plus({ hours: 1 });
-            } else if (expiresIn === '10h') {
-                expirationTime = currentTime.plus({ hours: 10 });
-            }
-
-            const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
-
-            return {
-                token: token,
-                expiresAt: expirationTimeInFinnishTime
-            } as LoginResponse;
-        },
         me: async (parent: null, args: any, context: AppContext)=> {
             const userId = context.me.userId;
             const requestRepo = context.dataSource.getRepository(DoctorRequest);
@@ -300,6 +269,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.patientId = :patientId', { patientId: context.me.userId })
                             .andWhere('appointment.doctorId IS NULL')
+                            .andWhere('appointment.start > :now', {now})
                             .orderBy(`appointment.${sortActive}` || 'appointment.start', `${sortDirection}` as 'ASC' | 'DESC')
                             .limit(pageLimit)
                             .offset(pageIndex * pageLimit)
@@ -1299,6 +1269,110 @@ export const queries = {
                 return await repo.createQueryBuilder('doctor_request').getCount();
             } catch (error) {
                 throw new Error("Unexpected error counting doctor requests: "+error);
+            }
+        },
+        countDoctors: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(User);
+
+            if (!me || me.userRoleId !== 1) {
+                throw new Error("Unauthorized action");
+            }
+
+            try {
+                return await repo
+                    .createQueryBuilder('user')
+                    .where('user.userRoleId = :id', {id: 2})
+                    .getCount();
+            } catch (error) {
+                throw new Error("Unexpected error counting doctors: "+error);
+            }
+        },
+        countPatients: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(User);
+            const aptRepo = context.dataSource.getRepository(Appointment);
+
+            if (!me || me.userRoleId === 3) {
+                throw new Error("Unauthorized action");
+            }
+
+            try {
+                if (me.userRoleId === 1) {
+                    return await repo
+                        .createQueryBuilder('user')
+                        .where('user.userRoleId = :id', {id: 3})
+                        .getCount();
+                } else {
+                    const result = await aptRepo
+                        .createQueryBuilder('appointment')
+                        .select('COUNT(DISTINCT appointment.patientId)', 'count')
+                        .where('appointment.doctorId = :id', { id: context.me.userId })
+                        .getRawOne();
+
+                    return result.count;
+
+                }
+            } catch (error) {
+                throw new Error("Unexpected error counting patients: "+error);
+            }
+        },
+        countMissedAppointments: async (parent: null, args: any, context: AppContext)=> {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Appointment);
+            const now = DateTime.now().toISO({ includeOffset: false });
+
+            if (!me) {
+                throw new Error("Unauthorized action");
+            }
+
+            try {
+                if (me.userRoleId !== 3) {
+                    return await repo
+                        .createQueryBuilder('appointment')
+                        .where('appointment.patientId IS NOT NULL')
+                        .andWhere('appointment.doctorId IS NULL')
+                        .andWhere('appointment.start < :now', {now})
+                        .getCount();
+
+                } else {
+                    return await repo
+                        .createQueryBuilder('appointment')
+                        .where('appointment.patientId = :id', {id: context.me.userId})
+                        .andWhere('appointment.doctorId IS NULL')
+                        .andWhere('appointment.start < :now', {now})
+                        .getCount();
+                }
+
+            } catch (error) {
+                throw new Error("Error counting missed appointments: "+error)
+            }
+        },
+        countRecords: async (parent: null, args: any, context: AppContext)=> {
+            const repo = context.dataSource.getRepository(Record);
+            const aptRepo = context.dataSource.getRepository(Appointment);
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+
+            if (!me || me.userRoleId !== 3) {
+                throw new Error('Unauthorized action')
+            }
+
+            try {
+                const appointmentIds = await aptRepo
+                    .createQueryBuilder('appointment')
+                    .where('appointment.patientId = :id', {id: context.me.userId})
+                    .select('appointment.id')
+                    .getRawMany();
+                
+                    const ids: string[] = appointmentIds.map(appointment => appointment.id);
+
+                return await repo
+                    .createQueryBuilder('record')
+                    .where('record.appointmentId IN (:...ids)', { ids })
+                    .getCount();
+                
+            } catch (error) {
+                throw new Error('Error counting patient medical records, '+error)
             }
         }
     }
