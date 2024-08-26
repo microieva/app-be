@@ -1,4 +1,5 @@
 import { DateTime } from "luxon";
+import nodemailer from "nodemailer";
 import { Not, IsNull } from "typeorm";
 import { User } from "../user/user.model";
 import { Appointment } from "./appointment.model";
@@ -264,6 +265,31 @@ export const appointmentMutationResolver = {
             try {
                 dbAppointment.doctorId = dbMe.id;
                 await repo.save(dbAppointment);
+
+                const transporter = nodemailer.createTransport({
+                    service: 'gmail',
+                    auth: {
+                        user: 'empathichealthcenter@gmail.com',
+                        pass: 'Integrify1234'
+                    }
+                });
+                const mailOptions = {
+                    from: 'empathichealthcenter@gmail.com',
+                    to: "ieva.vyliaudaite@me.com", // recipient's email
+                    subject: 'Your Appointment Confirmed',
+                    text: `Dear patient, 
+                        \nYour Health Center appointment confirmed. 
+                        \nAppointment time: ${DateTime.fromJSDate(dbAppointment.start).toFormat('MMM dd, hh:mm')}`
+                  };
+                
+                transporter.sendMail(mailOptions, (error, info) => {
+                    if (error) {
+                      console.log('Error sending email:', error);
+                    } else {
+                      console.log('Email sent:', info.response);
+                    }
+                });
+
                 return {
                     success: true,
                     message: "Appointment accepted. Doctor id saved"
