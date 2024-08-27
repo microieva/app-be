@@ -12,7 +12,7 @@ export const queries = {
             const requestRepo = context.dataSource.getRepository(DoctorRequest);
             const repo = context.dataSource.getRepository(User);
 
-            const myAccount = await repo.findOne({where: {id: userId}, relations: ['userRole'] });
+            const myAccount = await repo.findOne({where: {id: userId}});
             const myRequest = await requestRepo.findOneBy({id: userId});
 
             if (myRequest) {
@@ -1033,7 +1033,7 @@ export const queries = {
         countPastAppointments: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
-            //const now = DateTime.now().toJSDate(); 
+
             const now = DateTime.now().toISO({ includeOffset: false });
 
             if (!me || me.userRoleId === 1) {
@@ -1258,6 +1258,7 @@ export const queries = {
             }
         },
         countDoctorRequests: async (parent: null, args: any, context: AppContext) => {
+            console.log('WHAT THE FUCK ?????')
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(DoctorRequest);
 
@@ -1364,11 +1365,11 @@ export const queries = {
                     .select('appointment.id')
                     .getRawMany();
                 
-                    const ids: string[] = appointmentIds.map(appointment => appointment.id);
+                const ids: number[] = appointmentIds.map(appointment => appointment.id);
 
                 return await repo
                     .createQueryBuilder('record')
-                    .where('record.appointmentId IN (:...ids)', { ids })
+                    .where('record.appointmentId IN (:...ids)', { ids: ids.length>0 ? ids : [] })
                     .getCount();
                 
             } catch (error) {

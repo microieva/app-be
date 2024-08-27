@@ -1,3 +1,5 @@
+import { User } from "../user/user.model"
+
 export interface Appointment {
     id: number
     doctorId?: number
@@ -6,4 +8,6 @@ export interface Appointment {
     end: string
     start: string
     allDay: boolean
+    patient: User
+    doctor: User
 }

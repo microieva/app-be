@@ -2,6 +2,8 @@ import { User } from "../user/user.model";
 import { Record } from "./record.model";
 import { RecordInput } from "./record.input";
 import { AppContext, MutationResponse } from "../types";
+import { sendEmailNotification } from "../../services/email.service";
+//import { sendEmailNotification } from "../../services/email.service";
 
 export const recordMutationResolver = {
     Mutation: {
@@ -19,13 +21,25 @@ export const recordMutationResolver = {
             const repo = context.dataSource.getRepository(Record);
 
             if (input.id) {
-                const dbRecord = await repo.findOneBy({id: input.id});
+                const dbRecord: Record = await repo
+                    .createQueryBuilder('record')
+                    .leftJoinAndSelect('record.appointment', 'appointment')
+                    .leftJoinAndSelect('appointment.patient', 'patient')
+                    .leftJoinAndSelect('appointment.doctor', 'doctor')
+                    .where({id: input.id})
+                    .getOne();
+
                 dbRecord.title = input.title;
                 dbRecord.text = input.text;
                 dbRecord.draft = input.draft;
 
                 try {
                     await repo.save(dbRecord);
+
+                    if (!input.draft) {
+                        console.log('THIS WILL BE NOFITICATION INFO: ', dbRecord)
+                        sendEmailNotification(dbRecord, "recordSaved")
+                    }
                     return {
                         success: true,
                         message: "Medical record updated"

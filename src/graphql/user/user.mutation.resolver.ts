@@ -94,6 +94,7 @@ export const userMutationResolver = {
                 newUser.postCode = input?.postCode;
                 newUser.lastLogInAt = input.lastLogInAt ? new Date(input.lastLogInAt) : null;
                 newUser.updatedAt = null;
+
                 const user = await repo.save(newUser);
 
                 return {
@@ -180,9 +181,9 @@ export const userMutationResolver = {
             const isValid = await dbUser.validatePassword(input.password);
             if (!isValid) throw new Error('Invalid password');
 
-            let expiresIn = '1h'; 
-            if (dbUser.userRoleId === 2) {
-                expiresIn = '10h';
+            let expiresIn = '10h'; 
+            if (dbUser.userRoleId === 3) {
+                expiresIn = '1h';
             }
 
             const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET, { expiresIn });
@@ -190,8 +191,13 @@ export const userMutationResolver = {
             const lastLogin = currentTime.toISO({ includeOffset: true });
 
             dbUser.lastLogInAt = new Date(lastLogin);
+            console.log('DOES dbUser STILL HAVE NULL: ', dbUser.updatedAt)
+            //dbUser.updatedAt = !dbUser.updatedAt ? null : dbUser.updatedAt;
+
             try {
-                await repo.save(dbUser);
+                //const user = await repo.save(dbUser);
+                const user = await repo.save(dbUser, {listeners: false});
+                console.log('DOES dbUser STILL HAVE NULL after saving: ', user.updatedAt)
                 let expirationTime;
     
                 if (expiresIn === '1h') {

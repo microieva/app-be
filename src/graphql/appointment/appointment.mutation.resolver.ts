@@ -1,10 +1,10 @@
 import { DateTime } from "luxon";
-import nodemailer from "nodemailer";
 import { Not, IsNull } from "typeorm";
 import { User } from "../user/user.model";
 import { Appointment } from "./appointment.model";
 import { AppointmentInput } from "./appointment.input";
 import { AppContext, MutationResponse } from "../types"
+import { sendEmailNotification } from "../../services/email.service";
 
 export const appointmentMutationResolver = {
     Mutation: {
@@ -50,11 +50,23 @@ export const appointmentMutationResolver = {
             console.log('IS RESERVED:  ', isReserved)
 
             if (input.id) {
-                const dbAppointment = await repo.findOneBy({id: input.id});
+                const dbAppointment = await repo
+                    .createQueryBuilder('appointment')
+                    .leftJoinAndSelect('appointment.patient', 'patient')
+                    .leftJoinAndSelect('appointment.doctor', 'doctor')
+                    .where('appointment.id = :id', {id: input.id})
+                    .getOne();
+
+                let notify: boolean = false;
+                if (DateTime.fromJSDate(dbAppointment.start).toISO() !== input.start || DateTime.fromJSDate(dbAppointment.end).toISO() !== input.end) {
+                    notify = true;
+                }
+
                 dbAppointment.id = input.id;
                 dbAppointment.start = new Date(input.start);
                 dbAppointment.end = new Date(input.end);
                 dbAppointment.allDay;
+
                 if (dbMe.userRoleId === 3) {
                     if (dbAppointment.doctorId) {
                         return {
@@ -72,6 +84,9 @@ export const appointmentMutationResolver = {
 
                 try {
                     await repo.save(dbAppointment);
+                    if (notify) {
+                        sendEmailNotification(dbAppointment, "appointmentUpdated")
+                    }
                     return {
                         success: true,
                         message: 'Appointment updated'
@@ -129,18 +144,31 @@ export const appointmentMutationResolver = {
         },
         deleteAppointment: async (parent: null, args: any, context: AppContext) => {
             const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
-            
+            const id = args.appointmentId;
+            const repo = context.dataSource.getRepository(Appointment);
+            const now = DateTime.now().toISO({ includeOffset: false });
+
             if (!dbMe) {
                 return {
                     success: false,
                     message: "Unauthorized action"
                 } as MutationResponse;
             } else {
-                const id = args.appointmentId;
-                const repo = context.dataSource.getRepository(Appointment);
-
                 try {
+                    const emailInfo = await repo
+                        .createQueryBuilder('appointment')
+                        .leftJoinAndSelect('appointment.patient', 'patient')
+                        .leftJoinAndSelect('appointment.doctor', 'doctor')
+                        .where('appointment.id = :id', {id})
+                        .getOne();
+
                     await repo.delete({id});
+
+                    if (emailInfo.doctor && DateTime.fromJSDate(emailInfo.start).toISO() > now && dbMe.userRoleId !== 2) {
+                        // if patient or admin cancels upcomming appointment
+                        sendEmailNotification(emailInfo, "appointmentCancelled")
+                    }
+
                     return {
                         success: true,
                         message: "Appointment deleted"
@@ -246,7 +274,13 @@ export const appointmentMutationResolver = {
         acceptAppointment: async (parent: null, args: any, context: AppContext) => {
             const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
-            const dbAppointment = await repo.findOneBy({id: args.appointmentId});
+            
+            const dbAppointment = await repo
+                .createQueryBuilder('appointment')
+                .leftJoinAndSelect('appointment.patient', 'patient')
+                .leftJoinAndSelect('appointment.doctor', 'doctor')
+                .where({id: args.appointmentId})
+                .getOne();
 
             if (!dbMe || dbMe.userRoleId !== 2) {
                 return {
@@ -266,29 +300,14 @@ export const appointmentMutationResolver = {
                 dbAppointment.doctorId = dbMe.id;
                 await repo.save(dbAppointment);
 
-                const transporter = nodemailer.createTransport({
-                    service: 'gmail',
-                    auth: {
-                        user: 'empathichealthcenter@gmail.com',
-                        pass: 'Integrify1234'
-                    }
-                });
-                const mailOptions = {
-                    from: 'empathichealthcenter@gmail.com',
-                    to: "ieva.vyliaudaite@me.com", // recipient's email
-                    subject: 'Your Appointment Confirmed',
-                    text: `Dear patient, 
-                        \nYour Health Center appointment confirmed. 
-                        \nAppointment time: ${DateTime.fromJSDate(dbAppointment.start).toFormat('MMM dd, hh:mm')}`
-                  };
-                
-                transporter.sendMail(mailOptions, (error, info) => {
-                    if (error) {
-                      console.log('Error sending email:', error);
-                    } else {
-                      console.log('Email sent:', info.response);
-                    }
-                });
+                const emailInfo = await repo
+                    .createQueryBuilder('appointment')
+                    .leftJoinAndSelect('appointment.patient', 'patient')
+                    .leftJoinAndSelect('appointment.doctor', 'doctor')
+                    .where({id: args.appointmentId})
+                    .getOne();
+
+                sendEmailNotification(emailInfo, "appointmentAccepted");
 
                 return {
                     success: true,
