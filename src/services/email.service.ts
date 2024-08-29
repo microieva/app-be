@@ -1,20 +1,18 @@
 import nodemailer from "nodemailer";
 import { DateTime } from "luxon";
-import { User } from "../graphql/user/user.model";
 import { Appointment } from "../graphql/appointment/appointment.model";
 import { Record } from "../graphql/record/record.model";
 
-  
 const transporter = nodemailer.createTransport({
     host: 'smtp.mail.yahoo.com',
     port: 587,
     auth: {
         user: 'ievavyl@yahoo.com',
-        pass: 'gqtyotclrszcmxsz'
+        pass:'gqtyotclrszcmxsz'
     }
 });
 
-export const sendEmailNotification = (entity: User | Appointment | Record, notification: string): void => {
+export const sendEmailNotification = (entity: Appointment | Record, notification: string): void => {
     switch (notification) {
         case 'appointmentAccepted':
             sendNotificationAppointmentAccepted(entity as Appointment);
@@ -34,7 +32,7 @@ export const sendEmailNotification = (entity: User | Appointment | Record, notif
 const sendNotificationAppointmentAccepted = (dbAppointment: Appointment): void => {
 
     const mailOptions = {
-        from: 'Health Center <ievavyl@yahoo.com>',
+        from: process.env.EMAIL_NOTIFICATION_SENDER_ID,
         to: `${dbAppointment.patient.email}`, 
         subject: 'Your Appointment Confirmed',
         text: `Dear ${dbAppointment.patient.firstName} ${dbAppointment.patient.lastName}, 
@@ -52,9 +50,9 @@ const sendNotificationAppointmentAccepted = (dbAppointment: Appointment): void =
 };
 
 const sendNotificationAppointmentCancelled = (deletedAppointment: Appointment): void => {
-
+    console.log('CANCELLED APT: ', deletedAppointment)
     const mailOptions = {
-        from: 'Health Center <ievavyl@yahoo.com>',
+        from: process.env.EMAIL_NOTIFICATION_SENDER_ID,
         to: `${deletedAppointment.doctor.email}`, 
         subject: 'Cancelled Appointment',
         text: `Dear Doctor ${deletedAppointment.doctor.firstName} ${deletedAppointment.doctor.lastName}, 
@@ -74,7 +72,7 @@ const sendNotificationAppointmentCancelled = (deletedAppointment: Appointment): 
 const sendNotificationAppointmentUpdated = (updatedAppointment: Appointment): void => {
 
     const mailOptions = {
-        from: 'Health Center <ievavyl@yahoo.com>',
+        from: process.env.EMAIL_NOTIFICATION_SENDER_ID,
         to: `${updatedAppointment.patient.email}`, 
         subject: 'Appointment Time Changed',
         text: `Dear ${updatedAppointment.patient.firstName} ${updatedAppointment.patient.lastName}, 
@@ -97,7 +95,7 @@ const sendEmailNotificationRecordSaved = (dbRecord: Record): void => {
     const patientName = dbRecord.appointment.patient.firstName+" "+dbRecord.appointment.patient.lastName;
 
     const mailOptions = {
-        from: 'Health Center <ievavyl@yahoo.com>',
+        from: process.env.EMAIL_NOTIFICATION_SENDER_ID,
         to: `${recipient}`, 
         subject: 'New Medical Record Open for Access',
         text: `Dear ${patientName}, 
@@ -112,7 +110,7 @@ const sendEmailNotificationRecordSaved = (dbRecord: Record): void => {
     });
 };
 
-// TO DO: for admin when new doctor request is created
+
 
 
 
