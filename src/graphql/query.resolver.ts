@@ -1367,10 +1367,16 @@ export const queries = {
                 
                 const ids: number[] = appointmentIds.map(appointment => appointment.id);
 
-                return await repo
-                    .createQueryBuilder('record')
-                    .where('record.appointmentId IN (:...ids)', { ids: ids.length>0 ? ids : [] })
-                    .getCount();
+                if (ids.length > 0 ) {
+
+                    return await repo
+                        .createQueryBuilder('record')
+                        .where('record.appointmentId IN (:...ids)', { ids })
+                        .getCount();
+                } else {
+                    return 0;
+                }
+
                 
             } catch (error) {
                 throw new Error('Error counting patient medical records, '+error)
