@@ -37,7 +37,6 @@ export const recordMutationResolver = {
                     await repo.save(dbRecord);
 
                     if (!input.draft) {
-                        console.log('THIS WILL BE NOFITICATION INFO: ', dbRecord)
                         sendEmailNotification(dbRecord, "recordSaved")
                     }
                     return {

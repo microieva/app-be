@@ -191,13 +191,9 @@ export const userMutationResolver = {
             const lastLogin = currentTime.toISO({ includeOffset: true });
 
             dbUser.lastLogInAt = new Date(lastLogin);
-            console.log('DOES dbUser STILL HAVE NULL: ', dbUser.updatedAt)
-            //dbUser.updatedAt = !dbUser.updatedAt ? null : dbUser.updatedAt;
 
             try {
-                //const user = await repo.save(dbUser);
-                const user = await repo.save(dbUser, {listeners: false});
-                console.log('DOES dbUser STILL HAVE NULL after saving: ', user.updatedAt)
+                await repo.save(dbUser, {listeners: false});
                 let expirationTime;
     
                 if (expiresIn === '1h') {
@@ -277,20 +273,6 @@ export const userMutationResolver = {
                     }
                 }
             }
-        },
-        loginWithSignicat: (parent: null, args: any, context: AppContext)=> {
-            const accessToken = args.signicatAccessToken;
-            console.log('SIGNICAT TOKEN ??? ', accessToken);
-            try {
-                const decodedToken = jwt.verify(accessToken, process.env.SIGNICAT_PUBLIC_KEY);
-                // Now you can access the payload from `decodedToken`
-                console.log("DECODED TOKEN: ", decodedToken);
-                // Handle the payload as needed (e.g., extract user information)
-            } catch (error) {
-                console.error('Error decoding token:', error.message);
-                // Handle the error (e.g., invalid token)
-            }
-
         }
     }
 }

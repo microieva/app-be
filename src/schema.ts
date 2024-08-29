@@ -129,6 +129,8 @@ export const schema = `
     nextStart: Date
     nextEnd: Date
     nextId: Int
+    patient: User
+    doctor: User
   }
 
   type RecordCountResponse {

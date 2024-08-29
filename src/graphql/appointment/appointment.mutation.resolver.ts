@@ -1,5 +1,4 @@
 import { DateTime } from "luxon";
-import { Not, IsNull } from "typeorm";
 import { User } from "../user/user.model";
 import { Appointment } from "./appointment.model";
 import { AppointmentInput } from "./appointment.input";
@@ -43,11 +42,10 @@ export const appointmentMutationResolver = {
                     .andWhere('appointment.patientId = :patientId', { patientId: input.patientId });
             }
 
-            const isReserved = await queryBuilder
-                .andWhere({updatedAt: Not(IsNull())})
-                .getExists();
+            // const isReserved = await queryBuilder
+            //     .andWhere({updatedAt: Not(IsNull())})
+            //     .getExists();
 
-            console.log('IS RESERVED:  ', isReserved)
 
             if (input.id) {
                 const dbAppointment = await repo

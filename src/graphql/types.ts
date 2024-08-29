@@ -1,4 +1,5 @@
 import { dataSource } from "../configurations/db.config";
+import { User } from "./user/user.model";
 
 export interface MutationResponse {
     success: boolean
@@ -12,6 +13,8 @@ export interface NextAppointmentResponse {
     nextId: number
     nextStart: string
     nextEnd: string
+    patient: User
+    doctor: User
 }
 
 export interface AppContext {

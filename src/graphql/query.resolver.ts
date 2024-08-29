@@ -3,7 +3,7 @@ import { User } from "./user/user.model";
 import { Appointment } from "./appointment/appointment.model";
 import { Record } from "./record/record.model";
 import { DoctorRequest } from "./doctor-request/doctor-request.model";
-import { AppContext, NextAppointmentResponse } from "./types";
+import { AppContext } from "./types";
 
 export const queries = {
     Query: {
@@ -941,7 +941,7 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const date: Date = args.date;
-            // TO DO: fix reserved days
+
             if (me.userRoleId === 2) {
                 try {
                     return repo
@@ -953,7 +953,7 @@ export const queries = {
                     throw new Error("Unexpected error checking if doctor day isReserved: "+error);
                 }
             } else {
-                return true; // for patients ?
+                return true; 
             }
 
         },
@@ -1066,31 +1066,47 @@ export const queries = {
         nextAppointment: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
+            const now = DateTime.now().toISO({ includeOffset: true });
 
-            if (!me || me.userRoleId !== 2) {
+            if (!me || me.userRoleId === 1) {
                 throw new Error("Unauthorized action")
             }
-            try {
-                const now = DateTime.now().toISO({ includeOffset: false });
-        
-                const nextAppointment = await repo
-                    .createQueryBuilder('appointment')
-                    .leftJoinAndSelect('appointment.patient', 'patient')
-                    .where('appointment.doctorId = :doctorId', { doctorId: me.id })
-                    .andWhere('appointment.allDay = :allDay', {allDay: false})
-                    .andWhere('appointment.start > :now', { now })
-                    .orderBy('appointment.start', 'ASC')
-                    .getOne();
-        
-                return {
-                    nextStart: DateTime.fromJSDate(nextAppointment.start).setZone('Europe/Helsinki').toISO(),
-                    nextEnd: DateTime.fromJSDate(nextAppointment.end).setZone('Europe/Helsinki').toISO(),
-                    nextId: nextAppointment.id
-                } as NextAppointmentResponse;
+            //try {
+    
+            const queryBuilder = repo
+                .createQueryBuilder('appointment')
+                .leftJoinAndSelect('appointment.patient', 'patient')
+                .leftJoinAndSelect('appointment.doctor', 'doctor')
+                .andWhere('appointment.allDay = :allDay', {allDay: false})
 
-            } catch (error) {
-                throw new Error("Unexpected error from time tracker :"+error)
+            if (me.userRoleId === 2) {
+                queryBuilder
+                    .where('appointment.doctorId = :doctorId', { doctorId: me.id })
+            } else {
+                queryBuilder
+                    .where('appointment.patientId = :patientId', { patientId: me.id })
+                    .andWhere('appointment.doctorId IS NOT NULL')
             }
+
+            if (!await queryBuilder.getExists()) {
+                return null;
+            }
+
+            const nextAppointment = await queryBuilder
+                .andWhere('appointment.start > :now', { now: new Date(now) })
+                .orderBy('appointment.start', 'ASC')
+                .getOne();
+
+            return {
+                //nextStart: DateTime.fromJSDate(nextAppointment.start).setZone('Europe/Helsinki').toISO(),
+                //nextEnd: DateTime.fromJSDate(nextAppointment.end).setZone('Europe/Helsinki').toISO(),
+                nextStart: nextAppointment.start,
+                nextEnd: nextAppointment.end,
+                nextId: nextAppointment.id,
+                patient: nextAppointment.patient,
+                doctor: nextAppointment.doctor
+            };
+
         },
         record: async (parent: null, args: any, context: AppContext) => {
             const recordId = args.recordId;
@@ -1258,7 +1274,6 @@ export const queries = {
             }
         },
         countDoctorRequests: async (parent: null, args: any, context: AppContext) => {
-            console.log('WHAT THE FUCK ?????')
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(DoctorRequest);
 
@@ -1362,17 +1377,19 @@ export const queries = {
                 const appointmentIds = await aptRepo
                     .createQueryBuilder('appointment')
                     .where('appointment.patientId = :id', {id: context.me.userId})
-                    .select('appointment.id')
-                    .getRawMany();
+                    .andWhere('appointment.doctorId IS NOT NULL')
+                    .getMany();
                 
-                const ids: number[] = appointmentIds.map(appointment => appointment.id);
+                const ids: any[] = appointmentIds.map(appointment => appointment.id);
 
                 if (ids.length > 0 ) {
 
                     return await repo
                         .createQueryBuilder('record')
                         .where('record.appointmentId IN (:...ids)', { ids })
+                        .andWhere('record.draft = :draft', {draft: false})
                         .getCount();
+
                 } else {
                     return 0;
                 }
