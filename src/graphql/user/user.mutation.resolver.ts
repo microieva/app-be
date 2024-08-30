@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { User } from "./user.model";
 import { Appointment } from "../appointment/appointment.model";
 import { DoctorRequest } from "../doctor-request/doctor-request.model";
+import { Record } from "../record/record.model";
 import { UserInput } from "./user.input";
 import { AppContext, LoginResponse, MutationResponse } from "../types";
 
@@ -122,43 +123,37 @@ export const userMutationResolver = {
 
             const repo = context.dataSource.getRepository(User);
             const appointmentsRepo = context.dataSource.getRepository(Appointment);
-
-            if (!userId) {
-                const dbUserAppointments = await appointmentsRepo
-                    .createQueryBuilder("appointment")
-                    .where({patientId: me.id})
-                    .orWhere({doctorId: me.id})
-                    .getMany();
-
-                try {
-                    await appointmentsRepo.delete({id: In(dbUserAppointments)});
-                    await repo.delete({id: me.id});
-                    return {
-                        success: true,
-                        message: "User data removed"
-                    } as MutationResponse
-                } catch (error) {
-                    return {
-                        success: false,
-                        message: "Error deleting user data: "+error
-                    } as MutationResponse
-                }
-
-            }
+            const recordsRepo = context.dataSource.getRepository(Record);
 
             const dbUserAppointments = await appointmentsRepo
                 .createQueryBuilder("appointment")
-                .where({patientId: userId})
-                .orWhere({doctorId: userId})
+                .where('appointment.patientId = :patientId', {patientId: userId})
+                .orWhere('appointment.doctorId = :doctorId',{doctorId: userId})
                 .getMany();
 
-            try {
-                if (dbUserAppointments.length> 0) {
-                    await appointmentsRepo.delete({id: In(dbUserAppointments)});
+            const ids = dbUserAppointments.map(appointment => appointment.id);
+
+            if (ids.length> 0) {
+                try {
+                    await recordsRepo.delete({appointmentId: In(ids)});
+                } catch (error) {
+                    return {
+                        success: false,
+                        message: "Error deleting user records: "+error
+                    } as MutationResponse;
                 }
+                try {
+                    await appointmentsRepo.delete({id: In(ids)});
+                } catch (error) {
+                    return {
+                        success: false,
+                        message: "Error deleting user appointments: "+error
+                    } as MutationResponse;
+                }    
+            } 
 
+            try {
                 await repo.delete({id: userId});
-
                 return {
                     success: true,
                     message: "User data removed"
@@ -167,7 +162,7 @@ export const userMutationResolver = {
             } catch (error) {
                 return {
                     success: false,
-                    message: "Error deleting user data: "+error
+                    message: "Error deleting user account: "+error
                 } as MutationResponse;
             }
         },

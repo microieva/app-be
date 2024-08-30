@@ -1,9 +1,9 @@
 import { DateTime } from "luxon";
 import { User } from "../user/user.model";
+import { sendEmailNotification } from "../../services/email.service";
 import { Appointment } from "./appointment.model";
 import { AppointmentInput } from "./appointment.input";
 import { AppContext, MutationResponse } from "../types"
-import { sendEmailNotification } from "../../services/email.service";
 
 export const appointmentMutationResolver = {
     Mutation: {

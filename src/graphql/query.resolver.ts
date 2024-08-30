@@ -1071,7 +1071,6 @@ export const queries = {
             if (!me || me.userRoleId === 1) {
                 throw new Error("Unauthorized action")
             }
-            //try {
     
             const queryBuilder = repo
                 .createQueryBuilder('appointment')
@@ -1098,8 +1097,6 @@ export const queries = {
                 .getOne();
 
             return {
-                //nextStart: DateTime.fromJSDate(nextAppointment.start).setZone('Europe/Helsinki').toISO(),
-                //nextEnd: DateTime.fromJSDate(nextAppointment.end).setZone('Europe/Helsinki').toISO(),
                 nextStart: nextAppointment.start,
                 nextEnd: nextAppointment.end,
                 nextId: nextAppointment.id,

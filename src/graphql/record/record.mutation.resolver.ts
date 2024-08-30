@@ -1,9 +1,8 @@
+import { sendEmailNotification } from "../../services/email.service";
 import { User } from "../user/user.model";
 import { Record } from "./record.model";
 import { RecordInput } from "./record.input";
 import { AppContext, MutationResponse } from "../types";
-import { sendEmailNotification } from "../../services/email.service";
-//import { sendEmailNotification } from "../../services/email.service";
 
 export const recordMutationResolver = {
     Mutation: {
