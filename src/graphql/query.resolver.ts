@@ -1225,51 +1225,6 @@ export const queries = {
                 slice
             }
         },
-        countUserRecords: async (parent: null, args: any, context: AppContext) => {
-            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
-            const repo = context.dataSource.getRepository(Record);
-
-            if (!me || me.userRoleId === 1) {
-                throw new Error('Unauthorized action')
-            }
-
-            try {
-                if (me.userRoleId === 3) {
-                    const recordCount = await repo
-                        .createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .where('appointment.patientId = :patientId', {patientId: me.id})
-                        .andWhere('record.draft = :draft', {draft: false})
-                        .getCount();
-
-                    return {
-                        countRecords: recordCount,
-                        countDrafts: 0
-                    }
-                } else {
-                    const recordCount = await repo
-                        .createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .where('appointment.doctorId = :doctorId', {doctorId: me.id})
-                        .andWhere('record.draft = :draft', {draft: false})
-                        .getCount();
-
-                    const draftCount = await repo
-                        .createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .where('appointment.doctorId = :doctorId', {doctorId: me.id})
-                        .andWhere('record.draft = :draft', {draft: true})
-                        .getCount();
-
-                    return {
-                        countRecords: recordCount,
-                        countDrafts: draftCount
-                    }
-                }
-            } catch (error) {
-                throw new Error('Unexpected error getting record count: '+error)
-            }
-        },
         countDoctorRequests: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(DoctorRequest);
@@ -1363,37 +1318,49 @@ export const queries = {
         },
         countRecords: async (parent: null, args: any, context: AppContext)=> {
             const repo = context.dataSource.getRepository(Record);
-            const aptRepo = context.dataSource.getRepository(Appointment);
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
 
-            if (!me || me.userRoleId !== 3) {
+            if (!me || me.userRoleId === 1) {
                 throw new Error('Unauthorized action')
             }
 
             try {
-                const appointmentIds = await aptRepo
-                    .createQueryBuilder('appointment')
-                    .where('appointment.patientId = :id', {id: context.me.userId})
-                    .andWhere('appointment.doctorId IS NOT NULL')
-                    .getMany();
-                
-                const ids: any[] = appointmentIds.map(appointment => appointment.id);
-
-                if (ids.length > 0 ) {
-
+                if (me.userRoleId === 3) {
                     return await repo
                         .createQueryBuilder('record')
-                        .where('record.appointmentId IN (:...ids)', { ids })
-                        .andWhere('record.draft = :draft', {draft: false})
+                        .leftJoinAndSelect('record.appointment', 'appointment')
+                        .where('appointment.patientId = :patientId', {patientId: context.me.userId})
+                        .andWhere('record.draft = :draft', { draft: false })
                         .getCount();
-
                 } else {
-                    return 0;
-                }
-
-                
+                    return  await repo
+                        .createQueryBuilder('record')
+                        .leftJoinAndSelect('record.appointment', 'appointment')
+                        .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
+                        .getCount();
+                }    
             } catch (error) {
-                throw new Error('Error counting patient medical records, '+error)
+                throw new Error('Error counting medical records, '+error)
+            }
+        },
+        countDrafts: async (parent: null, args: any, context: AppContext)=> {
+            const repo = context.dataSource.getRepository(Record);
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+
+            if (!me || me.userRoleId !== 2) {
+                throw new Error('Unauthorized action')
+            }
+
+            try {
+                return  await repo
+                    .createQueryBuilder('record')
+                    .leftJoinAndSelect('record.appointment', 'appointment')
+                    .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
+                    .andWhere('record.draft = :draft', {draft: true})
+                    .getCount(); 
+
+            } catch (error) {
+                throw new Error('Error counting drafts, '+error)
             }
         }
     }

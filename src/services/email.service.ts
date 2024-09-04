@@ -1,16 +1,26 @@
-import nodemailer from "nodemailer";
+import 'dotenv/config'; 
+import nodemailer, { TransportOptions } from "nodemailer";
 import { DateTime } from "luxon";
 import { Appointment } from "../graphql/appointment/appointment.model";
 import { Record } from "../graphql/record/record.model";
 
-const transporter = nodemailer.createTransport({
-    host: 'smtp.mail.yahoo.com',
-    port: 587,
+interface Options {
+    host: string,
+    port: number,
     auth: {
-        user: 'ievavyl@yahoo.com',
-        pass:'gqtyotclrszcmxsz'
+        user: string,
+        pass: string
     }
-});
+} 
+
+const transporter = nodemailer.createTransport<Options>({
+    host: process.env.EMAIL_NOTIFICATION_HOST,
+    port: process.env.EMAIL_NOTIFICATION_PORT,
+    auth: {
+        user: process.env.EMAIL_NOTIFICATION_USER,
+        pass: process.env.EMAIL_NOTIFICATION_PASS
+    }
+} as TransportOptions);
 
 export const sendEmailNotification = (entity: Appointment | Record, notification: string): void => {
     switch (notification) {
@@ -40,7 +50,7 @@ const sendNotificationAppointmentAccepted = (dbAppointment: Appointment): void =
             \nDoctor ${dbAppointment.doctor.firstName} ${dbAppointment.doctor.lastName} will see you on ${DateTime.fromJSDate(new Date(dbAppointment.start)).toFormat('MMM dd, hh:mm a')}`
     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
+    transporter.sendMail(mailOptions, (error, info: any) => {
         if (error) {
             console.log('Error sending email:', error);
         } else {
@@ -59,7 +69,7 @@ const sendNotificationAppointmentCancelled = (deletedAppointment: Appointment): 
             \nAppointment of ${DateTime.fromJSDate(new Date(deletedAppointment.start)).toFormat('MMM dd, hh:mm a')} has been cancelled by patient ${deletedAppointment.patient.firstName} ${deletedAppointment.patient.lastName}`
     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
+    transporter.sendMail(mailOptions, (error, info: any) => {
         if (error) {
             console.log('Error sending email:', error);
         } else {
@@ -79,7 +89,7 @@ const sendNotificationAppointmentUpdated = (updatedAppointment: Appointment): vo
             \nAppointment time has been changed to ${DateTime.fromJSDate(new Date(updatedAppointment.start)).toFormat('MMM dd, hh:mm a')} by Doctor ${updatedAppointment.doctor.firstName} ${updatedAppointment.doctor.lastName}`
     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
+    transporter.sendMail(mailOptions, (error, info: any) => {
         if (error) {
             console.log('Error sending email:', error);
         } else {
@@ -101,7 +111,7 @@ const sendEmailNotificationRecordSaved = (dbRecord: Record): void => {
         text: `Dear ${patientName}, 
             \nNew medical record has been saved. Please login to your account to access it.`};
 
-    transporter.sendMail(mailOptions, (error, info) => {
+    transporter.sendMail(mailOptions, (error, info: any) => {
         if (error) {
             console.log('Error sending email:', error);
         } else {

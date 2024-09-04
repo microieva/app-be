@@ -81,12 +81,12 @@ export const schema = `
       sortDirection: String
       filterInput: String
     ): Paged!
-    countUserRecords: RecordCountResponse!
     countDoctorRequests: Int!
     countDoctors: Int!
     countPatients: Int!
     countMissedAppointments: Int!
     countRecords: Int!
+    countDrafts: Int!
   }
 
   type Mutation {
@@ -131,11 +131,6 @@ export const schema = `
     nextId: Int
     patient: User
     doctor: User
-  }
-
-  type RecordCountResponse {
-    countRecords: Int!
-    countDrafts: Int!
   }
 
   type User {
