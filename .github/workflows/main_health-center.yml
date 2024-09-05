@@ -59,4 +59,4 @@ jobs:
           app-name: 'health-center'
           slot-name: 'Production'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_0E64B8DF4CC14AA9AFE2484077128332 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7DAD23D7D77C45B49B8EAA8552EEC9E8 }}
