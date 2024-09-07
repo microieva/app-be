@@ -2,11 +2,11 @@ import 'dotenv/config';
 import "reflect-metadata";
 import { DataSource } from 'typeorm';
 import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
-import { UserRole } from '../graphql/user/user-role.model';
-import { User } from '../graphql/user/user.model';
-import { Appointment } from '../graphql/appointment/appointment.model';
-import { Record } from '../graphql/record/record.model';
-import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
+// import { UserRole } from '../graphql/user/user-role.model';
+// import { User } from '../graphql/user/user.model';
+// import { Appointment } from '../graphql/appointment/appointment.model';
+// import { Record } from '../graphql/record/record.model';
+// import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
 
 const options: SqlServerConnectionOptions = {
     type: 'mssql',
@@ -19,12 +19,15 @@ const options: SqlServerConnectionOptions = {
     database: process.env.DB_NAME,
     logging: false,
     synchronize: true,
+    // entities: [
+    //     UserRole,
+    //     User,
+    //     Appointment,
+    //     Record,
+    //     DoctorRequest
+    // ],
     entities: [
-        UserRole,
-        User,
-        Appointment,
-        Record,
-        DoctorRequest
+        __dirname, 'src/graphql/*/*'
     ],
     migrations: ["./src/migration/*.ts"],
     extra: {
