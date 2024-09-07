@@ -27,7 +27,7 @@ const options: SqlServerConnectionOptions = {
     //     DoctorRequest
     // ],
     entities: [
-        __dirname, 'src/graphql/*/*'
+        __dirname, 'src/graphql/'
     ],
     migrations: ["./src/migration/*.ts"],
     extra: {
