@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import jwt , { JwtPayload } from "jsonwebtoken";
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
