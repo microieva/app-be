@@ -6,21 +6,13 @@ import { typeDefs } from './schema';
 import { resolvers } from './graphql/resolvers';
 import { dataSource } from './configurations/db.config';
 import { AppContext } from './graphql/types';
-import { User } from "./graphql/user/user.model";
 
 const port = parseInt(process.env.PORT) || 4000;
 const server = new ApolloServer<AppContext>({ typeDefs, resolvers });
 
 const startServer = async () => {
     await dataSource.initialize()
-        .then(
-            async () => console.log('Datasource Initialized'),
-            ()=> {
-                if (dataSource.hasMetadata(User)) {
-                    console.log('METADATA')
-                } else {
-                    throw new Error("----NO METADATA------")
-                }})
+        .then(async () => console.log('Datasource Initialized'))
         .catch(error => console.log('Datasource Initialization Error: ', error));
 
     const { url } = await startStandaloneServer(server, {
