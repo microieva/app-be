@@ -1,0 +1,14 @@
+{
+    "containerApps.deploymentConfigurations": [
+        {
+            "label": "health-center",
+            "type": "AcrDockerBuildRequest",
+            "dockerfilePath": "Dockerfile",
+            "srcPath": ".",
+            "envPath": ".env",
+            "resourceGroup": "app-environment",
+            "containerApp": "health-center",
+            "containerRegistry": "appenvironmentb154f4"
+        }
+    ]
+}
