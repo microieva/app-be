@@ -1,7 +1,7 @@
 {
-  "name": "climent_city",
+  "name": "health-center",
   "version": "1.0.0",
-  "description": "climet safet mobile application",
+  "description": "",
   "main": "index.ts",
   "scripts": {
     "start": "ts-node src/index.ts",
@@ -16,7 +16,7 @@
     "test:coverage": "jest --coverage",
     "typeorm": "typeorm-ts-node-commonjs"
   },
-  "author": "",
+  "author": "Ieva Vyliaudaite",
   "license": "ISC",
   "dependencies": {
     "@apollo/server": "^4.10.4",

@@ -17,7 +17,7 @@ const options: SqlServerConnectionOptions = {
     username:  process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
-    logging: false,
+    logging: true,
     synchronize: true,
     // entities: [
     //     UserRole,
@@ -27,7 +27,7 @@ const options: SqlServerConnectionOptions = {
     //     DoctorRequest
     // ],
     entities: [
-        __dirname, 'dist/graphql/'
+        __dirname, './dist/graphql/'
     ],
     migrations: ["./src/migration/*.ts"],
     extra: {
