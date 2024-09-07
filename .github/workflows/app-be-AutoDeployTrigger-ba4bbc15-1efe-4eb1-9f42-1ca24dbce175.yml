@@ -1,0 +1,48 @@
+name: Trigger auto deployment for app-be
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/app-be-AutoDeployTrigger-ba4bbc15-1efe-4eb1-9f42-1ca24dbce175.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.APPBE_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.APPBE_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.APPBE_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          registryUrl: healthcenterdd9b83.azurecr.io
+          registryUsername: ${{ secrets.APPBE_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.APPBE_REGISTRY_PASSWORD }}
+          containerAppName: app-be
+          resourceGroup: health-center
+          imageToBuild: healthcenterdd9b83.azurecr.io/app-be:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
