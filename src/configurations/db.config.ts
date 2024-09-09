@@ -40,7 +40,10 @@ const options: SqlServerConnectionOptions = {
             options: {
                 token: async () => {
                     const tokenResponse = await credential.getToken("https://database.windows.net/.default");
-                    console.log('TOKEN ___________ here: ', tokenResponse)
+                    console.log('TOKEN RESPONSE--------------- >>>: ', tokenResponse);
+                    if (!tokenResponse || !tokenResponse.token) {
+                        throw new Error('Failed to retrieve token');
+                    }
                     return tokenResponse.token;
                 }
             }
