@@ -33,7 +33,7 @@ const options: SqlServerConnectionOptions = {
     extra: {
         trustServerCertificate: true,
         authentication: {
-            type: "azure-active-directory-msi" 
+            type: "azure-active-directory-msi-vm" 
         }
     },
     options: {
