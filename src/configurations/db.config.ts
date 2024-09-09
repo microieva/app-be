@@ -44,7 +44,8 @@ const options: SqlServerConnectionOptions = {
                     if (!tokenResponse || !tokenResponse.token) {
                         throw new Error('Failed to retrieve token');
                     }
-                    return tokenResponse.token as string;
+                    const token = tokenResponse.token
+                    return token.toString() || ''
                 }
             }
         }
