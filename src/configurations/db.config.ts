@@ -2,11 +2,14 @@ import 'dotenv/config';
 import "reflect-metadata";
 import { DataSource } from 'typeorm';
 import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
+import { DefaultAzureCredential } from '@azure/identity';
 // import { UserRole } from '../graphql/user/user-role.model';
 // import { User } from '../graphql/user/user.model';
 // import { Appointment } from '../graphql/appointment/appointment.model';
 // import { Record } from '../graphql/record/record.model';
 // import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
+
+const credential = new DefaultAzureCredential();
 
 const options: SqlServerConnectionOptions = {
     type: 'mssql',
@@ -33,7 +36,13 @@ const options: SqlServerConnectionOptions = {
     extra: {
         trustServerCertificate: true,
         authentication: {
-            type: "azure-active-directory-msi-vm" 
+            type: "azure-active-directory-access-token",
+            options: {
+                token: async () => {
+                    const tokenResponse = await credential.getToken('https://database.windows.net/.default');
+                    return tokenResponse.token;
+                }
+            }
         }
     },
     options: {
