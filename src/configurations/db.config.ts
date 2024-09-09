@@ -31,10 +31,13 @@ const options: SqlServerConnectionOptions = {
     ],
     migrations: ["./src/migration/*.ts"],
     extra: {
-        trustServerCertificate: true
+        trustServerCertificate: true,
+        authentication: {
+            type: "azure-active-directory-msi" 
+        }
     },
     options: {
-        encrypt: true
+        encrypt: true  
     }
 };
 export const dataSource = new DataSource(options);
