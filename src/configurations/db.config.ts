@@ -14,7 +14,7 @@ const credential = new ManagedIdentityCredential();
 const token = credential.getToken("https://database.windows.net/").then(token => token.token)
 
 const config = {
-    server: process.env.DB_HOST,
+    server: "health-center",
     port: Number(process.env.DB_PORT),
     username:  process.env.DB_USER,
     password: process.env.DB_PASS,
