@@ -1,6 +1,7 @@
 ### Introduction
 
 This repository contains a back end for a personal portfolio project "Health Center".
+___
 
 
 ### Table of Contents
@@ -10,7 +11,11 @@ This repository contains a back end for a personal portfolio project "Health Cen
 - [Architecture](#architecture)
 - [Folder Structure](#folder-structure)
 - [Features](#features)
+    - [API](#api)
+    - [ERD](#erd)
+    - [User permissions](#user-permissions)
 
+___
 
 ### Architecture
 
@@ -21,9 +26,11 @@ This repository contains a back end for a personal portfolio project "Health Cen
 - Docker
 - Azure
 
+___
 
 ### Folder Structure
 
+```
 Root Folder
 └── src
     ├── schema.ts
@@ -62,9 +69,51 @@ Root Folder
             ├── user-role.model.ts
             ├── user.resolver.ts
             └── user.mutation.resolver.ts
+```
 
+
+___
 
 ### Features
 
 - Google authentication
 - Nodemailer email service
+  
+
+##### API
+
+This backend serves GraphQL API, with SQL database connection.
+
+
+##### ERD 
+
+![](./erd.png)
+
+
+
+##### User permissions
+
+
+'*' marks operations that trigger email notification. Doctor action send notification to patient; patient action, to doctor.
+
+
+
+|entity / user_role|admin |doctor  | patient|
+--- | --- | --- | ---|
+|user|GET|GET|GET|
+||CREATE||CREATE*|
+||UPDATE|UPDATE|UPDATE|
+||DELETE|DELETE|DELETE|
+|doctor_request|GET|||
+|||CREATE||
+||UPDATE|||
+||DELETE|||
+|medical_record||GET|GET|
+|||CREATE*||
+|||UPDATE*||
+|||DELETE||
+|appointment||GET|GET|
+||CREATE||CREATE|
+||UPDATE|UPDATE*|UPDATE|
+||DELETE|DELETE*|DELETE*|
+  
