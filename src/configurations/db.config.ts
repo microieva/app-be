@@ -11,6 +11,7 @@ import { ManagedIdentityCredential } from '@azure/identity';
 // import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
 
 const credential = new ManagedIdentityCredential();
+const token = credential.getToken("https://database.windows.net/").then(token => token.token)
 
 const config = {
     server: process.env.DB_HOST,
@@ -25,17 +26,18 @@ const config = {
     // }
     authentication: {
         type: "azure-active-directory-access-token",
-            options: {
-                token: async () => {
-                    const tokenResponse = await credential.getToken("https://database.windows.net/"); // .default
-                    console.log('TOKEN RESPONSE--------------- >>>: ', tokenResponse);
-                    if (!tokenResponse || !tokenResponse.token) {
-                        throw new Error('Failed to retrieve token');
-                    }
-                    const token = tokenResponse.token
-                    return token;
-                }
-            }
+        options: {
+            // token: async () => {
+            //     const tokenResponse = await credential.getToken("https://database.windows.net/"); // .default
+            //     console.log('TOKEN RESPONSE--------------- >>>: ', tokenResponse);
+            //     if (!tokenResponse || !tokenResponse.token) {
+            //         throw new Error('Failed to retrieve token');
+            //     }
+            //     const token = tokenResponse.token
+            //     return token;
+            // }
+            token
+        }
     }
 }
 
