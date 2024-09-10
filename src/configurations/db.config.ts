@@ -12,6 +12,7 @@ import { ManagedIdentityCredential } from '@azure/identity';
 
 const credential = new ManagedIdentityCredential();
 const token = credential.getToken("https://database.windows.net/").then(token => token.token)
+console.log('TOKEN---------->', token)
 
 const config = {
     server: "health-center",
