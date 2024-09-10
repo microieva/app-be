@@ -6,15 +6,28 @@ import "reflect-metadata";
 // import { resolvers } from './graphql/resolvers';
 //import { dataSource } from './configurations/db.config';
 //import { AppContext } from './graphql/types';
-import { pool } from "./configurations/db.config";
+import { createConfig } from "./configurations/db.config";
+import { ConnectionPool } from "mssql";
 
-pool.connect(err => {
-    if (err) {
-        console.error('Database connection failed:', err);
-    } else {
-        console.log('Connected to the database');
-    }
-})
+createConfig()
+    .then(config => {
+        return new ConnectionPool(config as any);
+    })
+    .then(pool => {
+        pool.connect(err => {
+            if (err) {
+                console.error('Database connection failed:', err);
+            } else {
+                console.log('Connected to the database');
+            }
+        })
+    })
+    .catch(error => {
+        console.error('Error creating config:', error);
+    });
+
+
+
 
 // const port = parseInt(process.env.PORT) || 4000;
 // const server = new ApolloServer<AppContext>({ typeDefs, resolvers });
