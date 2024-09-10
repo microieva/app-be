@@ -1,46 +1,70 @@
+### Introduction
 
-### Development
+This repository contains a back end for a personal portfolio project "Health Center".
 
-```bash
-npm run dev
-```
 
-### Production
+### Table of Contents
 
-```bash
-pm2 start ecosystem.config.js --env production
-```
+- [Introduction](#introduction)
+- [Table of Contents](#table-of-contents)
+- [Architecture](#architecture)
+- [Folder Structure](#folder-structure)
+- [Features](#features)
 
-### Running tests
 
-```bash
-npm test
-```
+### Architecture
 
-### Linting
+- Node express
+- TypeORM
+- GraphQL
+- SQL
+- Docker
+- Azure
 
-```bash
-npm run lint
-```
 
-### Building a container
+### Folder Structure
 
-```bash
-docker build -t test/rest-api-typescript .
-```
+Root Folder
+└── src
+    ├── schema.ts
+    ├── app.ts
+    ├── index.ts
+    ├──  / configurations
+    │   ├── db.config.ts
+    │   └── app.config.ts
+    ├──  / services
+    │   └── email.service.ts
+    ├──  / migration
+    └──  / graphql
+        ├── query.resolver.ts
+        ├── resolvers.ts
+        ├── types.ts
+        ├── / appointment
+        │   ├── appointment.ts
+        │   ├── appointment.input.ts
+        │   ├── appointment.model.ts
+        │   ├── appointment.resolver.ts
+        │   └── appointment.mutation.resolver.ts
+        ├── / doctor-request
+        │   ├── doctor-request.ts
+        │   ├── doctor-request.model.ts
+        │   └── doctor-request.mutation.resolver.ts
+        ├── / record
+        │   ├── record.ts
+        │   ├── record.input.ts
+        │   ├── record.model.ts
+        │   ├── record.resolver.ts
+        │   └── record.mutation.resolver.ts
+        └── / user
+            ├── user.ts
+            ├── user.input.ts
+            ├── user.model.ts
+            ├── user-role.model.ts
+            ├── user.resolver.ts
+            └── user.mutation.resolver.ts
 
-### Run docker image
 
-```bash
-docker run -p 8080:4000 -d rahulse97/rest-api-typescript
-```
+### Features
 
-### Print app output
-```bash
-docker logs <container id>
-```
-
-### Enter the container
-```bash
-docker exec -it <container id> /bin/bash
-```
+- Google authentication
+- Nodemailer email service
