@@ -12,8 +12,8 @@ import { ManagedIdentityCredential } from '@azure/identity';
 const credential = new ManagedIdentityCredential();
 
 async function fetchToken() {
-    const tokenResponse = await credential.getToken("https://database.windows.net/");
-    const token = tokenResponse.token; // Now token is a string
+    const tokenResponse = await credential.getToken("https://database.windows.net/.default");
+    const token = tokenResponse.token; 
     return token;
 }
 
