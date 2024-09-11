@@ -2,24 +2,24 @@ import 'dotenv/config';
 import "reflect-metadata";
 //import { DataSource } from 'typeorm';
 //import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
-import { ManagedIdentityCredential } from '@azure/identity';
+//import { ManagedIdentityCredential } from '@azure/identity';
 // import { UserRole } from '../graphql/user/user-role.model';
 // import { User } from '../graphql/user/user.model';
 // import { Appointment } from '../graphql/appointment/appointment.model';
 // import { Record } from '../graphql/record/record.model';
 // import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
 
-const credential = new ManagedIdentityCredential();
+//const credential = new ManagedIdentityCredential();
 
-async function fetchToken() {
-    const tokenResponse = await credential.getToken("https://database.windows.net/.default");
-    const token = tokenResponse.token; 
-    return token;
-}
+// async function fetchToken() {
+//     //const tokenResponse = await credential.getToken("https://database.windows.net/.default");
+//     //const token = tokenResponse.token; 
+//     const token = 
+// }
 
 export async function createConfig() {
-    const token = await fetchToken(); 
-    console.log('TOKEN---------->', token)
+    //const token = await fetchToken(); 
+    console.log('TOKEN---------->', process.env.AZURE_TOKEN)
     const config = {
         server: "health-center",
         port: Number(process.env.DB_PORT),
@@ -29,7 +29,7 @@ export async function createConfig() {
         authentication: {
             type: "azure-active-directory-access-token",
             options: {
-                token: token 
+                token: process.env.AZURE_TOKEN
             }
         }
     };
