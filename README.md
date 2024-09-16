@@ -1,6 +1,7 @@
 ### Introduction
 
 This repository contains a back end for a personal portfolio project "Health Center".
+The project has not been deployed yet.
 ___
 
 
@@ -24,7 +25,6 @@ ___
 - GraphQL
 - SQL
 - Docker
-- Azure
 
 ___
 
@@ -76,6 +76,7 @@ ___
 
 ### Features
 
+- GraphQL API
 - Google authentication
 - Nodemailer email service
   
