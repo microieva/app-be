@@ -1108,14 +1108,24 @@ export const queries = {
         record: async (parent: null, args: any, context: AppContext) => {
             const recordId = args.recordId;
             const appointmentId = args.appointmentId;
+            const repo = context.dataSource.getRepository(Record);
 
             try {
                 if (appointmentId) {
-                    return await context.dataSource.getRepository(Record)
-                    .findOneBy({appointmentId: appointmentId});
+                    return repo
+                        .createQueryBuilder('record')
+                        .leftJoinAndSelect('record.appointment', 'appointment')
+                        .leftJoinAndSelect('appointment.patient', 'patient')
+                        .where({appointmentId})
+                        .getOne();
+
                 } else {
-                    return await context.dataSource.getRepository(Record)
-                        .findOneBy({id: recordId});
+                    return repo
+                        .createQueryBuilder('record')
+                        .leftJoinAndSelect('record.appointment', 'appointment')
+                        .leftJoinAndSelect('appointment.patient', 'patient')
+                        .where({id: recordId})
+                        .getOne();
                 }
             } catch (error) {
                 throw new Error(`Error fetching record: ${error}`);
