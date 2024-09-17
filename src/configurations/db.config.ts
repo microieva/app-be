@@ -1,45 +1,15 @@
 import 'dotenv/config'; 
 import "reflect-metadata";
-//import { DataSource } from 'typeorm';
-//import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
-//import { ManagedIdentityCredential } from '@azure/identity';
-// import { UserRole } from '../graphql/user/user-role.model';
-// import { User } from '../graphql/user/user.model';
-// import { Appointment } from '../graphql/appointment/appointment.model';
-// import { Record } from '../graphql/record/record.model';
-// import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
+import { DataSource } from 'typeorm';
+import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
+import { UserRole } from '../graphql/user/user-role.model';
+import { User } from '../graphql/user/user.model';
+import { Appointment } from '../graphql/appointment/appointment.model';
+import { Record } from '../graphql/record/record.model';
+import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
 
-//const credential = new ManagedIdentityCredential();
 
-// async function fetchToken() {
-//     //const tokenResponse = await credential.getToken("https://database.windows.net/.default");
-//     //const token = tokenResponse.token; 
-//     const token = 
-// }
-
-export async function createConfig() {
-    //const token = await fetchToken(); 
-    console.log('TOKEN---------->', process.env.AZURE_TOKEN)
-    const config = {
-        server: "health-center",
-        port: Number(process.env.DB_PORT),
-        username: process.env.DB_USER,
-        password: process.env.DB_PASS,
-        database: process.env.DB_NAME,
-        authentication: {
-            type: "azure-active-directory-access-token",
-            options: {
-                token: process.env.AZURE_TOKEN
-            }
-        }
-    };
-
-    return config; 
-}
-
-//export const pool = new ConnectionPool(config as any);
-
-/*const options: SqlServerConnectionOptions = {
+const options: SqlServerConnectionOptions = {
     type: 'mssql',
     //url:'localhost://127.0.0.1:1433;databaseName=SQL_DB;',
     //url: 'jdbc:mssql://localhost:1433/SQL_DB;',
@@ -50,36 +20,19 @@ export async function createConfig() {
     database: process.env.DB_NAME,
     logging: true,
     synchronize: true,
-    // entities: [
-    //     UserRole,
-    //     User,
-    //     Appointment,
-    //     Record,
-    //     DoctorRequest
-    // ],
     entities: [
-        __dirname, './dist/graphql/'
+        UserRole,
+        User,
+        Appointment,
+        Record,
+        DoctorRequest
     ],
     migrations: ["./src/migration/*.ts"],
     extra: {
-        trustServerCertificate: true,
-        authentication: {
-            type: "azure-active-directory-access-token",
-            options: {
-                token: async () => {
-                    const tokenResponse = await credential.getToken("https://database.windows.net/"); // .default
-                    console.log('TOKEN RESPONSE--------------- >>>: ', tokenResponse);
-                    if (!tokenResponse || !tokenResponse.token) {
-                        throw new Error('Failed to retrieve token');
-                    }
-                    const token = tokenResponse.token
-                    return token;
-                }
-            }
-        }
+        trustServerCertificate: true
     },
     options: {
         encrypt: true  
     }
 };
-export const dataSource = new DataSource(options);*/
+export const dataSource = new DataSource(options);
