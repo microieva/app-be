@@ -78,6 +78,7 @@ ___
 
 - GraphQL API
 - Google authentication
+- FTN (Finnish Trust Network) bank authentication (_Signicat Sandbox_)
 - Nodemailer email service
   
 
