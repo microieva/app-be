@@ -1,7 +1,9 @@
+import 'dotenv/config'; 
 import { DateTime } from "luxon";
 import { In } from "typeorm";
 import { OAuth2Client } from 'google-auth-library';
 import jwt from "jsonwebtoken";
+import jose from "node-jose";
 import { User } from "./user.model";
 import { Appointment } from "../appointment/appointment.model";
 import { DoctorRequest } from "../doctor-request/doctor-request.model";
@@ -267,6 +269,101 @@ export const userMutationResolver = {
                         throw new Error(`error saving new request: ${error}`);
                     }
                 }
+            }
+        },
+        loginWithSignicat: async (parent: null, args: any, context: AppContext)=> {
+            const repo = context.dataSource.getRepository(User);
+
+            const jweToken = args.signicatAccessToken;
+
+            try {
+                const key = await jose.JWK.asKey(JSON.parse(process.env.SIGNICAT_KEY), 'pem'); //creates a JWK from the private key
+                const decryptedToken = await jose.JWE.createDecrypt(key).decrypt(jweToken);
+                
+                const decryptedPlaintext = JSON.parse(JSON.stringify(decryptedToken.plaintext));
+
+                const buffer = Buffer.from(decryptedPlaintext.data);
+                const plaintextString = buffer.toString('utf-8'); 
+
+                const parts = plaintextString.split('.');
+                if (parts.length !== 3) {
+                    throw new Error('Invalid JWT format');
+                }
+                    
+                const payload = parts[1];
+                    
+                const decodedPayload = Buffer.from(payload, 'base64url').toString('utf-8');
+                const userDetails = JSON.parse(decodedPayload);
+
+                if (userDetails) {
+                    const expires_at = userDetails.exp * 1000; 
+                    const auth_time = userDetails.auth_time * 1000;
+
+                    const expirationDateTime = DateTime.fromMillis(expires_at);
+                    const authDateTime = DateTime.fromMillis(auth_time);
+
+                    const duration = expirationDateTime.diff(authDateTime);
+
+                    const minutes = duration.as('minutes');
+                    const hours = duration.as('hours');
+
+                    console.log(`Expiration in minutes: ${minutes}`);
+                    console.log(`Expiration in hours: ${hours}`);
+
+                    try {
+                        const dbUser = await repo
+                            .createQueryBuilder('user')
+                            .where({
+                                firstName: userDetails.given_name,
+                                lastName: userDetails.family_name,
+                                dob: userDetails.birthdate
+                            })
+                            .getOne();
+
+                        if (dbUser) {
+                            const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+                            
+                            const expirationTime = DateTime.fromMillis(expires_at);
+                            const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
+                            const lastLogin = authDateTime.toISO({ includeOffset: true });
+            
+                            dbUser.lastLogInAt = new Date(lastLogin);
+                            await repo.save(dbUser);
+            
+                            return {
+                                token: token, 
+                                expiresAt: expirationTimeInFinnishTime
+                            } as LoginResponse;
+                        } else {
+                            const newUser = new User();
+    
+                            newUser.firstName = userDetails.given_name;
+                            newUser.lastName = userDetails.family_name;
+                            newUser.dob = new Date(userDetails.birthdate);
+                            newUser.userRoleId = 3;
+                            newUser.updatedAt = null;
+                            newUser.email = "";
+
+                            const user = await repo.save(newUser);
+
+                            const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+                            const expirationTime = DateTime.fromMillis(expires_at);
+                            const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
+    
+                            return {
+                                token: token, 
+                                expiresAt: expirationTimeInFinnishTime
+                            } as LoginResponse;
+                        }
+                    } catch (error) {
+                        throw new Error(error);
+                    }
+                } else {
+                    throw new Error('Bank authentication failed, please try later..')
+
+                }
+            } catch (error) {
+                throw new Error('Bank authentication failed '+error)
             }
         }
     }
