@@ -94,7 +94,7 @@ export const schema = `
     deleteUser(userId: Int!): MutationResponse!
     login(directLoginInput: LoginInput!): LoginResponse!
     loginWithGoogle(googleCredential: String!): LoginResponse!
-    loginWithSignicat(signicatAccessToken: String!): String!
+    loginWithSignicat(signicatAccessToken: String!): LoginResponse!
     saveAppointment(appointmentInput: AppointmentInput!): MutationResponse!
     deleteAppointment(appointmentId: Int!): MutationResponse!
     saveAppointmentMessage(appointmentId: Int!, appointmentMessage: String!): MutationResponse!
