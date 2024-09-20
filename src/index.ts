@@ -15,7 +15,7 @@ const startServer = async () => {
     await dataSource.initialize()
         .then(async () => console.log('Datasource Initialized'))
         .catch(error => console.log('Datasource Initialization Error: ', error));
-    
+
     const { url } = await startStandaloneServer(server, {
         context: async ({ req, res }) => {
             const token = req.headers.authorization?.split(' ')[1];
