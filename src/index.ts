@@ -1,15 +1,23 @@
+import dotenv from 'dotenv';
 import "reflect-metadata";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { typeDefs } from './schema';
 import { resolvers } from './graphql/resolvers';
-import { dataSource } from './configurations/db.config';
+import { devDataSource } from './configurations/dev-db.config';
+import { prodDataSource } from './configurations/prod-db.config';
 import { AppContext } from './graphql/types';
 
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config({path: `.env.${process.env.NODE_ENV}`})
+} else {
+    dotenv.config({path: '.env.production'})
+}
 
 const port = parseInt(process.env.PORT) || 4000;
 const server = new ApolloServer<AppContext>({ typeDefs, resolvers });
+const dataSource = process.env.NODE_ENV === 'production' ? prodDataSource : devDataSource;
 
 const startServer = async () => {
     await dataSource.initialize()

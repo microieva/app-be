@@ -35,4 +35,4 @@ const options: SqlServerConnectionOptions = {
         encrypt: true  
     }
 };
-export const dataSource = new DataSource(options);
+export const devDataSource = new DataSource(options);
