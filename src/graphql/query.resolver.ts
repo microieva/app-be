@@ -236,7 +236,8 @@ export const queries = {
             if (!me || me.userRoleId !== 2) {
                 throw new Error("Unauthorized action")
             }
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
+            const datetime = DateTime.fromISO(now).toJSDate();
             const repo = context.dataSource.getRepository(Appointment);
 
             try {
@@ -245,7 +246,7 @@ export const queries = {
                     .leftJoinAndSelect('appointment.patient', 'patient')
                     .where('appointment.patientId IS NOT NULL')
                     .andWhere('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
-                    .andWhere(':now BETWEEN appointment.start AND appointment.end', { now })
+                    .andWhere(':now BETWEEN appointment.start AND appointment.end', { now: datetime })
                     .getOne();
 
             } catch (error) {
@@ -257,7 +258,8 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
+            const datetime = DateTime.fromISO(now).toJSDate();
 
             let length: number = 0;
             let slice: Appointment[] = [];   
@@ -269,7 +271,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.patientId = :patientId', { patientId: context.me.userId })
                             .andWhere('appointment.doctorId IS NULL')
-                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start > :now', {now: datetime})
                             .orderBy(`appointment.${sortActive}` || 'appointment.start', `${sortDirection}` as 'ASC' | 'DESC')
                             .limit(pageLimit)
                             .offset(pageIndex * pageLimit)
@@ -295,7 +297,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .leftJoinAndSelect('appointment.patient', 'patient')
                             .where('appointment.doctorId IS NULL')
-                            .andWhere('appointment.end > :now', {now})
+                            .andWhere('appointment.end > :now', {now: datetime})
                         
                         if (formattedReservedTimes.length>0) {
                             queryBuilder.andWhere('appointment.start NOT IN (:...reservedTimes)', { reservedTimes: formattedReservedTimes });
@@ -343,7 +345,8 @@ export const queries = {
 
             let length: number = 0;
             let slice: Appointment[] = [];   
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
+            const datetime = DateTime.fromISO(now).toJSDate();
 
             if (me) {
                 if (me.userRoleId === 3) {
@@ -352,7 +355,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.patientId = :patientId', { patientId: context.me.userId })
                             .andWhere('appointment.doctorId IS NOT NULL')
-                            .andWhere('appointment.start > :now', { now: new Date(now) })
+                            .andWhere('appointment.start > :now', { now: datetime })
                             .orderBy(`appointment.${sortActive}` || 'appointment.start', `${sortDirection}` as 'ASC' | 'DESC')
                             .limit(pageLimit)
                             .offset(pageIndex * pageLimit)
@@ -370,7 +373,7 @@ export const queries = {
                             .leftJoinAndSelect('appointment.patient', 'patient')
                             .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId })
                             .andWhere('appointment.patientId IS NOT NULL') 
-                            .andWhere('appointment.start > :now', { now: new Date(now) })
+                            .andWhere('appointment.start > :now', { now: datetime })
             
                         if (filterInput) {
                             queryBuilder.andWhere(
@@ -415,7 +418,8 @@ export const queries = {
             let length: number = 0;
             let slice: Appointment[] = [];   
 
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
+            const datetime = DateTime.fromISO(now).toJSDate();
 
             if (me) {
                 if (me.userRoleId === 3) {
@@ -424,7 +428,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.patientId = :patientId', { patientId: me.id })
                             .andWhere('appointment.doctorId IS NOT NULL')
-                            .andWhere('appointment.end < :now', { now: new Date(now) })
+                            .andWhere('appointment.end < :now', { now: datetime })
                             .orderBy(`appointment.${sortActive}` || 'appointment.end', `${sortDirection}` as 'ASC' | 'DESC')
                             .limit(pageLimit)
                             .offset(pageIndex * pageLimit)
@@ -442,7 +446,7 @@ export const queries = {
                             .leftJoinAndSelect('appointment.patient', 'patient')
                             .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
                             .andWhere('appointment.patientId IS NOT NULL') 
-                            .andWhere('appointment.end < :now', { now: new Date(now) })
+                            .andWhere('appointment.end < :now', { now: datetime })
             
                         if (filterInput) {
                             queryBuilder.andWhere(
@@ -566,7 +570,8 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const { monthStart, monthEnd, patientId } = args;
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
+            const datetime = DateTime.fromISO(now).toJSDate();
 
             if (!me) {
                 throw new Error("Unauthorized action")
@@ -579,7 +584,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.patientId = :patientId', { patientId: context.me.userId })
                             .andWhere('appointment.doctorId IS NULL')
-                            .andWhere('appointment.start < :now', {now})
+                            .andWhere('appointment.start < :now', {now: datetime})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
                                 monthEnd
@@ -610,7 +615,7 @@ export const queries = {
                         const queryBuilder = repo
                             .createQueryBuilder('appointment')
                             .where('appointment.doctorId IS NULL')
-                            .andWhere('appointment.start < :now', {now})
+                            .andWhere('appointment.start < :now', {now: datetime})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart: new Date(monthStart),
                                 monthEnd:  new Date(monthEnd)
@@ -639,7 +644,7 @@ export const queries = {
                         const monthSlice = await repo
                             .createQueryBuilder('appointment')
                             .where('appointment.patientId = :patientId', { patientId })
-                            .andWhere('appointment.start < :now', {now})
+                            .andWhere('appointment.start < :now', {now: datetime})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
                                 monthEnd
@@ -665,7 +670,8 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const { monthStart, monthEnd, patientId } = args;
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
+            const datetime = DateTime.fromISO(now).toJSDate();
 
             switch (me.userRoleId) {
                 case 3:
@@ -674,7 +680,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.patientId = :patientId', { patientId: context.me.userId })
                             .andWhere('appointment.doctorId IS NULL')
-                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start > :now', {now: datetime})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
                                 monthEnd
@@ -706,7 +712,7 @@ export const queries = {
                         const queryBuilder = repo
                             .createQueryBuilder('appointment')
                             .where('appointment.doctorId IS NULL')
-                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start > :now', {now: datetime})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart: new Date(monthStart),
                                 monthEnd:  new Date(monthEnd)
@@ -736,7 +742,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.doctorId IS NULL')
                             .andWhere('appointment.patientId = :patientId', {patientId})
-                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start > :now', {now: datetime})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart: new Date(monthStart),
                                 monthEnd:  new Date(monthEnd)
@@ -768,7 +774,8 @@ export const queries = {
                 throw new Error('Unauthorized action')
             }
 
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
+            const datetime = DateTime.fromISO(now).toJSDate();
 
             switch (me.userRoleId) {
                 case 3:
@@ -777,7 +784,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.patientId = :patientId', { patientId: context.me.userId })
                             .andWhere('appointment.doctorId IS NOT NULL')
-                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start > :now', {now: datetime})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
                                 monthEnd
@@ -801,7 +808,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
                             .andWhere('appointment.patientId IS NOT NULL')
-                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start > :now', {now: datetime})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
                                 monthEnd
@@ -825,7 +832,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.patientId = :patientId', { patientId })
                             .andWhere('appointment.doctorId IS NOT NULL')
-                            .andWhere('appointment.start > :now', {now})
+                            .andWhere('appointment.start > :now', {now: datetime})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
                                 monthEnd
@@ -857,7 +864,8 @@ export const queries = {
                 throw new Error('Unauthorized action')
             }
 
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
+            const datetime = DateTime.fromISO(now).toJSDate();
 
             switch (me.userRoleId) {
                 case 3:
@@ -866,7 +874,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.patientId = :patientId', { patientId: context.me.userId })
                             .andWhere('appointment.doctorId IS NOT NULL')
-                            .andWhere('appointment.start < :now', {now})
+                            .andWhere('appointment.start < :now', {now: datetime})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
                                 monthEnd
@@ -890,7 +898,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.patientId IS NOT NULL', )
                             .andWhere('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
-                            .andWhere('appointment.start < :now', {now})
+                            .andWhere('appointment.start < :now', {now: datetime})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
                                 monthEnd
@@ -914,7 +922,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .where('appointment.patientId = :patientId', {patientId})
                             .andWhere('appointment.doctorId IS NOT NULL')
-                            .andWhere('appointment.start < :now', {now})
+                            .andWhere('appointment.start < :now', {now: datetime})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
                                 monthEnd
@@ -960,7 +968,8 @@ export const queries = {
         countPendingAppointments: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
+            const datetime = DateTime.fromISO(now).toJSDate();
 
             if (!me || me.userRoleId === 1) {
                 throw new Error('Unauthorized action')
@@ -972,7 +981,7 @@ export const queries = {
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId = :patientId', { patientId: me.id })
                         .andWhere('appointment.doctorId IS NULL')
-                        .andWhere('appointment.start > :now', {now})
+                        .andWhere('appointment.start > :now', {now: datetime})
                         .getCount()
                 } else {
                     const reservedTimes = await repo
@@ -987,7 +996,7 @@ export const queries = {
                         .createQueryBuilder('appointment')
                         .leftJoinAndSelect('appointment.patient', 'patient')
                         .where('appointment.doctorId IS NULL')
-                        .andWhere('appointment.start > :now', {now})
+                        .andWhere('appointment.start > :now', {now: datetime})
                         .groupBy('appointment.start')
                     
                     if (formattedReservedTimes.length>0) {
@@ -1008,21 +1017,23 @@ export const queries = {
             if (!me || me.userRoleId === 1) {
                 throw new Error('Unauthorized action')
             }
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
+            const datetime = DateTime.fromISO(now).toJSDate();
+
             try {
                 if (me.userRoleId === 3) {
                     return await repo
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId = :patientId', { patientId: me.id })
                         .andWhere('appointment.doctorId IS NOT NULL')
-                        .andWhere('appointment.start > :now', {now: new Date(now)})
+                        .andWhere('appointment.start > :now', {now: datetime})
                         .getCount()
                 } else {
                     return await repo
                         .createQueryBuilder('appointment')
                         .where('appointment.doctorId = :doctorId', { doctorId: me.id })
                         .andWhere('appointment.patientId IS NOT NULL')
-                        .andWhere('appointment.start > :now', {now: new Date(now)})
+                        .andWhere('appointment.start > :now', {now: datetime})
                         .getCount()
                 }
             } catch (error) {
@@ -1034,7 +1045,8 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
 
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
+            const datetime = DateTime.fromISO(now).toJSDate();
 
             if (!me || me.userRoleId === 1) {
                 throw new Error('Unauthorized action')
@@ -1046,14 +1058,14 @@ export const queries = {
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId = :patientId', { patientId: context.me.userId})
                         .andWhere('appointment.doctorId IS NOT NULL')
-                        .andWhere('appointment.end < :now', { now: new Date(now) })
+                        .andWhere('appointment.end < :now', { now: datetime })
                         .getCount();
                 } else {
                     const count =  await repo
                         .createQueryBuilder('appointment')
                         .where('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
                         .andWhere('appointment.patientId IS NOT NULL')
-                        .andWhere('appointment.end < :now', { now: new Date(now) })
+                        .andWhere('appointment.end < :now', { now: datetime })
                         .getCount();
 
                     return count;
@@ -1064,9 +1076,9 @@ export const queries = {
             }
         },
         nextAppointment: async (parent: null, args: any, context: AppContext) => {
-            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
-            const now = DateTime.now().toISO({ includeOffset: true });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
 
             if (!me || me.userRoleId === 1) {
                 throw new Error("Unauthorized action")
@@ -1080,19 +1092,20 @@ export const queries = {
 
             if (me.userRoleId === 2) {
                 queryBuilder
-                    .where('appointment.doctorId = :doctorId', { doctorId: me.id })
+                    .where('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
             } else {
                 queryBuilder
-                    .where('appointment.patientId = :patientId', { patientId: me.id })
+                    .where('appointment.patientId = :patientId', { patientId: context.me.userId })
                     .andWhere('appointment.doctorId IS NOT NULL')
             }
 
             if (!await queryBuilder.getExists()) {
                 return null;
             }
+            const datetime = DateTime.fromISO(now).toJSDate();
 
             const nextAppointment = await queryBuilder
-                .andWhere('appointment.start > :now', { now: new Date(now) })
+                .andWhere('appointment.start > :now', { now: datetime })
                 .orderBy('appointment.start', 'ASC')
                 .getOne();
 
@@ -1298,7 +1311,8 @@ export const queries = {
         countMissedAppointments: async (parent: null, args: any, context: AppContext)=> {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now  = DateTime.now().setZone('Europe/Helsinki').setLocale('fi-FI').toISO();
+            const datetime = DateTime.fromISO(now).toJSDate();
 
             if (!me) {
                 throw new Error("Unauthorized action");
@@ -1310,7 +1324,7 @@ export const queries = {
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId IS NOT NULL')
                         .andWhere('appointment.doctorId IS NULL')
-                        .andWhere('appointment.start < :now', {now})
+                        .andWhere('appointment.start < :now', {now: datetime})
                         .getCount();
 
                 } else {
@@ -1318,7 +1332,7 @@ export const queries = {
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId = :id', {id: context.me.userId})
                         .andWhere('appointment.doctorId IS NULL')
-                        .andWhere('appointment.start < :now', {now})
+                        .andWhere('appointment.start < :now', {now: datetime})
                         .getCount();
                 }
 
