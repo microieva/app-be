@@ -20,5 +20,10 @@ export const prodDataSource = new DataSource({
         Appointment,
         Record,
         DoctorRequest
-    ]
+    ],
+    extra: {
+        connectTimeout: 360000, 
+        // acquire timeout (when the connection pool acquires a connection)
+        acquireTimeout: 360000  
+    }
 });

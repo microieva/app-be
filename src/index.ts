@@ -20,9 +20,23 @@ const server = new ApolloServer<AppContext>({ typeDefs, resolvers });
 const dataSource = process.env.NODE_ENV === 'production' ? prodDataSource : devDataSource;
 
 const startServer = async () => {
+    console.log('Connecting to database...');
+    const dot = '.';
+    let str =''
+    const loadingInterval = setInterval(() => {
+        str = str+dot;
+        console.log(str);
+    }, 5000); 
+
     await dataSource.initialize()
-        .then(async () => console.log('Datasource Initialized'))
-        .catch(error => console.log('Datasource Initialization Error: ', error));
+        .then(async () => {
+            clearInterval(loadingInterval); 
+            console.log('Datasource Initialized')
+        })
+        .catch(error => {
+            clearInterval(loadingInterval); 
+            console.log('Datasource Initialization Error: ', error)
+        });
     
     const { url } = await startStandaloneServer(server, {
         context: async ({ req, res }) => {

@@ -11,8 +11,6 @@ import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
 
 const options: SqlServerConnectionOptions = {
     type: 'mssql',
-    //url:'localhost://127.0.0.1:1433;databaseName=SQL_DB;',
-    //url: 'jdbc:mssql://localhost:1433/SQL_DB;',
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
     username:  process.env.DB_USER,
