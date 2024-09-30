@@ -1,4 +1,4 @@
-import { dataSource } from "../configurations/db.config";
+import { dataSource } from "../configurations/dev-db.config";
 import { User } from "./user/user.model";
 
 export interface MutationResponse {

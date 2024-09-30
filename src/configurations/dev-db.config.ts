@@ -6,9 +6,11 @@ import { User } from '../graphql/user/user.model';
 import { Appointment } from '../graphql/appointment/appointment.model';
 import { Record } from '../graphql/record/record.model';
 import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
+import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
 
-export const dataSource = new DataSource({
-    type: 'mysql',
+
+const options: SqlServerConnectionOptions = {
+    type: 'mssql',
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
     username:  process.env.DB_USER,
@@ -20,5 +22,13 @@ export const dataSource = new DataSource({
         Appointment,
         Record,
         DoctorRequest
-    ]
-});
+    ],
+    migrations: ["./src/migration/*.ts"],
+    extra: {
+        trustServerCertificate: true
+    },
+    options: {
+        encrypt: true  
+    }
+};
+export const devDataSource = new DataSource(options);

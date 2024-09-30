@@ -37,7 +37,7 @@ const scalars = {
 
         name: 'Date',
         description: 'Date custom scalar type',
-        serialize(value) {
+        serialize(value: Date) {
           	return value;
         },
         parseValue(value) {
