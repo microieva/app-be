@@ -60,7 +60,7 @@ const sendNotificationAppointmentAccepted = (dbAppointment: Appointment): void =
 };
 
 const sendNotificationAppointmentCancelled = (deletedAppointment: Appointment): void => {
-    console.log('CANCELLED APT: ', deletedAppointment)
+
     const mailOptions = {
         from: process.env.EMAIL_NOTIFICATION_SENDER_ID,
         to: `${deletedAppointment.doctor.email}`, 
