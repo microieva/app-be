@@ -21,6 +21,8 @@
   "dependencies": {
     "@apollo/server": "^4.10.4",
     "@azure/identity": "^4.4.1",
+    "@microsoft/signalr": "^8.0.7",
+    "@microsoft/signalr-protocol-msgpack": "^8.0.7",
     "@types/express": "^4.17.17",
     "bcryptjs": "^2.4.3",
     "chai": "^4.3.7",
@@ -57,6 +59,7 @@
     "passport-jwt": "^4.0.1",
     "pm2": "^5.3.0",
     "reflect-metadata": "^0.1.14",
+    "socket.io": "^4.8.0",
     "supertest": "^6.3.3",
     "swagger-ui-express": "^5.0.0",
     "type-graphql": "^2.0.0-rc.1",

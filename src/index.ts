@@ -1,5 +1,9 @@
 import dotenv from 'dotenv';
 import "reflect-metadata";
+import cors from 'cors';
+import express from "express";
+import { createServer } from "http";
+import { Server } from "socket.io";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
@@ -15,20 +19,56 @@ if (process.env.NODE_ENV !== 'production') {
     dotenv.config({path: '.env.production'})
 }
 
+const app = express();
 const port = parseInt(process.env.PORT) || 4000;
 const server = new ApolloServer<AppContext>({ typeDefs, resolvers });
 const dataSource = process.env.NODE_ENV === 'production' ? prodDataSource : devDataSource;
+
+const corsOptions = {
+    origin: 'http://localhost:4200',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true, 
+    allowedHeaders: 'Content-Type,Authorization,X-Requested-With,x-signalr-user-agent'
+};
+  
+app.use(cors(corsOptions));
+
+const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+    cors: corsOptions
+});
+
+io.on('connection', (socket) => {
+    console.log('a user connected: ');
+
+    socket.on('sendNotification', (message) => {
+        io.emit('receiveNotification', message);
+    });
+
+    socket.on('receiveNotification', (message) => {
+        io.emit('receiveNotification', message);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('user disconnected');
+    });
+});
+
+io.httpServer.listen(4001, ()=> {console.log("io socket ready")});
 
 const startServer = async () => {
     console.log('Connecting to database...');
     const dot = '.';
     let str =''
+    
     const loadingInterval = setInterval(() => {
         str = str+dot;
         console.log(str);
     }, 5000); 
 
-    await dataSource.initialize()
+    await dataSource
+        .initialize()
         .then(async () => {
             clearInterval(loadingInterval); 
             console.log('Datasource Initialized')
@@ -53,6 +93,7 @@ const startServer = async () => {
             }
             
             return {
+                io,
                 dataSource,
                 me
             }
@@ -63,3 +104,4 @@ const startServer = async () => {
 
 }
 startServer();
+

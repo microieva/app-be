@@ -10,6 +10,7 @@ import { DoctorRequest } from "../doctor-request/doctor-request.model";
 import { Record } from "../record/record.model";
 import { UserInput } from "./user.input";
 import { AppContext, LoginResponse, MutationResponse } from "../types";
+//import { sendEmailNotification } from '../../services/email.service';
 
 export const userMutationResolver = {
     Mutation: {
@@ -43,6 +44,7 @@ export const userMutationResolver = {
             try {
                 await userRepo.save(newUser);
                 await requestRepo.delete({id: dbDoctorRequest.id});
+                //TO DO sendEmailNotification(); send to the new doctor that account is ready
 
                 return {
                     success: true,
@@ -214,6 +216,7 @@ export const userMutationResolver = {
         loginWithGoogle: async (parent: null, args: any, context: AppContext) => {
             const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
             const credential = args.googleCredential;
+            const adminId: number = context.dataSource.getRepository(User).findOneby({userRoleId: 1}).id
 
             const ticket = await client.verifyIdToken({
                 idToken: credential,
@@ -260,7 +263,12 @@ export const userMutationResolver = {
                         const currentTime = DateTime.now();
                         const expirationTime = currentTime.plus({ hours: 10 });
                         const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
-    
+                        
+                        context.io.emit('receiveNotification', {
+                            receiverId: adminId,
+                            message: 'New doctor account activation request',
+                            doctorRequestId: newDoctorRequest.id
+                        });
                         return {
                             token: token, 
                             expiresAt: expirationTimeInFinnishTime

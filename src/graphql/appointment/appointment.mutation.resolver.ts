@@ -4,6 +4,7 @@ import { sendEmailNotification } from "../../services/email.service";
 import { Appointment } from "./appointment.model";
 import { AppointmentInput } from "./appointment.input";
 import { AppContext, MutationResponse } from "../types"
+import { getNow } from "../utils";
 
 export const appointmentMutationResolver = {
     Mutation: {
@@ -127,7 +128,14 @@ export const appointmentMutationResolver = {
                 }
 
                 try {
-                    await repo.save(newAppointment);      
+                    const savedAppointment = await repo.save(newAppointment);   
+                    if (!savedAppointment.allDay) {
+                        context.io.emit('receiveNotification', {
+                            receiverId: null,
+                            message: 'New appointment request',
+                            appointmentId: savedAppointment.id
+                        });
+                    }
                     return {
                         success: true,
                         message: 'Appointment created'
@@ -144,7 +152,7 @@ export const appointmentMutationResolver = {
             const dbMe = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const id = args.appointmentId;
             const repo = context.dataSource.getRepository(Appointment);
-            const now = DateTime.now().toISO({ includeOffset: false });
+            const now = getNow(); 
 
             if (!dbMe) {
                 return {
@@ -162,9 +170,17 @@ export const appointmentMutationResolver = {
 
                     await repo.delete({id});
 
-                    if (emailInfo.doctor && DateTime.fromJSDate(emailInfo.start).toISO() > now && dbMe.userRoleId !== 2) {
+                    if (emailInfo.doctor && emailInfo.start > now && dbMe.userRoleId !== 2) {
                         // if patient or admin cancels upcomming appointment
-                        sendEmailNotification(emailInfo, "appointmentCancelled")
+                        sendEmailNotification(emailInfo, "appointmentCancelled");
+
+                        const timeStr = DateTime.fromJSDate(emailInfo.start).setZone('Europe/Helsinki').toFormat('hh:mm, MMM dd')
+                        
+                        context.io.emit('receiveNotification', {
+                            receiverId: emailInfo.doctorId,
+                            message: `${timeStr} appointment has been cancelled. Check email for more details`,
+                            appointmentId: null
+                        });
                     }
 
                     return {
@@ -306,6 +322,12 @@ export const appointmentMutationResolver = {
                     .getOne();
 
                 sendEmailNotification(emailInfo, "appointmentAccepted");
+
+                context.io.emit('receiveNotification', {
+                    receiverId: dbAppointment.patientId,
+                    message: 'Your appointment booking has been confirmed by a doctor',
+                    appointmentId: dbAppointment.id
+                });
 
                 return {
                     success: true,
