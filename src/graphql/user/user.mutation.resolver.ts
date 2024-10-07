@@ -216,7 +216,7 @@ export const userMutationResolver = {
         loginWithGoogle: async (parent: null, args: any, context: AppContext) => {
             const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
             const credential = args.googleCredential;
-            const adminId: number = context.dataSource.getRepository(User).findOneby({userRoleId: 1}).id
+            const adminId: number = context.dataSource.getRepository(User).findOneBy({userRoleId: 1}).id
 
             const ticket = await client.verifyIdToken({
                 idToken: credential,
