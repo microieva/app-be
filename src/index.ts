@@ -25,7 +25,7 @@ const server = new ApolloServer<AppContext>({ typeDefs, resolvers });
 const dataSource = process.env.NODE_ENV === 'production' ? prodDataSource : devDataSource;
 
 const corsOptions = {
-    origin: 'http://localhost:4200',
+    origin: process.env.NOTIFICATIONS_ORIGIN,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true, 
     allowedHeaders: 'Content-Type,Authorization,X-Requested-With,x-signalr-user-agent'
@@ -61,7 +61,7 @@ const startServer = async () => {
     console.log('Connecting to database...');
     const dot = '.';
     let str =''
-    
+
     const loadingInterval = setInterval(() => {
         str = str+dot;
         console.log(str);
