@@ -28,7 +28,7 @@ const corsOptions = {
     origin: process.env.NOTIFICATIONS_ORIGIN,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true, 
-    allowedHeaders: 'Content-Type,Authorization,X-Requested-With,x-signalr-user-agent'
+    allowedHeaders: 'Content-Type,Authorization'
 };
   
 app.use(cors(corsOptions));
@@ -43,10 +43,6 @@ io.on('connection', (socket) => {
     console.log('a user connected: ');
 
     socket.on('sendNotification', (message) => {
-        io.emit('receiveNotification', message);
-    });
-
-    socket.on('receiveNotification', (message) => {
         io.emit('receiveNotification', message);
     });
 
