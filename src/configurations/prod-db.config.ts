@@ -6,6 +6,8 @@ import { User } from '../graphql/user/user.model';
 import { Appointment } from '../graphql/appointment/appointment.model';
 import { Record } from '../graphql/record/record.model';
 import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
+import { Chat } from 'src/graphql/chat/chat.model';
+import { Message } from 'src/graphql/message/message.model';
 
 export const prodDataSource = new DataSource({
     type: 'mysql',
@@ -19,7 +21,9 @@ export const prodDataSource = new DataSource({
         User,
         Appointment,
         Record,
-        DoctorRequest
+        DoctorRequest,
+        Chat,
+        Message
     ],
     extra: {
         connectTimeout: 360000 
