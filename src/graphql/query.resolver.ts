@@ -5,6 +5,8 @@ import { Record } from "./record/record.model";
 import { DoctorRequest } from "./doctor-request/doctor-request.model";
 import { AppContext } from "./types";
 import { getNow } from "./utils";
+import { Chat } from "./chat/chat.model";
+import { Message } from "./message/message.model";
 
 export const queries = {
     Query: {
@@ -1380,6 +1382,125 @@ export const queries = {
 
             } catch (error) {
                 throw new Error('Error counting drafts, '+error)
+            }
+        },
+        countOnlineDoctors: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = await context.dataSource.getRepository(User);
+            if (!me || me.userRoleId !== 1) {
+                throw new Error('Unauthorized action')
+            }
+
+            if (context.onlineUsers.length > 0) {
+                const userIds = context.onlineUsers.map(user => user.userId);
+                try {
+                    return await repo
+                        .createQueryBuilder('user')
+                        .where('user.userRoleId = :userRoleId', {userRoleId: 2})
+                        .andWhere('user.id IN (:...ids)', {ids: userIds})
+                        .getCount();
+
+                } catch (error) {
+                    throw new Error('Error counting online doctors: '+error);
+                }
+            } else {
+                return 0;
+            }
+        },
+        /*onlineDoctors: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            if (!me || me.userRoleId !== 1) {
+                throw new Error('Unauthorized action')
+            }
+            
+            const repo = await context.dataSource.getRepository(User);
+            const { ids, pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+            
+            if (context.onlineUsers.length > 0) {
+                try {
+                    const queryBuilder = repo
+                        .createQueryBuilder('user')
+                        .where('user.userRoleId = :userRoleId', {userRoleId: 2})
+                        .andWhere('user.id IN (:...ids)', {ids})
+    
+                    if (filterInput) {
+                        queryBuilder.andWhere(
+                            '(LOWER(user.firstName) LIKE :nameLike OR LOWER(user.lastName) LIKE :nameLike)',
+                            { nameLike:  `%${filterInput}%` }
+                        );
+                    }
+                    const [users, count]: [User[], number] = await queryBuilder
+                        .orderBy(`user.${sortActive}` || 'user.firstName', `${sortDirection}` as 'ASC' | 'DESC')
+                        .limit(pageLimit)
+                        .offset(pageIndex * pageLimit)
+                        .getManyAndCount();
+                    
+                    return {
+                        length: count,
+                        slice: users
+                    }
+                } catch (error) {
+                    throw new Error('Error getting online users: '+error);
+                }
+            } else {
+                return {
+                    length: 0,
+                    slice: []
+                }
+            }
+        },*/
+        chatId: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});   
+
+            const senderId = context.me.userId;
+            let receiverId;
+
+            if (me.userRoleId === 3) {
+                throw new Error('Unauthorized action');
+            }
+            if (me.userRoleId === 1) {
+                receiverId = args.receiverId;
+            } else {
+                const admin = await context.dataSource.getRepository(User).findOneBy({userRoleId: 1});
+                receiverId = admin.id;
+            }
+
+            try {
+                let chat = await context.dataSource.getRepository(Chat)
+                    .createQueryBuilder('chat')
+                    .innerJoin('chat.participants', 'participants')
+                    .where('participants.id IN (:...ids)', { ids: [senderId, receiverId] })
+                    .groupBy('chat.id')
+                    .having('COUNT(participants.id) = 2') 
+                    .getOne();
+
+                if (!chat) {
+                    chat = new Chat(); 
+                    chat.participants = [
+                        { id: context.me.userId } as User,  
+                        { id: receiverId } as User         
+                    ];
+                    chat = await context.dataSource.getRepository(Chat).save(chat);
+                }
+                return chat.id;
+            } catch (error) {
+                throw new Error('Cannot get chat id: '+error);
+            }
+        },
+        messages: async (parent: null, args: any, context: AppContext) => {
+            const chatId = args.chatId;
+
+            try {
+                const messages = await context.dataSource.getRepository(Message)
+                    .createQueryBuilder('message')
+                    .leftJoinAndSelect('message.sender', 'sender')
+                    .where('message.chatId = :chatId', { chatId })
+                    .orderBy('message.createdAt', 'DESC') 
+                    .getMany();
+        
+                return messages;
+            } catch (error) {
+                throw new Error(`Failed to fetch messages for chatId ${chatId}: ${error}`);
             }
         }
     }

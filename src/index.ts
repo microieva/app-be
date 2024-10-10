@@ -39,15 +39,53 @@ const io = new Server(httpServer, {
     cors: corsOptions
 });
 
+let onlineUsers = [];
+
 io.on('connection', (socket) => {
-    console.log('a user connected: ');
+    console.log('a user connected: ', socket.id);
+
+    socket.on('registerUser', (user) => {
+        const userInfo = { socketId: socket.id, ...user };
+        onlineUsers.push(userInfo);
+        io.emit('onlineUsers', onlineUsers); 
+        io.emit('online', { userId: user.id, online: true });
+    });
+
+    socket.on('onlineUser', (userId) => {
+        const online = onlineUsers.some(onlineUser => onlineUser.id === userId);
+        io.emit('online', online); 
+    });
 
     socket.on('sendNotification', (message) => {
         io.emit('receiveNotification', message);
     });
 
+    socket.on('notifyDoctors', (info)=> {
+        io.emit('newAppointmentRequest', info);
+    });
+
+    socket.on('notifyDoctor', (info)=> {
+        io.emit('deletedAppointmentInfo', info);
+    });
+
     socket.on('disconnect', () => {
-        console.log('user disconnected');
+        console.log('user disconnected ',  socket.id);
+        const index = onlineUsers.findIndex(user => user.socketId === socket.id);
+        const disconnectedUser = onlineUsers[index];
+
+        if (index !== -1) {
+            io.emit('online', { userId: disconnectedUser.id, online: false });
+            onlineUsers.splice(index, 1); 
+        }
+        io.emit('onlineUsers', onlineUsers);  
+    });
+
+    socket.on('getOnlineUsers', () => {
+        socket.emit('onlineUsers', onlineUsers); 
+    });
+    socket.on('getOneUserStatus', (userId) => {
+        const online = onlineUsers.some(onlineUser => onlineUser.id === userId);
+        io.emit('online', online);  
     });
 });
 
@@ -91,7 +129,8 @@ const startServer = async () => {
             return {
                 io,
                 dataSource,
-                me
+                me,
+                onlineUsers
             }
         },
         listen: { port }

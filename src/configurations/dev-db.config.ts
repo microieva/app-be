@@ -7,6 +7,8 @@ import { Appointment } from '../graphql/appointment/appointment.model';
 import { Record } from '../graphql/record/record.model';
 import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
 import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
+import { Chat } from '../graphql/chat/chat.model';
+import { Message } from '../graphql/message/message.model';
 
 
 const options: SqlServerConnectionOptions = {
@@ -21,7 +23,9 @@ const options: SqlServerConnectionOptions = {
         User,
         Appointment,
         Record,
-        DoctorRequest
+        DoctorRequest,
+        Chat,
+        Message
     ],
     migrations: ["./src/migration/*.ts"],
     extra: {

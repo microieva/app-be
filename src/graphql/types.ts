@@ -21,7 +21,8 @@ export interface NextAppointmentResponse {
 export interface AppContext {
     me: any,
     dataSource?: any
-    io: any
+    io: any,
+    onlineUsers: {socketId: string, userId: number}[]
 }
 
 export type DateTime = import('luxon').DateTime

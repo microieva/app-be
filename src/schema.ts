@@ -81,12 +81,24 @@ export const schema = `
       sortDirection: String
       filterInput: String
     ): Paged!
+     onlineDoctors(
+      ids: [Int!]!,
+      pageIndex: Int!, 
+      pageLimit: Int!, 
+      sortActive: String, 
+      sortDirection: String
+      filterInput: String
+    ): Paged!
     countDoctorRequests: Int!
     countDoctors: Int!
     countPatients: Int!
     countMissedAppointments: Int!
     countRecords: Int!
     countDrafts: Int!
+    countOnlineDoctors: Int!
+    chatId (receiverId: Int): Int!
+    chatMessages(chatId: Int!): [Message!]!
+    messages(chatId: Int!): [Message!]!
   }
 
   type Mutation {
@@ -104,6 +116,7 @@ export const schema = `
     deleteRecord(recordId: Int!): MutationResponse!
     saveDoctor(doctorRequestId: Int!): MutationResponse!
     deleteDoctorRequest(doctorRequestId: Int!): MutationResponse!
+    saveChatMessage(chatId: Int!, content: String!): Message!
   }
 
   type Paged {
@@ -185,6 +198,21 @@ export const schema = `
     firstName: String!
     lastName: String!
     userRoleId: Int!
+  }
+  
+  type Chat {
+    id: Int!
+    participants: [User!]!
+    messages: [Message!]!
+  }
+  
+  type Message {
+    id: Int!
+    content: String!
+    isRead: Boolean!
+    createdAt: Date!
+    sender: User!
+    chat: Chat!
   }
 
   input UserInput {

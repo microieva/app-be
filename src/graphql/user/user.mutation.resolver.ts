@@ -10,6 +10,7 @@ import { DoctorRequest } from "../doctor-request/doctor-request.model";
 import { Record } from "../record/record.model";
 import { UserInput } from "./user.input";
 import { AppContext, LoginResponse, MutationResponse } from "../types";
+//import { getNow } from '../utils';
 //import { sendEmailNotification } from '../../services/email.service';
 
 export const userMutationResolver = {

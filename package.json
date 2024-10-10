@@ -14,7 +14,7 @@
     "prettier": "prettier --write \"**/*.ts\"",
     "test": "jest --detectOpenHandles",
     "test:coverage": "jest --coverage",
-    "typeorm": "typeorm-ts-node-commonjs"
+    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js"
   },
   "author": "Ieva Vyliaudaite",
   "license": "ISC",

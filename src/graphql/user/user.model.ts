@@ -1,7 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, ManyToOne, UpdateDateColumn, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, ManyToOne, UpdateDateColumn, JoinColumn, ManyToMany, OneToMany } from "typeorm";
 import bcrypt from "bcryptjs";
 import { DateTime } from "luxon";
 import { UserRole } from "./user-role.model";
+import { Chat } from "../chat/chat.model";
+import { Message } from "../message/message.model";
 
 
 @Entity()
@@ -67,6 +69,12 @@ export class User {
 
   @UpdateDateColumn({type: 'date', nullable: true})
   updatedAt: Date;
+
+  @ManyToMany(() => Chat, (chat) => chat.participants)
+  chats: Chat[];
+
+  @OneToMany(() => Message, (message) => message.sender)
+  sentMessages: Message[];
 }
 
 

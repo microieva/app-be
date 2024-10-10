@@ -7,6 +7,7 @@ import { appointmentMutationResolver } from "./appointment/appointment.mutation.
 import { appointmentResolver } from "./appointment/appointment.resolver";
 import { recordMutationResolver } from "./record/record.mutation.resolver";
 import { recordResolver } from "./record/record.resolver";
+import { messageMutationResolver } from "./message/message.mutation.resolver";
 import { Appointment } from "./appointment/appointment.model";
 import { Record } from "./record/record.model";
 import { DoctorRequest } from "./doctor-request/doctor-request.model";
@@ -67,5 +68,6 @@ export const resolvers = [
     appointmentMutationResolver,
     appointmentResolver,
     recordMutationResolver,
-    recordResolver
+    recordResolver,
+    messageMutationResolver
 ]
