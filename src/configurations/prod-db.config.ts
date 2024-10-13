@@ -26,7 +26,7 @@ export const prodDataSource = new DataSource({
         Message
     ],
     //migrations: ["./src/migration/*.ts"],
-    synchronize: true,
+    //synchronize: true,
     connectTimeout: 300000, 
     extra: {
         keepAlive: true,
