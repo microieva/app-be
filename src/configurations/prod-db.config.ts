@@ -6,8 +6,8 @@ import { User } from '../graphql/user/user.model';
 import { Appointment } from '../graphql/appointment/appointment.model';
 import { Record } from '../graphql/record/record.model';
 import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
-import { Chat } from 'src/graphql/chat/chat.model';
-import { Message } from 'src/graphql/message/message.model';
+import { Chat } from '../graphql/chat/chat.model';
+import { Message } from '../graphql/message/message.model';
 
 export const prodDataSource = new DataSource({
     type: 'mysql',
@@ -25,7 +25,7 @@ export const prodDataSource = new DataSource({
         Chat,
         Message
     ],
-    migrations: ["./src/migration/prod/*.ts"],
+    migrations: ["./src/migration/*.ts"],
     synchronize: true,
     connectTimeout: 300000, 
     extra: {
