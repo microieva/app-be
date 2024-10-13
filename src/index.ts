@@ -34,6 +34,7 @@ const corsOptions = {
 
 // Apply CORS to the Express server
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Pre-flight handler
 app.use(bodyParser.json());  // Add body parser middleware for Express
 
 // Create the ApolloServer instance
