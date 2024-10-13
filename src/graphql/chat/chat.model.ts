@@ -8,7 +8,7 @@ export class Chat {
   id: number;
 
   @ManyToMany(() => User, (user) => user.chats)
-  @JoinTable() // Only one side of the relationship should have @JoinTable
+  @JoinTable() 
   participants: User[];
 
   @OneToMany(() => Message, (message) => message.chat)
