@@ -89,7 +89,7 @@ io.on('connection', (socket) => {
     });
 });
 
-io.httpServer.listen(80, ()=> {console.log("io socket ready")});
+io.httpServer.listen(4001, ()=> {console.log("io socket ready")});
 
 const startServer = async () => {
     console.log('Connecting to database...');
