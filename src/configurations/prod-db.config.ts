@@ -25,7 +25,7 @@ export const prodDataSource = new DataSource({
         Chat,
         Message
     ],
-    migrations: ["./src/migration/*.ts"],
+    //migrations: ["./src/migration/*.ts"],
     synchronize: true,
     connectTimeout: 300000, 
     extra: {
