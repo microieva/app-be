@@ -29,12 +29,11 @@ const corsOptions = {
     origin: process.env.NOTIFICATIONS_ORIGIN, 
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true, 
-    allowedHeaders: ["Content-Type", "Authorization", "x-apollo-operation-name"]
+    allowedHeaders: ["Content-Type", "Authorization", "x-apollo-operation-name", "access-control-allow-origin"]
 };
 
 // Apply CORS to the Express server
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Pre-flight handler
 app.use(bodyParser.json());  // Add body parser middleware for Express
 
 // Create the ApolloServer instance
