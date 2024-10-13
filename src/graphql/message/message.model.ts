@@ -14,7 +14,7 @@ export class Message {
   @Column({ default: false })
   isRead: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({type:'datetime'})
   createdAt: Date;
 
   @ManyToOne(() => Chat, (chat) => chat.messages, { onDelete: 'CASCADE' })
