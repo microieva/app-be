@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, BeforeInsert } from 'typeorm';
 import { Chat } from '../chat/chat.model';
 import { User } from '../user/user.model';
+import { DateTime } from 'luxon';
 
 
 @Entity()
@@ -16,6 +17,12 @@ export class Message {
 
   @CreateDateColumn({type:'datetime'})
   createdAt: Date;
+
+  @BeforeInsert()
+  dateToLocalTime() {
+    const created = DateTime.local().toISO();
+    this.createdAt = new Date(created);
+  }
 
   @ManyToOne(() => Chat, (chat) => chat.messages, { onDelete: 'CASCADE' })
   chat: Chat;
