@@ -28,7 +28,7 @@ const corsOptions = {
     origin: process.env.NOTIFICATIONS_ORIGIN,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true, 
-    allowedHeaders: 'Content-Type,Authorization'
+    allowedHeaders: ["Content-Type", "x-apollo-operation-name"]
 };
   
 app.use(cors(corsOptions));
