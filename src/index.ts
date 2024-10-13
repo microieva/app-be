@@ -26,7 +26,7 @@ const dataSource = process.env.NODE_ENV === 'production' ? prodDataSource : devD
 
 // Configure CORS for Apollo Server and Socket.IO
 const corsOptions = {
-    origin: process.env.NOTIFICATIONS_ORIGIN, // Your client URL
+    origin: process.env.NOTIFICATIONS_ORIGIN, 
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true, 
     allowedHeaders: ["Content-Type", "Authorization", "x-apollo-operation-name"]
@@ -63,10 +63,25 @@ io.on('connection', (socket) => {
         io.emit('online', { userId: user.id, online: true });
     });
 
-    // Handle other Socket.IO events here...
+    socket.on('onlineUser', (userId) => {
+        const online = onlineUsers.some(onlineUser => onlineUser.id === userId);
+        io.emit('online', online); 
+    });
+
+    socket.on('sendNotification', (message) => {
+        io.emit('receiveNotification', message);
+    });
+
+    socket.on('notifyDoctors', (info)=> {
+        io.emit('newAppointmentRequest', info);
+    });
+
+    socket.on('notifyDoctor', (info)=> {
+        io.emit('deletedAppointmentInfo', info);
+    });
 
     socket.on('disconnect', () => {
-        console.log('user disconnected ', socket.id);
+        console.log('user disconnected ',  socket.id);
         const index = onlineUsers.findIndex(user => user.socketId === socket.id);
         const disconnectedUser = onlineUsers[index];
 
@@ -75,6 +90,14 @@ io.on('connection', (socket) => {
             onlineUsers.splice(index, 1); 
         }
         io.emit('onlineUsers', onlineUsers);  
+    });
+
+    socket.on('getOnlineUsers', () => {
+        socket.emit('onlineUsers', onlineUsers); 
+    });
+    socket.on('getOneUserStatus', (userId) => {
+        const online = onlineUsers.some(onlineUser => onlineUser.id === userId);
+        io.emit('online', online);  
     });
 });
 
@@ -104,7 +127,7 @@ const startServer = async () => {
                 }
 
                 return {
-                    io,  // Pass Socket.IO instance to Apollo context
+                    io,  
                     dataSource,
                     me,
                     onlineUsers
