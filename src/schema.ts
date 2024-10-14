@@ -81,21 +81,12 @@ export const schema = `
       sortDirection: String
       filterInput: String
     ): Paged!
-     onlineDoctors(
-      ids: [Int!]!,
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
-      sortDirection: String
-      filterInput: String
-    ): Paged!
     countDoctorRequests: Int!
     countDoctors: Int!
     countPatients: Int!
     countMissedAppointments: Int!
     countRecords: Int!
     countDrafts: Int!
-    countOnlineDoctors: Int!
     chatId (receiverId: Int): Int!
     chatMessages(chatId: Int!): [Message!]!
     messages(chatId: Int!): [Message!]!
