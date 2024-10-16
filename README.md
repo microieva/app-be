@@ -1,7 +1,7 @@
 ### Introduction
 
-This repository contains a back end for a personal portfolio project "Health Center".
-The project has not been deployed yet.
+This repository contains server side logic for a professional portfolio project "Health Center". The project is deployed via [Render](www.render.com). The application database service provided via [FreeSqlDatabase](www.freesqldatabase.com).
+
 ___
 
 
@@ -28,17 +28,16 @@ ___
 
 ___
 
-### Folder Structure
+### Source Folder Structure
 
 ```
 Root Folder
 └── src
     ├── schema.ts
-    ├── app.ts
     ├── index.ts
     ├──  / configurations
-    │   ├── db.config.ts
-    │   └── app.config.ts
+    │   ├── dev-db.config.ts
+    │   └── prod-db.config.ts
     ├──  / services
     │   └── email.service.ts
     ├──  / migration
@@ -62,13 +61,19 @@ Root Folder
         │   ├── record.model.ts
         │   ├── record.resolver.ts
         │   └── record.mutation.resolver.ts
-        └── / user
-            ├── user.ts
-            ├── user.input.ts
-            ├── user.model.ts
-            ├── user-role.model.ts
-            ├── user.resolver.ts
-            └── user.mutation.resolver.ts
+        ├── / user
+        │   ├── user.ts
+        │   ├── user.input.ts
+        │   ├── user.model.ts
+        │   ├── user-role.model.ts
+        │   ├── user.resolver.ts
+        │   └── user.mutation.resolver.ts
+        ├── / chat
+        │   └── ...
+        ├── / message
+        │   └── ...
+        └──  / chat_participant
+            └── ...
 ```
 
 
@@ -80,11 +85,12 @@ ___
 - Google authentication
 - FTN (Finnish Trust Network) bank authentication (_Signicat Sandbox_)
 - Nodemailer email service
+- Socket.IO real-time notifications
   
 
-##### API
+##### Data & API
 
-This backend serves GraphQL API, with SQL database connection.
+This backend serves GraphQL API, with SQL database connection (MSSQL locally, MySQL in production). Currently the dataset consists of 9 tables (appointment, chat, chat_participant, chat_participants_user, doctor_request, message, record, user, user_role). 
 
 
 ##### ERD 
