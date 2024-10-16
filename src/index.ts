@@ -59,7 +59,7 @@ io.on('connection', (socket) => {
 
     socket.on('onlineUser', (userId) => {
         const online = onlineUsers.some(onlineUser => onlineUser.id === userId);
-        io.emit('online', online); 
+        io.emit('online', {userId, online}); 
     });
 
     socket.on('sendNotification', (message) => {
@@ -91,7 +91,7 @@ io.on('connection', (socket) => {
     });
     socket.on('getOneUserStatus', (userId) => {
         const online = onlineUsers.some(onlineUser => onlineUser.id === userId);
-        io.emit('online', online);  
+        io.emit('online', {userId, online});  
     });
 });
 

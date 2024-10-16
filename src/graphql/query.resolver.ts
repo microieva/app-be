@@ -3,10 +3,11 @@ import { User } from "./user/user.model";
 import { Appointment } from "./appointment/appointment.model";
 import { Record } from "./record/record.model";
 import { DoctorRequest } from "./doctor-request/doctor-request.model";
-import { AppContext } from "./types";
-import { getNow } from "./utils";
 import { Chat } from "./chat/chat.model";
 import { Message } from "./message/message.model";
+import { ChatParticipant } from "./chat-participant/chat-participant.model";
+import { AppContext } from "./types";
+import { getNow } from "./utils";
 
 export const queries = {
     Query: {
@@ -1386,8 +1387,6 @@ export const queries = {
         },
         chatId: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});   
-
-            const senderId = context.me.userId;
             let receiverId;
 
             if (me.userRoleId === 3) {
@@ -1404,39 +1403,66 @@ export const queries = {
                 let chat = await context.dataSource.getRepository(Chat)
                     .createQueryBuilder('chat')
                     .innerJoin('chat.participants', 'participants')
-                    .where('participants.id IN (:...ids)', { ids: [senderId, receiverId] })
+                    .innerJoin('ChatParticipant', 'cp', 'cp.chatId = chat.id')
+                    .where('participants.id IN (:...ids)', { ids: [context.me.userId, receiverId] })
+                    .andWhere('cp.participantId = :userId', { userId: context.me.userId })  
                     .groupBy('chat.id')
                     .having('COUNT(participants.id) = 2') 
                     .getOne();
+                
+                    console.log('CHAT from queryBuilder- ', chat)
 
                 if (!chat) {
-                    chat = new Chat(); 
+                    chat = new Chat();
                     chat.participants = [
                         { id: context.me.userId } as User,  
                         { id: receiverId } as User         
                     ];
                     chat = await context.dataSource.getRepository(Chat).save(chat);
+
+                    const chatParticipant1 = new ChatParticipant();
+                    chatParticipant1.chat = chat; 
+                    chatParticipant1.participant = { id: context.me.userId } as User; 
+                    chatParticipant1.deletedAt = null; 
+                
+                    const chatParticipant2 = new ChatParticipant();
+                    chatParticipant2.chat = chat;
+                    chatParticipant2.participant = { id: receiverId } as User; 
+                    chatParticipant2.deletedAt = null; 
+                
+                    await context.dataSource.getRepository(ChatParticipant).save([chatParticipant1, chatParticipant2]);
                 }
+                
                 return chat.id;
             } catch (error) {
-                throw new Error('Cannot get chat id: '+error);
+                throw new Error('Cannot get chat id: ' + error);
             }
         },
         messages: async (parent: null, args: any, context: AppContext) => {
             const chatId = args.chatId;
-
+            const userId = context.me.userId;
+        
             try {
-                const messages = await context.dataSource.getRepository(Message)
+                const chatParticipant = await context.dataSource.getRepository(ChatParticipant)
+                    .createQueryBuilder('cp')
+                    .where('cp.chatId = :chatId', { chatId })
+                    .andWhere('cp.participantId = :userId', { userId })
+                    .getOne();
+        
+                let messagesQuery = context.dataSource.getRepository(Message)
                     .createQueryBuilder('message')
                     .leftJoinAndSelect('message.sender', 'sender')
                     .where('message.chatId = :chatId', { chatId })
-                    .orderBy('message.createdAt', 'DESC') 
-                    .getMany();
-        
-                return messages;
+                    .orderBy('message.createdAt', 'DESC');  
+                
+                if (chatParticipant && chatParticipant.deletedAt) {
+                    messagesQuery = messagesQuery.andWhere('message.createdAt > :deletedAt', { deletedAt: chatParticipant.deletedAt });
+                }
+
+                return await messagesQuery.getMany();
             } catch (error) {
                 throw new Error(`Failed to fetch messages for chatId ${chatId}: ${error}`);
             }
-        }
+        }                   
     }
 } 

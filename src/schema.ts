@@ -108,6 +108,7 @@ export const schema = `
     saveDoctor(doctorRequestId: Int!): MutationResponse!
     deleteDoctorRequest(doctorRequestId: Int!): MutationResponse!
     saveChatMessage(chatId: Int!, content: String!): Message!
+    deleteChatForParticipant(chatId: Int!): MutationResponse!
   }
 
   type Paged {
@@ -204,6 +205,12 @@ export const schema = `
     createdAt: Date!
     sender: User!
     chat: Chat!
+  }
+  type ChatParticipant {
+    id: Int!
+    chat: Chat!
+    participant: User!
+    deletedAt: Date
   }
 
   input UserInput {
