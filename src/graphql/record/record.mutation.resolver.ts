@@ -1,6 +1,7 @@
 import { sendEmailNotification } from "../../services/email.service";
 import { User } from "../user/user.model";
 import { Record } from "./record.model";
+import { Appointment } from "../appointment/appointment.model";
 import { RecordInput } from "./record.input";
 import { AppContext, MutationResponse } from "../types";
 
@@ -57,7 +58,12 @@ export const recordMutationResolver = {
                 newRecord.updatedAt = null;
 
                 try {
-                    await repo.save(newRecord);
+                    const saved = await repo.save(newRecord);
+                    const dbAppointment = await context.dataSource.getRepository(Appointment).findOneBy({id: input.appointmentId});
+                    if (dbAppointment) {
+                        dbAppointment.recordId = saved.id;
+                        await context.dataSource.getRepository(Appointment).save(dbAppointment);
+                    }
                     return {
                         success: true,
                         message: "Medical record saved"

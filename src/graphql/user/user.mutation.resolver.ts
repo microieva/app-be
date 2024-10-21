@@ -10,11 +10,30 @@ import { DoctorRequest } from "../doctor-request/doctor-request.model";
 import { Record } from "../record/record.model";
 import { UserInput } from "./user.input";
 import { AppContext, LoginResponse, MutationResponse } from "../types";
-//import { getNow } from '../utils';
-//import { sendEmailNotification } from '../../services/email.service';
+import { getNow } from '../utils';
 
 export const userMutationResolver = {
     Mutation: {
+        logOut: async(parent: null, args: any, context: AppContext)=> {
+            const repo = context.dataSource.getRepository(User);
+            const me = await repo.findOneBy({id: context.me.userId});
+            const now = getNow();
+
+            me.lastLogOutAt = now;
+            try {
+                await repo.save(me);
+                return {
+                    success: true,
+                    message: 'Logged out'
+                }
+            } catch (error) {
+                return {
+                    success: false,
+                    message: error
+                }
+            }
+
+        },
         saveDoctor: async(parent: null, args: any, context: AppContext)=> {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const requestRepo = context.dataSource.getRepository(DoctorRequest);
@@ -307,17 +326,7 @@ export const userMutationResolver = {
                 if (userDetails) {
                     const expires_at = userDetails.exp * 1000; 
                     const auth_time = userDetails.auth_time * 1000;
-
-                    const expirationDateTime = DateTime.fromMillis(expires_at);
                     const authDateTime = DateTime.fromMillis(auth_time);
-
-                    const duration = expirationDateTime.diff(authDateTime);
-
-                    const minutes = duration.as('minutes');
-                    const hours = duration.as('hours');
-
-                    console.log(`Expiration in minutes: ${minutes}`);
-                    console.log(`Expiration in hours: ${hours}`);
 
                     try {
                         const dbUser = await repo

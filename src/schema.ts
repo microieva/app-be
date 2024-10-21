@@ -30,6 +30,14 @@ export const schema = `
       sortDirection: String
       filterInput: String
     ): Paged!
+    medicalRecordsFromIds(
+      ids: [Int!]!
+      pageIndex: Int!, 
+      pageLimit: Int!, 
+      sortActive: String, 
+      sortDirection: String
+      filterInput: String
+    ): Paged!
     allAppointments: [Appointment!]!
     appointments: [Appointment!]!
     appointment (appointmentId: Int!): Appointment!
@@ -65,7 +73,7 @@ export const schema = `
     countPendingAppointments: Int!
     countUpcomingAppointments: Int!
     countPastAppointments: Int!
-    nextAppointment: NextAppointmentResponse!
+    nextAppointment: NextAppointmentResponse
     record(recordId: Int, appointmentId: Int): Record
     records(
       pageIndex: Int!, 
@@ -85,6 +93,8 @@ export const schema = `
     countDoctors: Int!
     countPatients: Int!
     countMissedAppointments: Int!
+    countTodayAppointments: Int!
+    countTotalHoursToday: String!
     countRecords: Int!
     countDrafts: Int!
     chatId (receiverId: Int): Int!
@@ -95,6 +105,7 @@ export const schema = `
   type Mutation {
     saveUser(userInput: UserInput!): MutationResponse!
     deleteUser(userId: Int!): MutationResponse!
+    logOut:MutationResponse!
     login(directLoginInput: LoginInput!): LoginResponse!
     loginWithGoogle(googleCredential: String!): LoginResponse!
     loginWithSignicat(signicatAccessToken: String!): LoginResponse!
@@ -134,6 +145,8 @@ export const schema = `
     nextStart: Date
     nextEnd: Date
     nextId: Int
+    previousAppointmentDate: Date
+    recordIds: [Int!]
     patient: User
     doctor: User
   }
@@ -152,6 +165,7 @@ export const schema = `
     postCode: String
     createdAt: Date
     lastLogInAt: Date
+    lastLogOutAt: Date
     updatedAt: Date
   }
 
@@ -169,6 +183,7 @@ export const schema = `
     patientMessage: String
     doctorMessage: String
     record: Record
+    recordId: Int
   }
 
   type Record {
@@ -179,7 +194,7 @@ export const schema = `
     updatedAt: Date!
     appointmentId: Int!
     appointment: Appointment!
-    draft: Boolean
+    draft: Boolean!
   }
 
   type DoctorRequest {
