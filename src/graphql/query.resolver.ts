@@ -1127,20 +1127,20 @@ export const queries = {
 
             const recQueryBuilder = recRepo
                 .createQueryBuilder('record')
-                .leftJoinAndSelect('record.appointment', 'appointment')
+                
 
             if (me.userRoleId === 2) {
                 aptQueryBuilder
                     .andWhere('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
                 recQueryBuilder
-                    .innerJoin('appointment.patient', 'patient')
+                    .innerJoin('record.patient', 'patient')
             } else {
                 aptQueryBuilder
                     .andWhere('appointment.patientId = :patientId', { patientId: context.me.userId })
                     .andWhere('appointment.doctorId IS NOT NULL')
                 recQueryBuilder
-                    .innerJoin('appointment.patient', 'patient')
-                    .innerJoin('appointment.doctor', 'doctor')
+                    .innerJoin('record.patient', 'patient')
+                    .innerJoin('record.doctor', 'doctor')
             }
 
             if (!await aptQueryBuilder.getExists()) {
@@ -1179,15 +1179,17 @@ export const queries = {
                 let recordIds: any[]=[];
 
                 if (me.userRoleId === 2) {
-                    recordIds = await recQueryBuilder
-                        .where('patient.id = :patientId', {patientId})
+                    recordIds = await recQueryBuilder    
+                        .where('record.patientId = :patientId', {patientId})
+                        .andWhere('record.draft = :draft', {draft: false})
                         .orderBy('record.createdAt', 'DESC')
                         .select(['record.id'])
                         .getMany();
                 } else {
                     recordIds = await recQueryBuilder
-                        .where('patient.id = :patientId', {patientId})
-                        .andWhere('doctor.id = :doctorId', {doctorId})
+                        .where('record.patientId = :patientId', {patientId})
+                        .andWhere('record.doctorId = :doctorId', {doctorId})
+                        .andWhere('record.draft = :draft', {draft: false})
                         .orderBy('record.createdAt', 'DESC') 
                         .select(['record.id'])
                         .getMany();
@@ -1611,12 +1613,13 @@ export const queries = {
                     }
 
             try {
-                const [records, count]: [Record[], number] = await repo.createQueryBuilder('record')
+                const [records, count]: [Record[], number] = await repo
+                    .createQueryBuilder('record')
+                    .where('record.draft = :draft', {draft: false})
+                    .andWhere('record.id IN (:...ids)', { ids })
                     .leftJoinAndSelect('record.appointment', 'appointment')
                     .innerJoin('appointment.doctor', 'doctor')
                     .innerJoin('appointment.patient', 'patient')
-                    .where('record.draft = :draft', {draft: false})
-                    .andWhere('record.id IN (:...ids)', { ids })
                     .orderBy(orderByField, `${sortDirection}` as 'ASC' | 'DESC')
                     .limit(pageLimit)
                     .offset(pageIndex * pageLimit)

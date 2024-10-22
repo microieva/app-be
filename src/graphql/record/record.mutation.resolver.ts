@@ -19,13 +19,14 @@ export const recordMutationResolver = {
             }
 
             const repo = context.dataSource.getRepository(Record);
+            const dbAppointment = await context.dataSource.getRepository(Appointment).findOneBy({id: input.appointmentId});
 
             if (input.id) {
                 const dbRecord: Record = await repo
                     .createQueryBuilder('record')
-                    .leftJoinAndSelect('record.appointment', 'appointment')
-                    .leftJoinAndSelect('appointment.patient', 'patient')
-                    .leftJoinAndSelect('appointment.doctor', 'doctor')
+                    // .leftJoinAndSelect('record.appointment', 'appointment')
+                    // .leftJoinAndSelect('appointment.patient', 'patient')
+                    // .leftJoinAndSelect('appointment.doctor', 'doctor')
                     .where({id: input.id})
                     .getOne();
 
@@ -56,14 +57,13 @@ export const recordMutationResolver = {
                 newRecord.appointmentId = input.appointmentId;
                 newRecord.draft = input.draft;
                 newRecord.updatedAt = null;
+                newRecord.doctorId = context.me.userId;
+                newRecord.patientId = dbAppointment.patientId;
 
                 try {
                     const saved = await repo.save(newRecord);
-                    const dbAppointment = await context.dataSource.getRepository(Appointment).findOneBy({id: input.appointmentId});
-                    if (dbAppointment) {
-                        dbAppointment.recordId = saved.id;
-                        await context.dataSource.getRepository(Appointment).save(dbAppointment);
-                    }
+                    dbAppointment.recordId = saved.id;
+                    await context.dataSource.getRepository(Appointment).save(dbAppointment);
                     return {
                         success: true,
                         message: "Medical record saved"

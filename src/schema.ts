@@ -196,6 +196,10 @@ export const schema = `
     appointmentId: Int!
     appointment: Appointment!
     draft: Boolean!
+    patientId: Int!
+    doctorId: Int!
+    patient: User!
+    doctor: User!
   }
 
   type DoctorRequest {
