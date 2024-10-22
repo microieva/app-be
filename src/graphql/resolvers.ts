@@ -36,7 +36,6 @@ const unions = {
 
 const scalars = {
     Date: new GraphQLScalarType({
-
         name: 'Date',
         description: 'Date custom scalar type',
         serialize(value: Date) {
@@ -55,6 +54,20 @@ const scalars = {
 			}
 			// Invalid hard-coded value (not an integer)
 			return null;
+        }
+    }),
+    Void: new GraphQLScalarType({
+        name: 'Void',
+        description: 'Represents NULL value',
+    
+        serialize() {
+            return null
+        },    
+        parseValue() {
+            return null
+        },   
+        parseLiteral() {
+            return null
         }
     })
 }

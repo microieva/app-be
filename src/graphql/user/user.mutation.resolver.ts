@@ -22,15 +22,8 @@ export const userMutationResolver = {
             me.lastLogOutAt = now;
             try {
                 await repo.save(me);
-                return {
-                    success: true,
-                    message: 'Logged out'
-                }
             } catch (error) {
-                return {
-                    success: false,
-                    message: error
-                }
+                console.error('Log out error: ', error)
             }
 
         },

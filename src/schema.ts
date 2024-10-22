@@ -2,6 +2,7 @@ import { gql } from "graphql-tag";
 
 export const schema = `
   scalar Date
+  scalar Void
 
   union Paginated = Appointment | Record | User | DoctorRequest
 
@@ -105,7 +106,7 @@ export const schema = `
   type Mutation {
     saveUser(userInput: UserInput!): MutationResponse!
     deleteUser(userId: Int!): MutationResponse!
-    logOut:MutationResponse!
+    logOut: Void
     login(directLoginInput: LoginInput!): LoginResponse!
     loginWithGoogle(googleCredential: String!): LoginResponse!
     loginWithSignicat(signicatAccessToken: String!): LoginResponse!
