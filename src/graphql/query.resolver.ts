@@ -1480,15 +1480,14 @@ export const queries = {
                 if (me.userRoleId === 3) {
                     return await repo
                         .createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .where('appointment.patientId = :patientId', {patientId: context.me.userId})
-                        .andWhere('record.draft = :draft', { draft: false })
+                        .where('record.draft = :draft', { draft: false })
+                        .andWhere('record.patientId = :patientId', {patientId: context.me.userId})
                         .getCount();
                 } else {
                     return  await repo
                         .createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
+                        .where('record.draft = :draft', { draft: false })
+                        .andWhere('record.doctorId = :doctorId', {doctorId: context.me.userId})
                         .getCount();
                 }    
             } catch (error) {
@@ -1506,8 +1505,7 @@ export const queries = {
             try {
                 return  await repo
                     .createQueryBuilder('record')
-                    .leftJoinAndSelect('record.appointment', 'appointment')
-                    .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
+                    .where('record.doctorId = :doctorId', {doctorId: context.me.userId})
                     .andWhere('record.draft = :draft', {draft: true})
                     .getCount(); 
 

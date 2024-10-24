@@ -24,9 +24,8 @@ export const recordMutationResolver = {
             if (input.id) {
                 const dbRecord: Record = await repo
                     .createQueryBuilder('record')
-                    // .leftJoinAndSelect('record.appointment', 'appointment')
-                    // .leftJoinAndSelect('appointment.patient', 'patient')
-                    // .leftJoinAndSelect('appointment.doctor', 'doctor')
+                    .leftJoinAndSelect('record.patient', 'patient')
+                    .leftJoinAndSelect('record.doctor', 'doctor')
                     .where({id: input.id})
                     .getOne();
 
