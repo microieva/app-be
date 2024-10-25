@@ -1247,6 +1247,7 @@ export const queries = {
 
             const repo = context.dataSource.getRepository(Record);
             const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+            const advancedSearchInput = args.advancedSearchInput;
 
             let length: number = 0;
             let slice: Record[] = []; 
@@ -1270,6 +1271,25 @@ export const queries = {
                         );
                     }
 
+                    if (advancedSearchInput) {
+                        const { rangeStart, rangeEnd, textLike, titleLike } = advancedSearchInput;
+                
+                        if (rangeStart) {
+                            queryBuilder.andWhere('record.updatedAt >= :rangeStart', { rangeStart });
+                        }
+                        if (rangeEnd) {
+                            queryBuilder.andWhere('record.updatedAt <= :rangeEnd', { rangeEnd });
+                        }
+                
+                        if (textLike) {
+                            queryBuilder.andWhere('LOWER(record.text) LIKE :textLike', { textLike: `%${textLike.toLowerCase()}%` });
+                        }
+                
+                        if (titleLike) {
+                            queryBuilder.andWhere('LOWER(record.title) LIKE :titleLike', { titleLike: `%${titleLike.toLowerCase()}%` });
+                        }
+                    }
+
                     let orderByField: string;
                     if (sortActive === 'firstName') {
                         orderByField = 'doctor.firstName';
@@ -1288,39 +1308,59 @@ export const queries = {
                     throw new Error(`Error fetching records: ${error}`);
                 }
             } else {
-                try {
-                    const queryBuilder = repo
-                        .createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .innerJoin('appointment.patient', 'patient') 
-                        .where('appointment.doctorId = :doctorId', {doctorId: me.id})
-                        .andWhere('record.draft = :draft', {draft: false})
-    
-                    if (filterInput) {
-                        queryBuilder.andWhere(
-                            '(LOWER(patient.firstName) LIKE :nameLike OR LOWER(patient.lastName) LIKE :nameLike)',
-                            { nameLike:  `%${filterInput}%` }
-                        );
+                    try {
+                        const queryBuilder = repo
+                            .createQueryBuilder('record')
+                            .leftJoinAndSelect('record.appointment', 'appointment')
+                            .innerJoin('appointment.patient', 'patient')
+                            .where('appointment.doctorId = :doctorId', { doctorId: me.id })
+                            .andWhere('record.draft = :draft', { draft: false });
+                    
+                        if (filterInput) {
+                            queryBuilder.andWhere(
+                                '(LOWER(patient.firstName) LIKE :nameLike OR LOWER(patient.lastName) LIKE :nameLike)',
+                                { nameLike: `%${filterInput}%` }
+                            );
+                        }
+                    
+                        if (advancedSearchInput) {
+                            const { rangeStart, rangeEnd, textLike, titleLike } = advancedSearchInput;
+                    
+                            if (rangeStart) {
+                                queryBuilder.andWhere('record.updatedAt >= :rangeStart', { rangeStart });
+                            }
+                            if (rangeEnd) {
+                                queryBuilder.andWhere('record.updatedAt <= :rangeEnd', { rangeEnd });
+                            }
+                    
+                            if (textLike) {
+                                queryBuilder.andWhere('LOWER(record.text) LIKE :textLike', { textLike: `%${textLike.toLowerCase()}%` });
+                            }
+                    
+                            if (titleLike) {
+                                queryBuilder.andWhere('LOWER(record.title) LIKE :titleLike', { titleLike: `%${titleLike.toLowerCase()}%` });
+                            }
+                        }
+                    
+                        let orderByField: string;
+                        if (sortActive === 'firstName') {
+                            orderByField = 'patient.firstName';
+                        } else {
+                            orderByField = `record.${sortActive}` || 'record.createdAt';
+                        }
+                
+                        const [records, count]: [Record[], number] = await queryBuilder
+                            .orderBy(orderByField, sortDirection as 'ASC' | 'DESC')
+                            .limit(pageLimit)
+                            .offset(pageIndex * pageLimit)
+                            .getManyAndCount();
+                    
+                        length = count;
+                        slice = records;
+                    } catch (error) {
+                        throw new Error(`Error fetching records: ${error}`);
                     }
-
-                    let orderByField: string;
-                    if (sortActive === 'firstName') {
-                        orderByField = 'patient.firstName';
-                    } else {
-                        orderByField = `record.${sortActive}` || 'record.createdAt';
-                    }
-
-                    const [records, count]: [Record[], number] = await queryBuilder
-                        .orderBy(orderByField || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
-                        .limit(pageLimit)
-                        .offset(pageIndex * pageLimit)
-                        .getManyAndCount()
-
-                    length = count;
-                    slice = records
-                } catch (error) {
-                    throw new Error(`Error fetching records: ${error}`);
-                }
+                    
             }
             return {
                 length,
@@ -1332,6 +1372,7 @@ export const queries = {
 
             const repo = context.dataSource.getRepository(Record);
             const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+            const advancedSearchInput = args.advancedSearchInput;
 
             let length: number = 0;
             let slice: Record[] = []; 
@@ -1352,6 +1393,26 @@ export const queries = {
                         '(LOWER(patient.firstName) LIKE :nameLike OR LOWER(patient.lastName) LIKE :nameLike)',
                         { nameLike:  `%${filterInput}%` }
                     );
+                }
+
+
+                if (advancedSearchInput) {
+                    const { rangeStart, rangeEnd, textLike, titleLike } = advancedSearchInput;
+            
+                    if (rangeStart) {
+                        queryBuilder.andWhere('record.updatedAt >= :rangeStart', { rangeStart });
+                    }
+                    if (rangeEnd) {
+                        queryBuilder.andWhere('record.updatedAt <= :rangeEnd', { rangeEnd });
+                    }
+            
+                    if (textLike) {
+                        queryBuilder.andWhere('LOWER(record.text) LIKE :textLike', { textLike: `%${textLike.toLowerCase()}%` });
+                    }
+            
+                    if (titleLike) {
+                        queryBuilder.andWhere('LOWER(record.title) LIKE :titleLike', { titleLike: `%${titleLike.toLowerCase()}%` });
+                    }
                 }
 
                 let orderByField: string;
@@ -1594,7 +1655,8 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
 
             const repo = context.dataSource.getRepository(Record);
-            const { ids, pageIndex, pageLimit, sortActive, sortDirection } = args;
+            const { ids, pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+            const advancedSearchInput = args.advancedSearchInput;
 
             let length: number = 0;
             let slice: Record[] = []; 
@@ -1603,21 +1665,56 @@ export const queries = {
                 throw new Error("Unauthorized action")
             }
 
+            const queryBuilder = repo
+                .createQueryBuilder('record')
+                .where('record.draft = :draft', {draft: false})
+                .andWhere('record.id IN (:...ids)', { ids })
+                .leftJoinAndSelect('record.appointment', 'appointment')
+                .innerJoin('appointment.doctor', 'doctor')
+                .innerJoin('appointment.patient', 'patient')
+            
+            if (filterInput) {
+                queryBuilder.andWhere(
+                    '(LOWER(doctor.firstName) LIKE :nameLike OR LOWER(doctor.lastName) LIKE :nameLike)',
+                    { nameLike:  `%${filterInput}%` }
+                );
+            }
+
+
+            if (advancedSearchInput) {
+                const { rangeStart, rangeEnd, textLike, titleLike } = advancedSearchInput;
+        
+                if (rangeStart) {
+                    queryBuilder.andWhere('record.updatedAt >= :rangeStart', { rangeStart });
+                }
+                if (rangeEnd) {
+                    queryBuilder.andWhere('record.updatedAt <= :rangeEnd', { rangeEnd });
+                }
+        
+                if (textLike) {
+                    queryBuilder.andWhere('LOWER(record.text) LIKE :textLike', { textLike: `%${textLike.toLowerCase()}%` });
+                }
+        
+                if (titleLike) {
+                    queryBuilder.andWhere('LOWER(record.title) LIKE :titleLike', { titleLike: `%${titleLike.toLowerCase()}%` });
+                }
+            }
+
             let orderByField: string;
-                    if (sortActive === 'firstName') {
-                        orderByField = 'doctor.firstName';
-                    } else {
-                        orderByField = `record.${sortActive}` || 'record.createdAt';
-                    }
+            if (sortActive === 'firstName') {
+                orderByField = 'doctor.firstName';
+            } else {
+                orderByField = `record.${sortActive}` || 'record.createdAt';
+            }
 
             try {
-                const [records, count]: [Record[], number] = await repo
-                    .createQueryBuilder('record')
-                    .where('record.draft = :draft', {draft: false})
-                    .andWhere('record.id IN (:...ids)', { ids })
-                    .leftJoinAndSelect('record.appointment', 'appointment')
-                    .innerJoin('appointment.doctor', 'doctor')
-                    .innerJoin('appointment.patient', 'patient')
+                const [records, count]: [Record[], number] = await queryBuilder
+                    // .createQueryBuilder('record')
+                    // .where('record.draft = :draft', {draft: false})
+                    // .andWhere('record.id IN (:...ids)', { ids })
+                    // .leftJoinAndSelect('record.appointment', 'appointment')
+                    // .innerJoin('appointment.doctor', 'doctor')
+                    // .innerJoin('appointment.patient', 'patient')
                     .orderBy(orderByField, `${sortDirection}` as 'ASC' | 'DESC')
                     .limit(pageLimit)
                     .offset(pageIndex * pageLimit)

@@ -11,33 +11,34 @@ export const schema = `
     user(userId: Int!): User
     request(userId: Int!): DoctorRequest
     doctors(
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int!
+      sortActive: String 
       sortDirection: String
       filterInput: String
     ): Paged!
     patients(
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int! 
+      sortActive: String 
       sortDirection: String
       filterInput: String
     ): Paged!
     requests(
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int! 
+      sortActive: String 
       sortDirection: String
       filterInput: String
     ): Paged!
     medicalRecordsFromIds(
       ids: [Int!]!
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int! 
+      sortActive: String 
       sortDirection: String
       filterInput: String
+      advancedSearchInput: AdvancedSearchInput
     ): Paged!
     allAppointments: [Appointment!]!
     appointments: [Appointment!]!
@@ -50,23 +51,23 @@ export const schema = `
     calendarUpcomingAppointments (monthStart: Date!, monthEnd: Date!, patientId: Int): CalendarSlice!
     calendarPastAppointments (monthStart: Date!, monthEnd: Date!, patientId: Int): CalendarSlice!
     pendingAppointments (
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int!
+      sortActive: String 
       sortDirection: String
       filterInput: String
     ): Paged!
     upcomingAppointments (
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int! 
+      sortActive: String 
       sortDirection: String
       filterInput: String
     ): Paged!
     pastAppointments (
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int!
+      sortActive: String 
       sortDirection: String
       filterInput: String
     ): Paged!
@@ -77,18 +78,20 @@ export const schema = `
     nextAppointment: NextAppointmentResponse
     record(recordId: Int, appointmentId: Int): Record
     records(
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int!
+      pageLimit: Int! 
+      sortActive: String 
       sortDirection: String
       filterInput: String
+      advancedSearchInput: AdvancedSearchInput
     ): Paged!
     drafts(
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int!
+      sortActive: String 
       sortDirection: String
       filterInput: String
+      advancedSearchInput: AdvancedSearchInput
     ): Paged!
     countDoctorRequests: Int!
     countDoctors: Int!
@@ -277,6 +280,13 @@ export const schema = `
     firstName: String!
     lastName: String!
     userRoleId: Int! 
+  }
+
+  input AdvancedSearchInput {
+    rangeStart: Date
+    rangeEnd: Date
+    titleLike: String
+    textLike: String
   }
 `
 
