@@ -4,6 +4,9 @@
     "rootDir": "src",
     "outDir": "dist",
     "baseUrl": "./",
+    "paths": {
+      "src/*": ["src/*"]
+    },
     "module": "commonjs",
     "moduleResolution": "node",
     "esModuleInterop": true,
@@ -35,7 +38,8 @@
   ],
   "include": [
     "src/**/*",
-    "apollo-server/*"
+    "apollo-server/*",
+    "**/*.test.ts"
   ]
   
 }
