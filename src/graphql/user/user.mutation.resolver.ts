@@ -1,16 +1,32 @@
+import 'dotenv/config'; 
 import { DateTime } from "luxon";
 import { In } from "typeorm";
 import { OAuth2Client } from 'google-auth-library';
 import jwt from "jsonwebtoken";
+import jose from "node-jose";
 import { User } from "./user.model";
 import { Appointment } from "../appointment/appointment.model";
 import { DoctorRequest } from "../doctor-request/doctor-request.model";
 import { Record } from "../record/record.model";
 import { UserInput } from "./user.input";
 import { AppContext, LoginResponse, MutationResponse } from "../types";
+import { getNow } from '../utils';
 
 export const userMutationResolver = {
     Mutation: {
+        logOut: async(parent: null, args: any, context: AppContext)=> {
+            const repo = context.dataSource.getRepository(User);
+            const me = await repo.findOneBy({id: context.me.userId});
+            const now = getNow();
+
+            me.lastLogOutAt = now;
+            try {
+                await repo.save(me);
+            } catch (error) {
+                console.error('Log out error: ', error)
+            }
+
+        },
         saveDoctor: async(parent: null, args: any, context: AppContext)=> {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const requestRepo = context.dataSource.getRepository(DoctorRequest);
@@ -41,6 +57,7 @@ export const userMutationResolver = {
             try {
                 await userRepo.save(newUser);
                 await requestRepo.delete({id: dbDoctorRequest.id});
+                //TO DO sendEmailNotification(); send to the new doctor that account is ready
 
                 return {
                     success: true,
@@ -212,6 +229,7 @@ export const userMutationResolver = {
         loginWithGoogle: async (parent: null, args: any, context: AppContext) => {
             const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
             const credential = args.googleCredential;
+            const adminId: number = context.dataSource.getRepository(User).findOneBy({userRoleId: 1}).id
 
             const ticket = await client.verifyIdToken({
                 idToken: credential,
@@ -258,7 +276,12 @@ export const userMutationResolver = {
                         const currentTime = DateTime.now();
                         const expirationTime = currentTime.plus({ hours: 10 });
                         const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
-    
+                        
+                        context.io.emit('receiveNotification', {
+                            receiverId: adminId,
+                            message: 'New doctor account activation request',
+                            doctorRequestId: newDoctorRequest.id
+                        });
                         return {
                             token: token, 
                             expiresAt: expirationTimeInFinnishTime
@@ -267,6 +290,91 @@ export const userMutationResolver = {
                         throw new Error(`error saving new request: ${error}`);
                     }
                 }
+            }
+        },
+        loginWithSignicat: async (parent: null, args: any, context: AppContext)=> {
+            const repo = context.dataSource.getRepository(User);
+
+            const jweToken = args.signicatAccessToken;
+
+            try {
+                const key = await jose.JWK.asKey(JSON.parse(process.env.SIGNICAT_KEY), 'pem'); //creates a JWK from the private key
+                const decryptedToken = await jose.JWE.createDecrypt(key).decrypt(jweToken);
+                
+                const decryptedPlaintext = JSON.parse(JSON.stringify(decryptedToken.plaintext));
+
+                const buffer = Buffer.from(decryptedPlaintext.data);
+                const plaintextString = buffer.toString('utf-8'); 
+
+                const parts = plaintextString.split('.');
+                if (parts.length !== 3) {
+                    throw new Error('Invalid JWT format');
+                }
+                    
+                const payload = parts[1];
+                    
+                const decodedPayload = Buffer.from(payload, 'base64url').toString('utf-8');
+                const userDetails = JSON.parse(decodedPayload);
+
+                if (userDetails) {
+                    const expires_at = userDetails.exp * 1000; 
+                    const auth_time = userDetails.auth_time * 1000;
+                    const authDateTime = DateTime.fromMillis(auth_time);
+
+                    try {
+                        const dbUser = await repo
+                            .createQueryBuilder('user')
+                            .where({
+                                firstName: userDetails.given_name,
+                                lastName: userDetails.family_name,
+                                dob: userDetails.birthdate
+                            })
+                            .getOne();
+
+                        if (dbUser) {
+                            const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+                            
+                            const expirationTime = DateTime.fromMillis(expires_at);
+                            const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
+                            const lastLogin = authDateTime.toISO({ includeOffset: true });
+            
+                            dbUser.lastLogInAt = new Date(lastLogin);
+                            await repo.save(dbUser);
+            
+                            return {
+                                token: token, 
+                                expiresAt: expirationTimeInFinnishTime
+                            } as LoginResponse;
+                        } else {
+                            const newUser = new User();
+    
+                            newUser.firstName = userDetails.given_name;
+                            newUser.lastName = userDetails.family_name;
+                            newUser.dob = new Date(userDetails.birthdate);
+                            newUser.userRoleId = 3;
+                            newUser.updatedAt = null;
+                            newUser.email = "";
+
+                            const user = await repo.save(newUser);
+
+                            const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+                            const expirationTime = DateTime.fromMillis(expires_at);
+                            const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
+    
+                            return {
+                                token: token, 
+                                expiresAt: expirationTimeInFinnishTime
+                            } as LoginResponse;
+                        }
+                    } catch (error) {
+                        throw new Error(error);
+                    }
+                } else {
+                    throw new Error('Bank authentication failed, please try later..')
+
+                }
+            } catch (error) {
+                throw new Error('Bank authentication failed '+error)
             }
         }
     }

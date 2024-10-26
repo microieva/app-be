@@ -1,6 +1,7 @@
 import { sendEmailNotification } from "../../services/email.service";
 import { User } from "../user/user.model";
 import { Record } from "./record.model";
+import { Appointment } from "../appointment/appointment.model";
 import { RecordInput } from "./record.input";
 import { AppContext, MutationResponse } from "../types";
 
@@ -18,13 +19,13 @@ export const recordMutationResolver = {
             }
 
             const repo = context.dataSource.getRepository(Record);
+            const dbAppointment = await context.dataSource.getRepository(Appointment).findOneBy({id: input.appointmentId});
 
             if (input.id) {
                 const dbRecord: Record = await repo
                     .createQueryBuilder('record')
-                    .leftJoinAndSelect('record.appointment', 'appointment')
-                    .leftJoinAndSelect('appointment.patient', 'patient')
-                    .leftJoinAndSelect('appointment.doctor', 'doctor')
+                    .leftJoinAndSelect('record.patient', 'patient')
+                    .leftJoinAndSelect('record.doctor', 'doctor')
                     .where({id: input.id})
                     .getOne();
 
@@ -55,9 +56,13 @@ export const recordMutationResolver = {
                 newRecord.appointmentId = input.appointmentId;
                 newRecord.draft = input.draft;
                 newRecord.updatedAt = null;
+                newRecord.doctorId = context.me.userId;
+                newRecord.patientId = dbAppointment.patientId;
 
                 try {
-                    await repo.save(newRecord);
+                    const saved = await repo.save(newRecord);
+                    dbAppointment.recordId = saved.id;
+                    await context.dataSource.getRepository(Appointment).save(dbAppointment);
                     return {
                         success: true,
                         message: "Medical record saved"

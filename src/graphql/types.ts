@@ -1,4 +1,5 @@
-import { dataSource } from "../configurations/db.config";
+// import { devDataSource } from "../configurations/dev-db.config";
+// import { prodDataSource } from "../configurations/prod-db.config";
 import { User } from "./user/user.model";
 
 export interface MutationResponse {
@@ -13,13 +14,16 @@ export interface NextAppointmentResponse {
     nextId: number
     nextStart: string
     nextEnd: string
+    previousAppointmentDate: string
+    recordIds: number[]
     patient: User
     doctor: User
 }
 
 export interface AppContext {
     me: any,
-    dataSource?: typeof dataSource
+    dataSource?: any
+    io: any
 }
 
 export type DateTime = import('luxon').DateTime

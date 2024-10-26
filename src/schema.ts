@@ -2,6 +2,7 @@ import { gql } from "graphql-tag";
 
 export const schema = `
   scalar Date
+  scalar Void
 
   union Paginated = Appointment | Record | User | DoctorRequest
 
@@ -10,25 +11,34 @@ export const schema = `
     user(userId: Int!): User
     request(userId: Int!): DoctorRequest
     doctors(
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int!
+      sortActive: String 
       sortDirection: String
       filterInput: String
     ): Paged!
     patients(
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int! 
+      sortActive: String 
       sortDirection: String
       filterInput: String
     ): Paged!
     requests(
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int! 
+      sortActive: String 
       sortDirection: String
       filterInput: String
+    ): Paged!
+    medicalRecordsFromIds(
+      ids: [Int!]!
+      pageIndex: Int! 
+      pageLimit: Int! 
+      sortActive: String 
+      sortDirection: String
+      filterInput: String
+      advancedSearchInput: AdvancedSearchInput
     ): Paged!
     allAppointments: [Appointment!]!
     appointments: [Appointment!]!
@@ -41,23 +51,23 @@ export const schema = `
     calendarUpcomingAppointments (monthStart: Date!, monthEnd: Date!, patientId: Int): CalendarSlice!
     calendarPastAppointments (monthStart: Date!, monthEnd: Date!, patientId: Int): CalendarSlice!
     pendingAppointments (
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int!
+      sortActive: String 
       sortDirection: String
       filterInput: String
     ): Paged!
     upcomingAppointments (
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int! 
+      sortActive: String 
       sortDirection: String
       filterInput: String
     ): Paged!
     pastAppointments (
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int!
+      sortActive: String 
       sortDirection: String
       filterInput: String
     ): Paged!
@@ -65,36 +75,44 @@ export const schema = `
     countPendingAppointments: Int!
     countUpcomingAppointments: Int!
     countPastAppointments: Int!
-    nextAppointment: NextAppointmentResponse!
+    nextAppointment: NextAppointmentResponse
     record(recordId: Int, appointmentId: Int): Record
     records(
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int!
+      pageLimit: Int! 
+      sortActive: String 
       sortDirection: String
       filterInput: String
+      advancedSearchInput: AdvancedSearchInput
     ): Paged!
     drafts(
-      pageIndex: Int!, 
-      pageLimit: Int!, 
-      sortActive: String, 
+      pageIndex: Int! 
+      pageLimit: Int!
+      sortActive: String 
       sortDirection: String
       filterInput: String
+      advancedSearchInput: AdvancedSearchInput
     ): Paged!
     countDoctorRequests: Int!
     countDoctors: Int!
     countPatients: Int!
     countMissedAppointments: Int!
+    countTodayAppointments: Int!
+    countTotalHoursToday: String!
     countRecords: Int!
     countDrafts: Int!
+    chatId (receiverId: Int): Int!
+    chatMessages(chatId: Int!): [Message!]!
+    messages(chatId: Int!): [Message!]!
   }
 
   type Mutation {
     saveUser(userInput: UserInput!): MutationResponse!
     deleteUser(userId: Int!): MutationResponse!
+    logOut: Void
     login(directLoginInput: LoginInput!): LoginResponse!
     loginWithGoogle(googleCredential: String!): LoginResponse!
-    loginWithSignicat(signicatAccessToken: String!): String!
+    loginWithSignicat(signicatAccessToken: String!): LoginResponse!
     saveAppointment(appointmentInput: AppointmentInput!): MutationResponse!
     deleteAppointment(appointmentId: Int!): MutationResponse!
     saveAppointmentMessage(appointmentId: Int!, appointmentMessage: String!): MutationResponse!
@@ -104,6 +122,8 @@ export const schema = `
     deleteRecord(recordId: Int!): MutationResponse!
     saveDoctor(doctorRequestId: Int!): MutationResponse!
     deleteDoctorRequest(doctorRequestId: Int!): MutationResponse!
+    saveChatMessage(chatId: Int!, content: String!): Message!
+    deleteChatForParticipant(chatId: Int!): MutationResponse!
   }
 
   type Paged {
@@ -129,6 +149,8 @@ export const schema = `
     nextStart: Date
     nextEnd: Date
     nextId: Int
+    previousAppointmentDate: Date
+    recordIds: [Int!]
     patient: User
     doctor: User
   }
@@ -147,6 +169,7 @@ export const schema = `
     postCode: String
     createdAt: Date
     lastLogInAt: Date
+    lastLogOutAt: Date
     updatedAt: Date
   }
 
@@ -164,6 +187,7 @@ export const schema = `
     patientMessage: String
     doctorMessage: String
     record: Record
+    recordId: Int
   }
 
   type Record {
@@ -174,7 +198,11 @@ export const schema = `
     updatedAt: Date!
     appointmentId: Int!
     appointment: Appointment!
-    draft: Boolean
+    draft: Boolean!
+    patientId: Int!
+    doctorId: Int!
+    patient: User!
+    doctor: User!
   }
 
   type DoctorRequest {
@@ -185,6 +213,27 @@ export const schema = `
     firstName: String!
     lastName: String!
     userRoleId: Int!
+  }
+  
+  type Chat {
+    id: Int!
+    participants: [User!]!
+    messages: [Message!]!
+  }
+  
+  type Message {
+    id: Int!
+    content: String!
+    isRead: Boolean!
+    createdAt: Date!
+    sender: User!
+    chat: Chat!
+  }
+  type ChatParticipant {
+    id: Int!
+    chat: Chat!
+    participant: User!
+    deletedAt: Date
   }
 
   input UserInput {
@@ -231,6 +280,13 @@ export const schema = `
     firstName: String!
     lastName: String!
     userRoleId: Int! 
+  }
+
+  input AdvancedSearchInput {
+    rangeStart: Date
+    rangeEnd: Date
+    titleLike: String
+    textLike: String
   }
 `
 

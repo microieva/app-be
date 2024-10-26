@@ -7,25 +7,27 @@ import { User } from '../graphql/user/user.model';
 import { Appointment } from '../graphql/appointment/appointment.model';
 import { Record } from '../graphql/record/record.model';
 import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
+import { Chat } from '../graphql/chat/chat.model';
+import { Message } from '../graphql/message/message.model';
+import { ChatParticipant } from '../graphql/chat-participant/chat-participant.model';
 
 
 const options: SqlServerConnectionOptions = {
     type: 'mssql',
-    //url:'localhost://127.0.0.1:1433;databaseName=SQL_DB;',
-    //url: 'jdbc:mssql://localhost:1433/SQL_DB;',
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
     username:  process.env.DB_USER,
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
-    logging: true,
-    synchronize: true,
     entities: [
         UserRole,
         User,
         Appointment,
         Record,
-        DoctorRequest
+        DoctorRequest,
+        Chat,
+        Message,
+        ChatParticipant
     ],
     migrations: ["./src/migration/*.ts"],
     extra: {
@@ -35,4 +37,4 @@ const options: SqlServerConnectionOptions = {
         encrypt: true  
     }
 };
-export const dataSource = new DataSource(options);
+export const devDataSource = new DataSource(options);

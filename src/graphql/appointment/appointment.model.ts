@@ -52,5 +52,9 @@ export class Appointment {
     doctorMessage: string;
 
     @OneToOne(() => Record, record => record.appointment)
+    @JoinColumn({ name: "recordId" }) 
     record: Record;
+
+    @Column({ default: null, nullable: true })
+    recordId: number;
 }

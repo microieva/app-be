@@ -7,10 +7,12 @@ import { appointmentMutationResolver } from "./appointment/appointment.mutation.
 import { appointmentResolver } from "./appointment/appointment.resolver";
 import { recordMutationResolver } from "./record/record.mutation.resolver";
 import { recordResolver } from "./record/record.resolver";
+import { messageMutationResolver } from "./message/message.mutation.resolver";
 import { Appointment } from "./appointment/appointment.model";
 import { Record } from "./record/record.model";
 import { DoctorRequest } from "./doctor-request/doctor-request.model";
 import { User } from "./user/user.model";
+import { chatParticipantMutationResolver } from "./chat-participant/chat-participant.mutation.resolver";
 
 const unions = {
     Paginated: {
@@ -34,10 +36,9 @@ const unions = {
 
 const scalars = {
     Date: new GraphQLScalarType({
-
         name: 'Date',
         description: 'Date custom scalar type',
-        serialize(value) {
+        serialize(value: Date) {
           	return value;
         },
         parseValue(value) {
@@ -54,6 +55,20 @@ const scalars = {
 			// Invalid hard-coded value (not an integer)
 			return null;
         }
+    }),
+    Void: new GraphQLScalarType({
+        name: 'Void',
+        description: 'Represents NULL value',
+    
+        serialize() {
+            return null
+        },    
+        parseValue() {
+            return null
+        },   
+        parseLiteral() {
+            return null
+        }
     })
 }
 
@@ -67,5 +82,7 @@ export const resolvers = [
     appointmentMutationResolver,
     appointmentResolver,
     recordMutationResolver,
-    recordResolver
+    recordResolver,
+    messageMutationResolver,
+    chatParticipantMutationResolver
 ]
