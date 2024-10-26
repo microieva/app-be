@@ -67,7 +67,10 @@ export class User {
   @Column({ type: 'datetime', nullable: true })
   lastLogInAt: Date;
 
-  @UpdateDateColumn({type: 'date', nullable: true})
+  @Column({ type: 'datetime', nullable: true })
+  lastLogOutAt: Date;
+
+  @UpdateDateColumn({type: 'datetime', nullable: true})
   updatedAt: Date;
 
   @ManyToMany(() => Chat, (chat) => chat.participants)

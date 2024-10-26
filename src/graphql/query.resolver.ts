@@ -6,7 +6,7 @@ import { DoctorRequest } from "./doctor-request/doctor-request.model";
 import { Chat } from "./chat/chat.model";
 import { Message } from "./message/message.model";
 import { ChatParticipant } from "./chat-participant/chat-participant.model";
-import { AppContext } from "./types";
+import { AppContext, NextAppointmentResponse } from "./types";
 import { getNow } from "./utils";
 
 export const queries = {
@@ -352,15 +352,33 @@ export const queries = {
             if (me) {
                 if (me.userRoleId === 3) {
                     try {
-                        const [appointments, count]: [Appointment[], number] = await repo
-                            .createQueryBuilder('appointment')
-                            .where('appointment.patientId = :patientId', { patientId: context.me.userId })
-                            .andWhere('appointment.doctorId IS NOT NULL')
+                        const queryBuilder = repo.createQueryBuilder('appointment')
+                            .leftJoinAndSelect('appointment.doctor', 'doctor')
+                            .leftJoinAndSelect('appointment.record', 'record')
+                            .where('appointment.patientId = :patientId', {patientId: context.me.userId })
+                            .andWhere('appointment.doctorId IS NOT NULL') 
                             .andWhere('appointment.start > :now', { now })
-                            .orderBy(`appointment.${sortActive}` || 'appointment.start', `${sortDirection}` as 'ASC' | 'DESC')
+            
+                        if (filterInput) {
+                            queryBuilder.andWhere(
+                                '(LOWER(doctor.firstName) LIKE :nameLike OR LOWER(doctor.lastName) LIKE :nameLike)',
+                                { nameLike:  `%${filterInput}%` }
+                            );
+                        }
+
+                        let orderByField: string;
+                        if (sortActive === 'firstName') {
+                            orderByField = 'doctor.firstName';
+                        } else if (sortActive === 'record'){
+                            orderByField = `CASE WHEN appointment.record IS NULL THEN 0 WHEN record.draft = 'FALSE' THEN 1 ELSE 0 END`
+                        } else {
+                            orderByField = `appointment.${sortActive}` || 'appointment.start';
+                        }
+                        const [appointments, count]: [Appointment[], number] = await queryBuilder
+                            .orderBy(orderByField, `${sortDirection}` as 'ASC' | 'DESC')
                             .limit(pageLimit)
                             .offset(pageIndex * pageLimit)
-                            .getManyAndCount()
+                            .getManyAndCount();
 
                         length = count;
                         slice = appointments
@@ -372,6 +390,7 @@ export const queries = {
                     try {
                         const queryBuilder = repo.createQueryBuilder('appointment')
                             .leftJoinAndSelect('appointment.patient', 'patient')
+                            .leftJoinAndSelect('appointment.record', 'record')
                             .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId })
                             .andWhere('appointment.patientId IS NOT NULL') 
                             .andWhere('appointment.start > :now', { now })
@@ -386,6 +405,8 @@ export const queries = {
                         let orderByField: string;
                         if (sortActive === 'firstName') {
                             orderByField = 'patient.firstName';
+                        } else if (sortActive === 'draft'){
+                            orderByField = `CASE WHEN appointment.record IS NULL THEN 0 WHEN record.draft = 'FALSE' THEN 2 ELSE 1 END`
                         } else {
                             orderByField = `appointment.${sortActive}` || 'appointment.start';
                         }
@@ -423,15 +444,36 @@ export const queries = {
             if (me) {
                 if (me.userRoleId === 3) {
                     try {
-                        const [appointments, count]: [Appointment[], number] = await repo
-                            .createQueryBuilder('appointment')
-                            .where('appointment.patientId = :patientId', { patientId: me.id })
-                            .andWhere('appointment.doctorId IS NOT NULL')
+                        const queryBuilder = repo.createQueryBuilder('appointment')
+                            .leftJoinAndSelect('appointment.doctor', 'doctor')
+                            .leftJoinAndSelect('appointment.record', 'record')
+                            .where('appointment.patientId = :patientId', {patientId: context.me.userId})
+                            .andWhere('appointment.doctorId IS NOT NULL') 
                             .andWhere('appointment.end < :now', { now })
-                            .orderBy(`appointment.${sortActive}` || 'appointment.end', `${sortDirection}` as 'ASC' | 'DESC')
+            
+                        if (filterInput) {
+                            queryBuilder.andWhere(
+                                '(LOWER(doctor.firstName) LIKE :nameLike OR LOWER(doctor.lastName) LIKE :nameLike)',
+                                { nameLike:  `%${filterInput}%` }
+                            );
+                        }
+
+                        let orderByField: string;
+
+                        if (sortActive === 'firstName') {
+                            orderByField = 'doctor.firstName';
+                        } else if (sortActive === 'record'){
+                            orderByField = `CASE WHEN appointment.record IS NULL THEN 0 WHEN record.draft = 'FALSE' THEN 1 ELSE 0 END`
+                        }else {
+                            orderByField = `appointment.${sortActive}` || 'appointment.end';
+                        }
+
+                        const [appointments, count]: [Appointment[], number] = await queryBuilder
+                            .orderBy(orderByField, `${sortDirection}` as 'ASC' | 'DESC')
                             .limit(pageLimit)
                             .offset(pageIndex * pageLimit)
-                            .getManyAndCount()
+                            .getManyAndCount();
+
 
                         length = count;
                         slice = appointments
@@ -443,6 +485,7 @@ export const queries = {
                     try {
                         const queryBuilder = repo.createQueryBuilder('appointment')
                             .leftJoinAndSelect('appointment.patient', 'patient')
+                            .leftJoinAndSelect('appointment.record', 'record')
                             .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
                             .andWhere('appointment.patientId IS NOT NULL') 
                             .andWhere('appointment.end < :now', { now })
@@ -458,7 +501,9 @@ export const queries = {
 
                         if (sortActive === 'firstName') {
                             orderByField = 'patient.firstName';
-                        } else {
+                        } else if (sortActive === 'draft'){
+                            orderByField = `CASE WHEN appointment.record IS NULL THEN 0 WHEN record.draft = 'FALSE' THEN 2 ELSE 1 END`
+                        }else {
                             orderByField = `appointment.${sortActive}` || 'appointment.end';
                         }
 
@@ -1069,52 +1114,106 @@ export const queries = {
         },
         nextAppointment: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
-            const repo = context.dataSource.getRepository(Appointment);
-            
+            const aptRepo = context.dataSource.getRepository(Appointment);
+            const recRepo = context.dataSource.getRepository(Record);
 
             if (!me || me.userRoleId === 1) {
                 throw new Error("Unauthorized action")
             }
     
-            const queryBuilder = repo
+            const aptQueryBuilder = aptRepo
                 .createQueryBuilder('appointment')
                 .where('appointment.allDay = :allDay', {allDay: false})
 
+            const recQueryBuilder = recRepo
+                .createQueryBuilder('record')
+                
+
             if (me.userRoleId === 2) {
-                queryBuilder
+                aptQueryBuilder
                     .andWhere('appointment.doctorId = :doctorId', { doctorId: context.me.userId })
+                recQueryBuilder
+                    .innerJoin('record.patient', 'patient')
             } else {
-                queryBuilder
+                aptQueryBuilder
                     .andWhere('appointment.patientId = :patientId', { patientId: context.me.userId })
                     .andWhere('appointment.doctorId IS NOT NULL')
+                recQueryBuilder
+                    .innerJoin('record.patient', 'patient')
+                    .innerJoin('record.doctor', 'doctor')
             }
 
-            if (!await queryBuilder.getExists()) {
+            if (!await aptQueryBuilder.getExists()) {
                 return null;
             } 
 
             const now = getNow();
 
-            const appointments = await queryBuilder
-                .select(['appointment.start', 'appointment.id', 'appointment.end'])
-                .orderBy('appointment.start', 'ASC') 
-                .andWhere('appointment.start > :now', { now })
-                .getMany();
+            try {
 
-            const id = appointments[0].id
-            const nextAppointment = await queryBuilder
-                .leftJoinAndSelect('appointment.patient', 'patient')
-                .leftJoinAndSelect('appointment.doctor', 'doctor')
-                .where({id})
-                .getOne();
+                const futureAppointments = await aptQueryBuilder
+                    .select(['appointment.start', 'appointment.id'])
+                    .andWhere('appointment.start > :now', { now })
+                    .orderBy('appointment.start', 'ASC')  
+                    .getMany();
 
-            return {
-                nextStart: nextAppointment.start,
-                nextEnd: nextAppointment.end,
-                nextId: nextAppointment.id,
-                patient: nextAppointment.patient,
-                doctor: nextAppointment.doctor
-            };
+                if (!futureAppointments.length) {
+                    return null;
+                }
+                const nextAppointmentId = futureAppointments[0].id;
+                const nextAppointment = await aptRepo.findOne({ where: { id: nextAppointmentId }, relations: ['patient', 'doctor']});
+            
+                const patientId = nextAppointment.patient.id;
+                const doctorId = nextAppointment.doctor.id;
+
+                const previousAppointments = await aptRepo
+                    .createQueryBuilder('appointment')
+                    .where('appointment.patientId = :patientId', {patientId})
+                    .andWhere('appointment.doctorId = :doctorId', {doctorId})
+                    .andWhere('appointment.start < :now', {now})
+                    .orderBy('appointment.start', 'DESC') 
+                    .select(['appointment.start'])
+                    .getMany()
+
+                const previousAppointmentDate = previousAppointments[0] ? previousAppointments[0].start : null;
+                let recordIds: any[]=[];
+
+                if (me.userRoleId === 2) {
+                    recordIds = await recQueryBuilder    
+                        .where('record.patientId = :patientId', {patientId})
+                        .andWhere('record.draft = :draft', {draft: false})
+                        .orderBy('record.createdAt', 'DESC')
+                        .select(['record.id'])
+                        .getMany();
+                } else {
+                    recordIds = await recQueryBuilder
+                        .where('record.patientId = :patientId', {patientId})
+                        .andWhere('record.doctorId = :doctorId', {doctorId})
+                        .andWhere('record.draft = :draft', {draft: false})
+                        .orderBy('record.createdAt', 'DESC') 
+                        .select(['record.id'])
+                        .getMany();
+                }
+
+                recordIds = recordIds.map(rec => rec.id);
+
+                if (nextAppointment) {
+                    return {
+                        nextStart: nextAppointment.start,
+                        nextEnd: nextAppointment.end,
+                        nextId: nextAppointment.id,
+                        previousAppointmentDate,
+                        recordIds,
+                        patient: nextAppointment.patient,
+                        doctor: nextAppointment.doctor
+                    } as NextAppointmentResponse;
+                    
+                } else {
+                    return null;
+                }
+            } catch (error) {
+                throw new Error('Unable to fetch next appointment: '+error);
+            }
 
         },
         record: async (parent: null, args: any, context: AppContext) => {
@@ -1148,6 +1247,7 @@ export const queries = {
 
             const repo = context.dataSource.getRepository(Record);
             const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+            const advancedSearchInput = args.advancedSearchInput;
 
             let length: number = 0;
             let slice: Record[] = []; 
@@ -1158,47 +1258,109 @@ export const queries = {
 
             if (me.userRoleId === 3) {
                 try {
-                    const [records, count]: [Record[], number] = await repo
-                        .createQueryBuilder('record')
+                    const queryBuilder = repo.createQueryBuilder('record')
                         .leftJoinAndSelect('record.appointment', 'appointment')
-                        .where('appointment.patientId = :patientId', {patientId: me.id})
+                        .innerJoin('appointment.doctor', 'doctor')
+                        .where('appointment.patientId = :patientId', {patientId: context.me.userId })
                         .andWhere('record.draft = :draft', {draft: false})
-                        .orderBy(`record.${sortActive}` || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
+        
+                    if (filterInput) {
+                        queryBuilder.andWhere(
+                            '(LOWER(doctor.firstName) LIKE :nameLike OR LOWER(doctor.lastName) LIKE :nameLike)',
+                            { nameLike:  `%${filterInput}%` }
+                        );
+                    }
+
+                    if (advancedSearchInput) {
+                        const { rangeStart, rangeEnd, textLike, titleLike } = advancedSearchInput;
+                
+                        if (rangeStart) {
+                            queryBuilder.andWhere('record.updatedAt >= :rangeStart', { rangeStart });
+                        }
+                        if (rangeEnd) {
+                            queryBuilder.andWhere('record.updatedAt <= :rangeEnd', { rangeEnd });
+                        }
+                
+                        if (textLike) {
+                            queryBuilder.andWhere('LOWER(record.text) LIKE :textLike', { textLike: `%${textLike.toLowerCase()}%` });
+                        }
+                
+                        if (titleLike) {
+                            queryBuilder.andWhere('LOWER(record.title) LIKE :titleLike', { titleLike: `%${titleLike.toLowerCase()}%` });
+                        }
+                    }
+
+                    let orderByField: string;
+                    if (sortActive === 'firstName') {
+                        orderByField = 'doctor.firstName';
+                    } else {
+                        orderByField = `record.${sortActive}` || 'record.createdAt';
+                    }
+                    const [records, count]: [Record[], number] = await queryBuilder
+                        .orderBy(orderByField, `${sortDirection}` as 'ASC' | 'DESC')
                         .limit(pageLimit)
                         .offset(pageIndex * pageLimit)
-                        .getManyAndCount()
+                        .getManyAndCount();
 
                     length = count;
-                    slice = records
+                    slice = records;
                 } catch (error) {
                     throw new Error(`Error fetching records: ${error}`);
                 }
             } else {
-                try {
-                    const queryBuilder = repo
-                        .createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .leftJoinAndSelect('appointment.patient', 'patient') 
-                        .where('appointment.doctorId = :doctorId', {doctorId: me.id})
-                        .andWhere('record.draft = :draft', {draft: false})
-    
-                    if (filterInput) {
-                        queryBuilder.andWhere(
-                            '(LOWER(patient.firstName) LIKE :nameLike OR LOWER(patient.lastName) LIKE :nameLike)',
-                            { nameLike:  `%${filterInput}%` }
-                        );
+                    try {
+                        const queryBuilder = repo
+                            .createQueryBuilder('record')
+                            .leftJoinAndSelect('record.appointment', 'appointment')
+                            .innerJoin('appointment.patient', 'patient')
+                            .where('appointment.doctorId = :doctorId', { doctorId: me.id })
+                            .andWhere('record.draft = :draft', { draft: false });
+                    
+                        if (filterInput) {
+                            queryBuilder.andWhere(
+                                '(LOWER(patient.firstName) LIKE :nameLike OR LOWER(patient.lastName) LIKE :nameLike)',
+                                { nameLike: `%${filterInput}%` }
+                            );
+                        }
+                    
+                        if (advancedSearchInput) {
+                            const { rangeStart, rangeEnd, textLike, titleLike } = advancedSearchInput;
+                    
+                            if (rangeStart) {
+                                queryBuilder.andWhere('record.updatedAt >= :rangeStart', { rangeStart });
+                            }
+                            if (rangeEnd) {
+                                queryBuilder.andWhere('record.updatedAt <= :rangeEnd', { rangeEnd });
+                            }
+                    
+                            if (textLike) {
+                                queryBuilder.andWhere('LOWER(record.text) LIKE :textLike', { textLike: `%${textLike.toLowerCase()}%` });
+                            }
+                    
+                            if (titleLike) {
+                                queryBuilder.andWhere('LOWER(record.title) LIKE :titleLike', { titleLike: `%${titleLike.toLowerCase()}%` });
+                            }
+                        }
+                    
+                        let orderByField: string;
+                        if (sortActive === 'firstName') {
+                            orderByField = 'patient.firstName';
+                        } else {
+                            orderByField = `record.${sortActive}` || 'record.createdAt';
+                        }
+                
+                        const [records, count]: [Record[], number] = await queryBuilder
+                            .orderBy(orderByField, sortDirection as 'ASC' | 'DESC')
+                            .limit(pageLimit)
+                            .offset(pageIndex * pageLimit)
+                            .getManyAndCount();
+                    
+                        length = count;
+                        slice = records;
+                    } catch (error) {
+                        throw new Error(`Error fetching records: ${error}`);
                     }
-                    const [records, count]: [Record[], number] = await queryBuilder
-                        .orderBy(`record.${sortActive}` || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
-                        .limit(pageLimit)
-                        .offset(pageIndex * pageLimit)
-                        .getManyAndCount()
-
-                    length = count;
-                    slice = records
-                } catch (error) {
-                    throw new Error(`Error fetching records: ${error}`);
-                }
+                    
             }
             return {
                 length,
@@ -1210,6 +1372,7 @@ export const queries = {
 
             const repo = context.dataSource.getRepository(Record);
             const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+            const advancedSearchInput = args.advancedSearchInput;
 
             let length: number = 0;
             let slice: Record[] = []; 
@@ -1221,7 +1384,7 @@ export const queries = {
                 const queryBuilder = repo
                     .createQueryBuilder('record')
                     .leftJoinAndSelect('record.appointment', 'appointment')
-                    .leftJoinAndSelect('appointment.patient', 'patient') 
+                    .innerJoin('appointment.patient', 'patient') 
                     .where('appointment.doctorId = :doctorId', {doctorId: me.id})
                     .andWhere('record.draft = :draft', {draft: true})
 
@@ -1231,8 +1394,36 @@ export const queries = {
                         { nameLike:  `%${filterInput}%` }
                     );
                 }
+
+
+                if (advancedSearchInput) {
+                    const { rangeStart, rangeEnd, textLike, titleLike } = advancedSearchInput;
+            
+                    if (rangeStart) {
+                        queryBuilder.andWhere('record.updatedAt >= :rangeStart', { rangeStart });
+                    }
+                    if (rangeEnd) {
+                        queryBuilder.andWhere('record.updatedAt <= :rangeEnd', { rangeEnd });
+                    }
+            
+                    if (textLike) {
+                        queryBuilder.andWhere('LOWER(record.text) LIKE :textLike', { textLike: `%${textLike.toLowerCase()}%` });
+                    }
+            
+                    if (titleLike) {
+                        queryBuilder.andWhere('LOWER(record.title) LIKE :titleLike', { titleLike: `%${titleLike.toLowerCase()}%` });
+                    }
+                }
+
+                let orderByField: string;
+                if (sortActive === 'firstName') {
+                    orderByField = 'patient.firstName';
+                } else {
+                    orderByField = `record.${sortActive}` || 'record.createdAt';
+                }
+
                 const [records, count]: [Record[], number] = await queryBuilder
-                    .orderBy(`record.${sortActive}` || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
+                    .orderBy(orderByField || 'record.createdAt', `${sortDirection}` as 'ASC' | 'DESC')
                     .limit(pageLimit)
                     .offset(pageIndex * pageLimit)
                     .getManyAndCount()
@@ -1350,15 +1541,14 @@ export const queries = {
                 if (me.userRoleId === 3) {
                     return await repo
                         .createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .where('appointment.patientId = :patientId', {patientId: context.me.userId})
-                        .andWhere('record.draft = :draft', { draft: false })
+                        .where('record.draft = :draft', { draft: false })
+                        .andWhere('record.patientId = :patientId', {patientId: context.me.userId})
                         .getCount();
                 } else {
                     return  await repo
                         .createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
+                        .where('record.draft = :draft', { draft: false })
+                        .andWhere('record.doctorId = :doctorId', {doctorId: context.me.userId})
                         .getCount();
                 }    
             } catch (error) {
@@ -1376,8 +1566,7 @@ export const queries = {
             try {
                 return  await repo
                     .createQueryBuilder('record')
-                    .leftJoinAndSelect('record.appointment', 'appointment')
-                    .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
+                    .where('record.doctorId = :doctorId', {doctorId: context.me.userId})
                     .andWhere('record.draft = :draft', {draft: true})
                     .getCount(); 
 
@@ -1409,8 +1598,6 @@ export const queries = {
                     .groupBy('chat.id')
                     .having('COUNT(participants.id) = 2') 
                     .getOne();
-                
-                    console.log('CHAT from queryBuilder- ', chat)
 
                 if (!chat) {
                     chat = new Chat();
@@ -1462,6 +1649,157 @@ export const queries = {
                 return await messagesQuery.getMany();
             } catch (error) {
                 throw new Error(`Failed to fetch messages for chatId ${chatId}: ${error}`);
+            }
+        },
+        medicalRecordsFromIds:  async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+
+            const repo = context.dataSource.getRepository(Record);
+            const { ids, pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+            const advancedSearchInput = args.advancedSearchInput;
+
+            let length: number = 0;
+            let slice: Record[] = []; 
+
+            if (!me || me.userRoleId === 1) {
+                throw new Error("Unauthorized action")
+            }
+
+            const queryBuilder = repo
+                .createQueryBuilder('record')
+                .where('record.draft = :draft', {draft: false})
+                .andWhere('record.id IN (:...ids)', { ids })
+                .leftJoinAndSelect('record.appointment', 'appointment')
+                .innerJoin('appointment.doctor', 'doctor')
+                .innerJoin('appointment.patient', 'patient')
+            
+            if (filterInput) {
+                queryBuilder.andWhere(
+                    '(LOWER(doctor.firstName) LIKE :nameLike OR LOWER(doctor.lastName) LIKE :nameLike)',
+                    { nameLike:  `%${filterInput}%` }
+                );
+            }
+
+
+            if (advancedSearchInput) {
+                const { rangeStart, rangeEnd, textLike, titleLike } = advancedSearchInput;
+        
+                if (rangeStart) {
+                    queryBuilder.andWhere('record.updatedAt >= :rangeStart', { rangeStart });
+                }
+                if (rangeEnd) {
+                    queryBuilder.andWhere('record.updatedAt <= :rangeEnd', { rangeEnd });
+                }
+        
+                if (textLike) {
+                    queryBuilder.andWhere('LOWER(record.text) LIKE :textLike', { textLike: `%${textLike.toLowerCase()}%` });
+                }
+        
+                if (titleLike) {
+                    queryBuilder.andWhere('LOWER(record.title) LIKE :titleLike', { titleLike: `%${titleLike.toLowerCase()}%` });
+                }
+            }
+
+            let orderByField: string;
+            if (sortActive === 'firstName') {
+                orderByField = 'doctor.firstName';
+            } else {
+                orderByField = `record.${sortActive}` || 'record.createdAt';
+            }
+
+            try {
+                const [records, count]: [Record[], number] = await queryBuilder
+                    // .createQueryBuilder('record')
+                    // .where('record.draft = :draft', {draft: false})
+                    // .andWhere('record.id IN (:...ids)', { ids })
+                    // .leftJoinAndSelect('record.appointment', 'appointment')
+                    // .innerJoin('appointment.doctor', 'doctor')
+                    // .innerJoin('appointment.patient', 'patient')
+                    .orderBy(orderByField, `${sortDirection}` as 'ASC' | 'DESC')
+                    .limit(pageLimit)
+                    .offset(pageIndex * pageLimit)
+                    .getManyAndCount();
+
+                length = count;
+                slice = records;
+            } catch (error) {
+                throw new Error('Unable to fetch records '+error)
+            }
+
+            return {
+                length,
+                slice
+            }
+        },
+        countTodayAppointments: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+            const repo = context.dataSource.getRepository(Appointment);
+
+            if (!me || me.userRoleId !== 2) {
+                throw new Error('Unauthorized action')
+            }
+
+            const startOfDay = new Date();
+            startOfDay.setHours(0, 0, 0, 0); 
+            const endOfDay = new Date();
+            endOfDay.setHours(23, 59, 59, 999); 
+
+            try {
+                return await repo
+                    .createQueryBuilder('appointment')
+                    .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
+                    .where('appointment.start >= :startOfDay', { startOfDay })
+                    .andWhere('appointment.start <= :endOfDay', { endOfDay })
+                    .getCount();  
+        
+            } catch (error) {
+                throw new Error(`Error fetching today's appointments: ${error}`);
+            }
+        },
+        countTotalHoursToday: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+            const repo = context.dataSource.getRepository(Appointment);
+
+            if (!me || me.userRoleId !== 2) {
+                throw new Error('Unauthorized action')
+            }
+
+            const startOfDay = new Date();
+            startOfDay.setHours(0, 0, 0, 0); 
+            const endOfDay = new Date();
+            endOfDay.setHours(23, 59, 59, 999); 
+
+            try {
+                const appointments = await repo
+                    .createQueryBuilder('appointment')
+                    .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
+                    .select(['appointment.start', 'appointment.end'])
+                    .where('appointment.start >= :startOfDay', { startOfDay })
+                    .andWhere('appointment.start <= :endOfDay', { endOfDay })
+                    .getMany();
+        
+                let totalMinutes = 0;
+        
+                appointments.forEach(appointment => {
+                    if (appointment.start && appointment.end) {
+                        const startTime = new Date(appointment.start).getTime();
+                        const endTime = new Date(appointment.end).getTime();
+                        const durationInMinutes = (endTime - startTime) / (1000 * 60); 
+                        totalMinutes += durationInMinutes;
+                    }
+                });
+        
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = Math.floor(totalMinutes % 60);
+
+                if (!hours && !minutes) {
+                    return '-'
+                }
+        
+                return `${hours} h ${minutes} min`;
+        
+            } catch (error) {
+                throw new Error(`Error fetching total appointment time for today: ${error}`);
             }
         }                   
     }

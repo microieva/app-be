@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, BeforeInsert, CreateDateColumn, UpdateDateColumn, OneToOne } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, BeforeInsert, CreateDateColumn, UpdateDateColumn, OneToOne, ManyToOne } from "typeorm";
 import { DateTime } from "luxon";
 import { Appointment } from "../appointment/appointment.model";
+import { User } from "../user/user.model";
 
 @Entity()
 export class Record {
@@ -25,8 +26,22 @@ export class Record {
   @UpdateDateColumn({type: 'datetime', nullable: true})
   updatedAt: Date;
 
-  @Column({ nullable: false })
+  @Column({ nullable: true })
   appointmentId: number;
+
+  @Column({ nullable: false })
+  patientId: number;
+  
+  @ManyToOne(() => User)
+  @JoinColumn({ name: "patientId" }) 
+  patient: User;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: "doctorId" }) 
+  doctor: User;
+
+  @Column({ nullable: false })
+  doctorId: number;
 
   @OneToOne(() => Appointment, appointment => appointment.record)
   @JoinColumn({ name: 'appointmentId' }) 

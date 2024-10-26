@@ -14,6 +14,8 @@ export interface NextAppointmentResponse {
     nextId: number
     nextStart: string
     nextEnd: string
+    previousAppointmentDate: string
+    recordIds: number[]
     patient: User
     doctor: User
 }

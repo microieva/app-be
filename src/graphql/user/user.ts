@@ -10,4 +10,5 @@ export interface User {
     city?: string
     postCode?: string
     lastLogInAt?: string
+    lasLogOutAt?: string
 }
