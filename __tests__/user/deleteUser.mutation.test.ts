@@ -23,6 +23,9 @@ describe('deleteUser Resolver', () => {
             },
         };
     });
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
 
     it('should delete user-related records and appointments before deleting the user', async () => {
         const userId = 3;

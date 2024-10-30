@@ -56,6 +56,13 @@ export const appointmentMutationResolver = {
                     .where('appointment.id = :id', {id: input.id})
                     .getOne();
 
+                if (!dbAppointment) {
+                    return {
+                        success: false,
+                        message: 'Appointment not found'
+                    } as MutationResponse;
+                }
+
                 let notify: boolean = false;
                 if (DateTime.fromJSDate(dbAppointment.start).toISO() !== input.start || DateTime.fromJSDate(dbAppointment.end).toISO() !== input.end) {
                     notify = true;
@@ -73,13 +80,14 @@ export const appointmentMutationResolver = {
                             message: 'Forbidden action: the appointment cannot be moved because it has been already accepted... Consider cancelling and making a new one on more suitable date.'
                         } as MutationResponse;
                     }
-                    dbAppointment.patientId = dbMe.id;
-                } else if (dbMe.userRoleId === 2){
-                    dbAppointment.doctorId = dbMe.id;
-                } else {
-                    dbAppointment.patientId = input.patientId;
-                    dbAppointment.updatedAt = null;
                 }
+                //     dbAppointment.patientId = dbMe.id;
+                // } else if (dbMe.userRoleId === 2){
+                //     dbAppointment.doctorId = dbMe.id;
+                // } else {
+                //     dbAppointment.patientId = input.patientId;
+                //     dbAppointment.updatedAt = null;
+                // }
 
                 try {
                     await repo.save(dbAppointment);
@@ -106,7 +114,7 @@ export const appointmentMutationResolver = {
                 const newAppointment = new Appointment();
                 newAppointment.start =  new Date(input.start);
                 newAppointment.end =  new Date(input.end);
-                newAppointment.allDay = input.allDay;
+                newAppointment.allDay = input.allDay || false;
 
                 if (dbMe.userRoleId === 3) {
                     if (input.allDay) {
@@ -128,14 +136,14 @@ export const appointmentMutationResolver = {
                 }
 
                 try {
-                    const savedAppointment = await repo.save(newAppointment);   
-                    if (!savedAppointment.allDay) {
-                        context.io.emit('receiveNotification', {
-                            receiverId: null,
-                            message: 'New appointment request',
-                            appointmentId: savedAppointment.id
-                        });
-                    }
+                    await repo.save(newAppointment);   
+                    // if (!savedAppointment.allDay) {
+                    //     context.io.emit('receiveNotification', {
+                    //         receiverId: null,
+                    //         message: 'New appointment request',
+                    //         appointmentId: savedAppointment.id
+                    //     });
+                    // }
                     return {
                         success: true,
                         message: 'Appointment created'
@@ -323,11 +331,11 @@ export const appointmentMutationResolver = {
 
                 sendEmailNotification(emailInfo, "appointmentAccepted");
 
-                context.io.emit('receiveNotification', {
-                    receiverId: dbAppointment.patientId,
-                    message: 'Your appointment booking has been confirmed by a doctor',
-                    appointmentId: dbAppointment.id
-                });
+                // context.io.emit('receiveNotification', {
+                //     receiverId: dbAppointment.patientId,
+                //     message: 'Your appointment booking has been confirmed by a doctor',
+                //     appointmentId: dbAppointment.id
+                // });
 
                 return {
                     success: true,

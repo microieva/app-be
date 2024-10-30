@@ -10,7 +10,14 @@ export const messageMutationResolver = {
 
             const repo = context.dataSource.getRepository(Message);
             const chat = await context.dataSource.getRepository(Chat).findOne({ where: { id: chatId }, relations: ['participants']});
+            if (!chat) {
+                throw new Error("Chat not found")
+            }
+            
             const sender = await context.dataSource.getRepository(User).findOne({ where: { id: context.me.userId } });
+            if (!sender) {
+                throw new Error("Sender not found")
+            }
             const receiverId = chat.participants.find((participant: User) => participant.id !== context.me.userId).id;
 
             try {

@@ -25,7 +25,6 @@ export const userMutationResolver = {
             } catch (error) {
                 console.error('Log out error: ', error)
             }
-
         },
         saveDoctor: async(parent: null, args: any, context: AppContext)=> {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
@@ -33,7 +32,7 @@ export const userMutationResolver = {
             const userRepo = context.dataSource.getRepository(User);
             const dbDoctorRequest = await requestRepo.findOneBy({id: args.doctorRequestId});
 
-            if (!me && me.userRoleId !== 1) {
+            if (!me || me.userRoleId !== 1) {
                 return {
                     success: false,
                     message: "Unauthorized action"

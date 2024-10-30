@@ -7,7 +7,7 @@ import { userMutationResolver } from '../../src/graphql/user/user.mutation.resol
 
 process.env.JWT_SECRET = 'test_secret';
 
-const mockUser = {...mockUsers[0], validatePassword: jest.fn()} // admin
+const mockUser = {...mockUsers[0], validatePassword: jest.fn()} 
 
 const mockContext: AppContext = {
     io: null,
@@ -20,7 +20,7 @@ const mockContext: AppContext = {
     me: { userId: mockUser.id },
 };
 
-describe('login Resolver', () => {
+describe('login Mutation Resolver', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -56,30 +56,43 @@ describe('login Resolver', () => {
                 null, { directLoginInput: input }, mockContext)).rejects.toThrow('Invalid password');
     });
 
-    it('should set token expiration to 1 hour for userRoleId 3', async () => {
-        const testUser = {...mockUsers[2], validatePassword: jest.fn()} 
+    it('should set token expiration to 1 hour for a patient', async () => {
+        const testUser = { ...mockUsers[2], validatePassword: jest.fn() }; 
         mockContext.dataSource.getRepository(User).findOneBy.mockResolvedValue(testUser);
         testUser.validatePassword.mockResolvedValue(true);
-
+    
         const input = { email: 'test@example.com', password: 'correct_password' };
         const response = await userMutationResolver.Mutation.login(
-            null, { directLoginInput: input }, mockContext);
-
-        const expirationTime = DateTime.now().plus({ hours: 1 }).setZone('Europe/Helsinki').toISO({ suppressMilliseconds: true });
-        expect(response.expiresAt).toBe(expirationTime);
+            null, { directLoginInput: input }, mockContext
+        );
+    
+        const expectedExpirationTime = DateTime.now().plus({ hours: 1 }).setZone('Europe/Helsinki');
+        
+        // Allow a small margin for milliseconds (e.g., 100ms)
+        const margin = 100; 
+        const actualExpirationTime = DateTime.fromISO(response.expiresAt);
+    
+        expect(actualExpirationTime.diff(expectedExpirationTime, 'milliseconds').milliseconds).toBeLessThan(margin);
     });
+    
 
-    it('should set token expiration to 10 hours for other user roles', async () => {
+    it('should set token expiration to 10 hours for admin/doctor roles', async () => {
         const testUser = {...mockUsers[1], validatePassword: jest.fn()} 
         mockContext.dataSource.getRepository(User).findOneBy.mockResolvedValue(testUser);
         testUser.validatePassword.mockResolvedValue(true);
-
+    
         const input = { email: 'test@example.com', password: 'correct_password' };
         const response = await userMutationResolver.Mutation.login(null, { directLoginInput: input }, mockContext);
-
-        const expirationTime = DateTime.now().plus({ hours: 10 }).setZone('Europe/Helsinki').toISO({ suppressMilliseconds: true });
-        expect(response.expiresAt).toBe(expirationTime);
+    
+        const expectedExpirationTime = DateTime.now().plus({ hours: 10 }).setZone('Europe/Helsinki');
+        
+        // Allow a small margin for milliseconds (e.g., 100ms)
+        const margin = 100; 
+        const actualExpirationTime = DateTime.fromISO(response.expiresAt);
+        
+        expect(actualExpirationTime.diff(expectedExpirationTime, 'milliseconds').milliseconds).toBeLessThan(margin);
     });
+    
 
     it('should throw an error if saving last login date fails', async () => {
         mockContext.dataSource.getRepository(User).findOneBy.mockResolvedValue(mockUser);

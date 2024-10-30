@@ -8,7 +8,7 @@ export const doctorRequestMutationResolver = {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(DoctorRequest);
             
-            if (!me && me.userRoleId !== 1) {
+            if (!me || me.userRoleId !== 1) {
                 return {
                     success: false,
                     message: "Unauthorized action"

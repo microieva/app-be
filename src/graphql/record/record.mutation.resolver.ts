@@ -19,15 +19,30 @@ export const recordMutationResolver = {
             }
 
             const repo = context.dataSource.getRepository(Record);
-            const dbAppointment = await context.dataSource.getRepository(Appointment).findOneBy({id: input.appointmentId});
+            const dbAppointment: Appointment = await context.dataSource.getRepository(Appointment).findOneBy({id: input.appointmentId});
+            
+            if (!dbAppointment) {
+                return {
+                    success: false,
+                    message: 'Linked appointment not found',
+                } as MutationResponse;
+            }
 
             if (input.id) {
-                const dbRecord: Record = await repo
+                //const dbRecord: Record = await repo.findOneBy({id: input.id});
+                const dbRecord = await repo
                     .createQueryBuilder('record')
                     .leftJoinAndSelect('record.patient', 'patient')
                     .leftJoinAndSelect('record.doctor', 'doctor')
-                    .where({id: input.id})
+                    .where('record.id = :id', {id: input.id})
                     .getOne();
+                
+                if (!dbRecord) {
+                    return {
+                        success: false,
+                        message: 'Record not found',
+                    } as MutationResponse;
+                }
 
                 dbRecord.title = input.title;
                 dbRecord.text = input.text;

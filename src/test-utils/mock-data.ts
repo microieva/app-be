@@ -133,8 +133,7 @@ export const mockDoctorRequests = [
     firstName: 'Jane',
     lastName: 'Doe',
     userRoleId: 2,
-    createdAt: new Date('2023-08-15'),
-    updatedAt: null,
+    createdAt: new Date('2023-08-15')
   },
   {
     id: 2,
@@ -142,10 +141,19 @@ export const mockDoctorRequests = [
     firstName: 'John',
     lastName: 'Smith',
     userRoleId: 2,
-    createdAt: new Date('2023-08-16'),
-    updatedAt: null,
+    createdAt: new Date('2023-08-16')
   },
 ];
+
+export const testDoctorRequest = {
+    id: 3,
+    email: 'tom.smith@example.com',
+    firstName: 'Tom',
+    lastName: 'Smith',
+    userRoleId: 2,
+    createdAt: new Date('2023-08-16')
+}
+
 
 
   
