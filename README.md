@@ -9,7 +9,7 @@ ___
 
 - [Introduction](#introduction)
 - [Table of Contents](#table-of-contents)
-- [Architecture](#architecture)
+- [Technologies Used](#technologies-used)
 - [Folder Structure](#folder-structure)
 - [Features](#features)
     - [API](#api)
@@ -18,13 +18,12 @@ ___
 
 ___
 
-### Architecture
+### Technologies Used
 
-- Node express
-- TypeORM
-- GraphQL
-- SQL
-- Docker
+- **Backend**: Node.js, Express
+- **Database**: TypeORM with SQL databases (MySQL, SQL Server)
+- **Real-time Communication**: Socket.IO
+- **Testing**: Jest
 
 ___
 
@@ -79,14 +78,15 @@ Root Folder
 
 ___
 
-### Features
+## Features
 
-- GraphQL API
-- Google authentication
-- FTN (Finnish Trust Network) bank authentication (_Signicat Sandbox_)
-- Nodemailer email service
-- Socket.IO real-time notifications
-  
+- **User Authentication**: Secure login for both patients and doctors, with role-based access.
+- **Appointment Booking**: Patients can book appointments directly with doctors.
+- **Appointment Management**: Doctors can view, update, and cancel their appointments.
+- **Real-time Notifications**: Instant notifications for users regarding appointment updates and status changes.
+- **Chat System**: Real-time chat functionality for communication between patients and healthcare providers.
+- **Admin Dashboard**: For managing users, appointments, and viewing statistics.
+
 
 ##### Data & API
 
