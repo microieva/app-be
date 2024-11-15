@@ -104,6 +104,8 @@ export const schema = `
     chatId (receiverId: Int): Int!
     chatMessages(chatId: Int!): [Message!]!
     messages(chatId: Int!): [Message!]!
+    countUnreadMessages: Int!
+    countAllUnreadMessages: [CountAllUnreadMessages]
   }
 
   type Mutation {
@@ -124,6 +126,7 @@ export const schema = `
     deleteDoctorRequest(doctorRequestId: Int!): MutationResponse!
     saveChatMessage(chatId: Int!, content: String!): Message!
     deleteChatForParticipant(chatId: Int!): MutationResponse!
+    setIsReadToTrue(chatId: Int!): MutationResponse!
   }
 
   type Paged {
@@ -234,6 +237,11 @@ export const schema = `
     chat: Chat!
     participant: User!
     deletedAt: Date
+  }
+
+  type CountAllUnreadMessages {
+    senderId: Int!
+    count: Int!
   }
 
   input UserInput {

@@ -1636,17 +1636,17 @@ export const queries = {
                     .andWhere('cp.participantId = :userId', { userId })
                     .getOne();
         
-                let messagesQuery = context.dataSource.getRepository(Message)
+                let query = context.dataSource.getRepository(Message)
                     .createQueryBuilder('message')
                     .leftJoinAndSelect('message.sender', 'sender')
                     .where('message.chatId = :chatId', { chatId })
                     .orderBy('message.createdAt', 'DESC');  
                 
                 if (chatParticipant && chatParticipant.deletedAt) {
-                    messagesQuery = messagesQuery.andWhere('message.createdAt > :deletedAt', { deletedAt: chatParticipant.deletedAt });
+                    query = query.andWhere('message.createdAt > :deletedAt', { deletedAt: chatParticipant.deletedAt });
                 }
-
-                return await messagesQuery.getMany();
+                const messages = await query.getMany();
+                return messages;
             } catch (error) {
                 throw new Error(`Failed to fetch messages for chatId ${chatId}: ${error}`);
             }
@@ -1748,7 +1748,7 @@ export const queries = {
                 return await repo
                     .createQueryBuilder('appointment')
                     .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
-                    .where('appointment.start >= :startOfDay', { startOfDay })
+                    .andWhere('appointment.start >= :startOfDay', { startOfDay })
                     .andWhere('appointment.start <= :endOfDay', { endOfDay })
                     .getCount();  
         
@@ -1774,7 +1774,7 @@ export const queries = {
                     .createQueryBuilder('appointment')
                     .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
                     .select(['appointment.start', 'appointment.end'])
-                    .where('appointment.start >= :startOfDay', { startOfDay })
+                    .andWhere('appointment.start >= :startOfDay', { startOfDay })
                     .andWhere('appointment.start <= :endOfDay', { endOfDay })
                     .getMany();
         
@@ -1801,6 +1801,68 @@ export const queries = {
             } catch (error) {
                 throw new Error(`Error fetching total appointment time for today: ${error}`);
             }
-        }                   
+        },
+        countUnreadMessages: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User)
+                .createQueryBuilder('user')
+                .leftJoinAndSelect('user.chats', 'chats, chat.id')
+                .where('user.id = :id', {id : context.me.userId})
+                .getOne();
+
+            if (!me || me.userRoleId === 3) {
+                throw new Error('Unauthorized action')
+            }
+
+            const chatIds = me.chats.map((chat: Chat) => chat.id);
+
+            try {
+                const count = await context.dataSource.getRepository(Message)
+                    .createQueryBuilder('message')
+                    .leftJoinAndSelect('message.sender', 'sender')
+                    .where('message.chatId IN (:...chatIds)', { chatIds })
+                    .andWhere('sender.id != :id', {id: context.me.userId})
+                    .andWhere('message.isRead = :isRead', { isRead: false })
+                    .getCount();
+
+                return count;
+            } catch (error) {
+                throw new Error(error);
+            }
+
+        },
+        countAllUnreadMessages: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User)
+                .createQueryBuilder('user')
+                .leftJoinAndSelect('user.chats', 'chats, chat.id')
+                .where('user.id = :id', {id : context.me.userId})
+                .getOne();
+
+            if (!me || me.userRoleId === 3) {
+                throw new Error('Unauthorized action')
+            }
+
+            const chatIds = me.chats.map((chat: Chat) => chat.id);
+
+            try {
+                if (chatIds.length>0) {
+                    const unreadCounts = await context.dataSource.getRepository(Message)
+                        .createQueryBuilder('message')
+                        .select('sender.id', 'senderId')
+                        .addSelect('COUNT(message.id)', 'count')
+                        .leftJoin('message.sender', 'sender')
+                        .where('message.chatId IN (:...chatIds)', { chatIds })
+                        .andWhere('sender.id != :id', { id: context.me.userId })
+                        .andWhere('message.isRead = :isRead', { isRead: false })
+                        .groupBy('sender.id')
+                        .getRawMany();
+
+                    return unreadCounts;
+                }
+                return;
+
+            } catch (error) {
+                throw new Error('Error in count all unread messages: '+error);
+            }
+        }                
     }
 } 

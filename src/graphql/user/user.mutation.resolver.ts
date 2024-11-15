@@ -10,14 +10,14 @@ import { DoctorRequest } from "../doctor-request/doctor-request.model";
 import { Record } from "../record/record.model";
 import { UserInput } from "./user.input";
 import { AppContext, LoginResponse, MutationResponse } from "../types";
-import { getNow } from '../utils';
 
 export const userMutationResolver = {
     Mutation: {
         logOut: async(parent: null, args: any, context: AppContext)=> {
             const repo = context.dataSource.getRepository(User);
             const me = await repo.findOneBy({id: context.me.userId});
-            const now = getNow();
+            //const now = getNow();
+            const now = new Date();
 
             me.lastLogOutAt = now;
             try {
