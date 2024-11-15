@@ -19,7 +19,7 @@
   "author": "Ieva Vyliaudaite",
   "license": "ISC",
   "dependencies": {
-    "@apollo/server": "^4.10.4",
+    "@apollo/server": "^4.11.2",
     "@azure/identity": "^4.4.1",
     "@microsoft/signalr": "^8.0.7",
     "@microsoft/signalr-protocol-msgpack": "^8.0.7",
