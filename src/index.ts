@@ -8,6 +8,7 @@ import { Server } from "socket.io";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { ApolloServer } from '@apollo/server';
 import {ApolloServerPluginLandingPageGraphQLPlayground} from '@apollo/server-plugin-landing-page-graphql-playground';
+import {ApolloServerPluginLandingPageLocalDefault} from '@apollo/server/plugin/landingPage/default';
 import { expressMiddleware } from '@apollo/server/express4';
 import { typeDefs } from './schema';
 import { resolvers } from './graphql/resolvers';
@@ -49,7 +50,9 @@ const apolloServer = new ApolloServer<AppContext>({
     typeDefs,
     resolvers,
     plugins: [
-        ApolloServerPluginLandingPageGraphQLPlayground()
+        process.env.NODE_ENV === 'production' 
+            ? ApolloServerPluginLandingPageGraphQLPlayground() 
+            : ApolloServerPluginLandingPageLocalDefault(),
     ],
 });
 
