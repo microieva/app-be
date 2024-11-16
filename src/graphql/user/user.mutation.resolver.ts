@@ -16,7 +16,6 @@ export const userMutationResolver = {
         logOut: async(parent: null, args: any, context: AppContext)=> {
             const repo = context.dataSource.getRepository(User);
             const me = await repo.findOneBy({id: context.me.userId});
-            //const now = getNow();
             const now = new Date();
 
             me.lastLogOutAt = now;
@@ -91,6 +90,7 @@ export const userMutationResolver = {
                         dbUser.city = !input.city ? dbUser.city : input.city;
                         dbUser.postCode = !input.postCode ? dbUser.postCode : input.postCode;
                         dbUser.lastLogInAt = input.lastLogInAt ? new Date(input.lastLogInAt) : dbUser.lastLogInAt;
+                        dbUser.updatedAt = new Date();
                         await repo.save(dbUser);
 
                         return {
