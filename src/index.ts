@@ -7,9 +7,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { ApolloServer } from '@apollo/server';
-import { 
-    ApolloServerPluginLandingPageProductionDefault, 
-    ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
+import {ApolloServerPluginLandingPageGraphQLPlayground} from '@apollo/server-plugin-landing-page-graphql-playground';
 import { expressMiddleware } from '@apollo/server/express4';
 import { typeDefs } from './schema';
 import { resolvers } from './graphql/resolvers';
@@ -51,13 +49,8 @@ const apolloServer = new ApolloServer<AppContext>({
     typeDefs,
     resolvers,
     plugins: [
-        process.env.NODE_ENV === "production"
-          ? ApolloServerPluginLandingPageProductionDefault({
-              graphRef: "my-graph-id@my-graph-variant",
-              footer: false,
-            })
-          : ApolloServerPluginLandingPageLocalDefault({ footer: false }),
-      ],
+        ApolloServerPluginLandingPageGraphQLPlayground()
+    ],
 });
 
 
