@@ -8,8 +8,10 @@ import { User } from "./user.model";
 import { Appointment } from "../appointment/appointment.model";
 import { DoctorRequest } from "../doctor-request/doctor-request.model";
 import { Record } from "../record/record.model";
+import { Chat } from '../chat/chat.model';
 import { UserInput } from "./user.input";
 import { AppContext, LoginResponse, MutationResponse } from "../types";
+
 
 export const userMutationResolver = {
     Mutation: {
@@ -73,10 +75,20 @@ export const userMutationResolver = {
             const input: UserInput = args.userInput;            
             const repo = context.dataSource.getRepository(User);
 
+            const isEmailInUse = await repo.findOneBy({email: input.email});
+
+            if (isEmailInUse) {
+                return {
+                    success: false,
+                    message: "This email address is already in use"
+                } as MutationResponse;
+            }
+
             try {
                 const newUser = new User();
                 if (input.id) {
                     const dbUser = await repo.findOneBy({id: input.id});
+
                     if (dbUser) {
                         dbUser.id = input.id;
                         dbUser.firstName = input.firstName && input.firstName !== "" ? input.firstName : dbUser.firstName;
@@ -141,6 +153,7 @@ export const userMutationResolver = {
             const repo = context.dataSource.getRepository(User);
             const appointmentsRepo = context.dataSource.getRepository(Appointment);
             const recordsRepo = context.dataSource.getRepository(Record);
+            const chatRepo = context.dataSource.getRepository(Chat);
 
             const dbUserAppointments = await appointmentsRepo
                 .createQueryBuilder("appointment")
@@ -148,29 +161,58 @@ export const userMutationResolver = {
                 .orWhere('appointment.doctorId = :doctorId',{doctorId: userId})
                 .getMany();
 
-            const ids = dbUserAppointments.map(appointment => appointment.id);
+            const appointmentIds = dbUserAppointments.map(appointment => appointment.id);
 
-            if (ids.length> 0) {
+            const dbUserRecords = await recordsRepo
+            .createQueryBuilder("record")
+            .where('record.patientId = :patientId', {patientId: userId})
+            .orWhere('record.doctorId = :doctorId',{doctorId: userId})
+            .getMany();
+
+            const recordIds = dbUserRecords.map(record => record.id);
+
+            if (appointmentIds.length> 0) {
                 try {
-                    await recordsRepo.delete({appointmentId: In(ids)});
+                    await appointmentsRepo.delete({appointmentId: In(appointmentIds)});
                 } catch (error) {
                     return {
                         success: false,
-                        message: "Error deleting user records: "+error
+                        message: "Error deleting user appointments: "+error
                     } as MutationResponse;
                 }
+            } 
+            if (recordIds.length>0) {
                 try {
-                    await appointmentsRepo.delete({id: In(ids)});
+                    await recordsRepo.delete({id: In(recordIds)});
                 } catch (error) {
                     return {
                         success: false,
                         message: "Error deleting user appointments: "+error
                     } as MutationResponse;
                 }    
-            } 
+            }
+      
+            const chatIds = await chatRepo
+                .createQueryBuilder('chat')
+                .leftJoinAndSelect('chat.participants', 'participants')
+                .where('participants.id = :userId', { userId }) 
+                .getMany();
+        
+            if (chatIds.length > 0) {
+                try {
+                    await chatRepo.remove(chatIds); 
+                } catch (error) {
+                    return {
+                        success: false,
+                        message: "Error deleting user chats: " + error
+                    } as MutationResponse;
+                }
+            }
+        
 
             try {
                 await repo.delete({id: userId});
+
                 return {
                     success: true,
                     message: "User data removed"

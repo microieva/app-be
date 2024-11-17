@@ -26,12 +26,6 @@ const app = express();
 const port = parseInt(process.env.PORT) || 4000;
 const dataSource = process.env.NODE_ENV === 'production' ? prodDataSource : devDataSource;
 
-// const corsOptions = {
-//     origin: process.env.NOTIFICATIONS_ORIGIN, 
-//     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-//     credentials: true, 
-//     allowedHeaders: ["Content-Type", "Authorization", "x-apollo-operation-name", "access-control-allow-origin"]
-// };
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
         ? ['https://studio.apollographql.com', process.env.NOTIFICATIONS_ORIGIN] 

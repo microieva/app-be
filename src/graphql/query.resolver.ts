@@ -1816,15 +1816,18 @@ export const queries = {
             const chatIds = me.chats.map((chat: Chat) => chat.id);
 
             try {
-                const count = await context.dataSource.getRepository(Message)
-                    .createQueryBuilder('message')
-                    .leftJoinAndSelect('message.sender', 'sender')
-                    .where('message.chatId IN (:...chatIds)', { chatIds })
-                    .andWhere('sender.id != :id', {id: context.me.userId})
-                    .andWhere('message.isRead = :isRead', { isRead: false })
-                    .getCount();
-
-                return count;
+                if (chatIds.length>0) {
+                    const count = await context.dataSource.getRepository(Message)
+                        .createQueryBuilder('message')
+                        .leftJoinAndSelect('message.sender', 'sender')
+                        .where('message.chatId IN (:...chatIds)', { chatIds })
+                        .andWhere('sender.id != :id', {id: context.me.userId})
+                        .andWhere('message.isRead = :isRead', { isRead: false })
+                        .getCount();
+    
+                    return count;
+                }
+                return 0;
             } catch (error) {
                 throw new Error(error);
             }
