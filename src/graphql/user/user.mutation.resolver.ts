@@ -77,7 +77,7 @@ export const userMutationResolver = {
 
             const isEmailInUse = await repo.findOneBy({email: input.email});
 
-            if (isEmailInUse) {
+            if (isEmailInUse && !input.id) {
                 return {
                     success: false,
                     message: "This email address is already in use"
