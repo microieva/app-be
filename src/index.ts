@@ -61,7 +61,7 @@ io.on('connection', (socket) => {
     console.log('a user connected: ', socket.id);
 
     socket.on('registerUser', (user) => {
-        const userInfo = { socketId: socket.id, ...user, online: true };
+        const userInfo = { socketId: socket.id, id: user.id, userRole: user.userRole, online: true };
         onlineUsers.push(userInfo);
         io.emit('onlineUsers', onlineUsers); 
         io.emit('online', { userId: user.id, online: true });
