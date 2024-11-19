@@ -1739,10 +1739,11 @@ export const queries = {
                 throw new Error('Unauthorized action')
             }
 
+
             const startOfDay = new Date();
-            startOfDay.setHours(0, 0, 0, 0); 
+            startOfDay.setUTCHours(0, 0, 0, 0); 
             const endOfDay = new Date();
-            endOfDay.setHours(23, 59, 59, 999); 
+            endOfDay.setUTCHours(23, 59, 59, 999); 
 
             try {
                 return await repo
