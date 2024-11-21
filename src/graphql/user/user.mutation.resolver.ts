@@ -4,6 +4,7 @@ import { In } from "typeorm";
 import { OAuth2Client } from 'google-auth-library';
 import jwt from "jsonwebtoken";
 import jose from "node-jose";
+import { sendEmailNotification } from "../../services/email.service";
 import { User } from "./user.model";
 import { Appointment } from "../appointment/appointment.model";
 import { DoctorRequest } from "../doctor-request/doctor-request.model";
@@ -56,9 +57,9 @@ export const userMutationResolver = {
             newUser.updatedAt = null;
 
             try {
-                await userRepo.save(newUser);
+                const savedUser = await userRepo.save(newUser);
                 await requestRepo.delete({id: dbDoctorRequest.id});
-                //TO DO sendEmailNotification(); send to the new doctor that account is ready
+                sendEmailNotification(savedUser, "doctorAccountActivated")
 
                 return {
                     success: true,
@@ -142,11 +143,12 @@ export const userMutationResolver = {
         deleteUser: async (parent: null, args: any, context: AppContext)=> {
             const userId: number | null = args.userId;  
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const dbUser = await context.dataSource.getRepository(User).findOneBy({id: userId});
 
             if (!me) {
                 return {
                     success: false,
-                    message: "Unauthorized action"
+                    message: "Forbidden action"
                 } as MutationResponse;
             }
 
@@ -164,16 +166,16 @@ export const userMutationResolver = {
             const appointmentIds = dbUserAppointments.map(appointment => appointment.id);
 
             const dbUserRecords = await recordsRepo
-            .createQueryBuilder("record")
-            .where('record.patientId = :patientId', {patientId: userId})
-            .orWhere('record.doctorId = :doctorId',{doctorId: userId})
-            .getMany();
+                .createQueryBuilder("record")
+                .where('record.patientId = :patientId', {patientId: userId})
+                .orWhere('record.doctorId = :doctorId',{doctorId: userId})
+                .getMany();
 
             const recordIds = dbUserRecords.map(record => record.id);
 
             if (appointmentIds.length> 0) {
                 try {
-                    await appointmentsRepo.delete({appointmentId: In(appointmentIds)});
+                    await appointmentsRepo.delete({id: In(appointmentIds)});
                 } catch (error) {
                     return {
                         success: false,
@@ -181,7 +183,7 @@ export const userMutationResolver = {
                     } as MutationResponse;
                 }
             } 
-            if (recordIds.length>0) {
+            if (recordIds.length>0 && dbUser.userRoleId === 3) {
                 try {
                     await recordsRepo.delete({id: In(recordIds)});
                 } catch (error) {
@@ -271,7 +273,6 @@ export const userMutationResolver = {
         loginWithGoogle: async (parent: null, args: any, context: AppContext) => {
             const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
             const credential = args.googleCredential;
-            const adminId: number = context.dataSource.getRepository(User).findOneBy({userRoleId: 1}).id
 
             const ticket = await client.verifyIdToken({
                 idToken: credential,
@@ -319,11 +320,7 @@ export const userMutationResolver = {
                         const expirationTime = currentTime.plus({ hours: 10 });
                         const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
                         
-                        context.io.emit('receiveNotification', {
-                            receiverId: adminId,
-                            message: 'New doctor account activation request',
-                            doctorRequestId: newDoctorRequest.id
-                        });
+                        sendEmailNotification(newDoctorRequest, "newDoctorRequestCreated")
                         return {
                             token: token, 
                             expiresAt: expirationTimeInFinnishTime

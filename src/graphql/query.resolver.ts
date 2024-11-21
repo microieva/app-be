@@ -6,7 +6,7 @@ import { DoctorRequest } from "./doctor-request/doctor-request.model";
 import { Chat } from "./chat/chat.model";
 import { Message } from "./message/message.model";
 import { ChatParticipant } from "./chat-participant/chat-participant.model";
-import { AppContext, NextAppointmentResponse } from "./types";
+import { AppContext } from "./types";
 import { getNow } from "./utils";
 
 export const queries = {
@@ -50,7 +50,7 @@ export const queries = {
                 throw new Error("Doctor account request not found: "+error);
             }
         },
-        doctors: async (parent: null, args: any, context: AppContext) => {
+        /*doctors: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
             const repo = context.dataSource.getRepository(User);
             const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
@@ -72,8 +72,13 @@ export const queries = {
                         { nameLike:  `%${filterInput}%` }
                     );
                 }
+
+                if (sortActive === 'unreadMessages') {
+
+                }
+
                 const [doctors, count]: [User[], number] = await queryBuilder
-                    .orderBy(`user.${sortActive}` || 'user.firstName', `${sortDirection}` as 'ASC' | 'DESC')
+                    .orderBy(`user.${sortActive}`, `${sortDirection}` as 'ASC' | 'DESC')
                     .limit(pageLimit)
                     .offset(pageIndex * pageLimit)
                     .getManyAndCount();
@@ -87,7 +92,64 @@ export const queries = {
                 slice,
                 length
             }
-        },
+        },*/
+        doctors: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({ id: context.me.userId });
+            const repo = context.dataSource.getRepository(User);
+            const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+        
+            if (!me || me.userRoleId !== 1) {
+                throw new Error("Unauthorized action");
+            }
+        
+            let slice: User[];
+            let length: number = 0;
+        
+            try {
+                const queryBuilder = repo
+                    .createQueryBuilder('user')
+                    .where('user.userRoleId = :userRoleId', { userRoleId: 2 });
+        
+                if (filterInput) {
+                    queryBuilder.andWhere(
+                        '(LOWER(user.firstName) LIKE :nameLike OR LOWER(user.lastName) LIKE :nameLike)',
+                        { nameLike: `%${filterInput}%` }
+                    );
+                }
+        
+                if (sortActive === 'unreadMessages') {
+                    queryBuilder
+                        .addSelect(subQuery => {
+                            return subQuery
+                                .select('COUNT(message.id)', 'unreadMessages')
+                                .from(Message, 'message')
+                                .leftJoin('message.chat', 'chat')
+                                .leftJoin('chat.participants', 'participants')
+                                .where('message.isRead = :isRead', { isRead: false })
+                                .andWhere('participants.id = user.id') 
+                                .andWhere('message.senderId != :userId', { userId: context.me.userId });
+                        }, 'unreadMessages')
+                        .orderBy('unreadMessages', sortDirection as 'ASC' | 'DESC');
+                } else {
+                    queryBuilder.orderBy(`user.${sortActive}`, `${sortDirection}` as 'ASC' | 'DESC');
+                }
+        
+                const [doctors, count]: [User[], number] = await queryBuilder
+                    .limit(pageLimit)
+                    .offset(pageIndex * pageLimit)
+                    .getManyAndCount();
+        
+                length = count;
+                slice = doctors;
+            } catch (error) {
+                throw new Error(`Error fetching doctors: ${error}`);
+            }
+        
+            return {
+                slice,
+                length
+            };
+        },        
         patients: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
             const repo = context.dataSource.getRepository(User);
@@ -543,6 +605,7 @@ export const queries = {
                     try {
                         const monthSlice = await repo
                             .createQueryBuilder('appointment')
+                            .leftJoinAndSelect('appointment.doctor', 'doctor')
                             .where('appointment.patientId = :patientId', { patientId: context.me.userId })
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
@@ -684,9 +747,16 @@ export const queries = {
                     }
                 case 1: 
                     try {
-                        const monthSlice = await repo
+                        const queryBuilder = await repo
                             .createQueryBuilder('appointment')
-                            .where('appointment.patientId = :patientId', { patientId })
+
+                        if (patientId) {
+                            queryBuilder
+                                .where('appointment.patientId = :patientId', { patientId })
+                        }
+
+                        queryBuilder
+                            .andWhere('appointment.doctorId IS NULL')
                             .andWhere('appointment.start < :now', {now})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
@@ -696,6 +766,8 @@ export const queries = {
                                 monthStart,
                                 monthEnd
                             })
+                            
+                        const monthSlice = await queryBuilder
                             .orderBy('appointment.start', 'DESC')
                             .getMany();
 
@@ -1206,7 +1278,7 @@ export const queries = {
                         recordIds,
                         patient: nextAppointment.patient,
                         doctor: nextAppointment.doctor
-                    } as NextAppointmentResponse;
+                    };
                     
                 } else {
                     return null;
@@ -1862,7 +1934,7 @@ export const queries = {
 
                     return unreadCounts;
                 }
-                return;
+                return 0;
 
             } catch (error) {
                 throw new Error('Error in count all unread messages: '+error);
