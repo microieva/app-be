@@ -50,49 +50,6 @@ export const queries = {
                 throw new Error("Doctor account request not found: "+error);
             }
         },
-        /*doctors: async (parent: null, args: any, context: AppContext) => {
-            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
-            const repo = context.dataSource.getRepository(User);
-            const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
-
-            if (!me || me.userRoleId !== 1) {
-                throw new Error("Unauthorized action")
-            }
-            let slice: User[];
-            let length: number = 0;
-
-            try {
-                const queryBuilder = repo
-                    .createQueryBuilder('user')
-                    .where('user.userRoleId = :userRoleId', { userRoleId: 2});
-    
-                if (filterInput) {
-                    queryBuilder.andWhere(
-                        '(LOWER(user.firstName) LIKE :nameLike OR LOWER(user.lastName) LIKE :nameLike)',
-                        { nameLike:  `%${filterInput}%` }
-                    );
-                }
-
-                if (sortActive === 'unreadMessages') {
-
-                }
-
-                const [doctors, count]: [User[], number] = await queryBuilder
-                    .orderBy(`user.${sortActive}`, `${sortDirection}` as 'ASC' | 'DESC')
-                    .limit(pageLimit)
-                    .offset(pageIndex * pageLimit)
-                    .getManyAndCount();
-
-                length = count;
-                slice = doctors;
-            } catch (error) {
-                throw new Error(`Error fetching doctors: ${error}`);
-            }
-            return {
-                slice,
-                length
-            }
-        },*/
         doctors: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({ id: context.me.userId });
             const repo = context.dataSource.getRepository(User);
@@ -677,7 +634,7 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const { monthStart, monthEnd, patientId } = args;
-            const now = getNow(); 
+            const now = new Date();
 
             if (!me) {
                 throw new Error("Unauthorized action")
@@ -785,7 +742,7 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const { monthStart, monthEnd, patientId } = args;
-            const now = getNow(); 
+            const now = new Date();
 
             switch (me.userRoleId) {
                 case 3:
@@ -888,7 +845,7 @@ export const queries = {
                 throw new Error('Unauthorized action')
             }
 
-            const now = getNow(); 
+            const now = new Date();
 
             switch (me.userRoleId) {
                 case 3:
@@ -977,7 +934,7 @@ export const queries = {
                 throw new Error('Unauthorized action')
             }
 
-            const now = getNow(); 
+            const now = new Date();
 
             switch (me.userRoleId) {
                 case 3:
@@ -1573,7 +1530,7 @@ export const queries = {
         countMissedAppointments: async (parent: null, args: any, context: AppContext)=> {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
-            const now = getNow(); 
+            const now = new Date();
 
             if (!me) {
                 throw new Error("Unauthorized action");
@@ -1593,7 +1550,7 @@ export const queries = {
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId = :id', {id: context.me.userId})
                         .andWhere('appointment.doctorId IS NULL')
-                        .andWhere('appointment.start < :now', {now})
+                        .andWhere('appointment.start < :now', { now })
                         .getCount();
                 }
 
@@ -1781,12 +1738,6 @@ export const queries = {
 
             try {
                 const [records, count]: [Record[], number] = await queryBuilder
-                    // .createQueryBuilder('record')
-                    // .where('record.draft = :draft', {draft: false})
-                    // .andWhere('record.id IN (:...ids)', { ids })
-                    // .leftJoinAndSelect('record.appointment', 'appointment')
-                    // .innerJoin('appointment.doctor', 'doctor')
-                    // .innerJoin('appointment.patient', 'patient')
                     .orderBy(orderByField, `${sortDirection}` as 'ASC' | 'DESC')
                     .limit(pageLimit)
                     .offset(pageIndex * pageLimit)

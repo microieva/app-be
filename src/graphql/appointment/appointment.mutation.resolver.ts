@@ -38,10 +38,7 @@ export const appointmentMutationResolver = {
             } else if (dbMe.userRoleId === 2) {
                 queryBuilder
                     .andWhere('appointment.doctorId = :doctorId', { doctorId: context.me.userId });
-            } else {
-                // queryBuilder
-                //     .andWhere('appointment.patientId = :patientId', { patientId: input.patientId });
-            }
+            } 
 
             // const isReserved = await queryBuilder
             //     .andWhere({updatedAt: Not(IsNull())})
@@ -85,7 +82,12 @@ export const appointmentMutationResolver = {
 
                     if (notify && dbMe.userRoleId === 2) {
                         sendEmailNotification(updatedAppointment, "appointmentUpdated")
+                    } else if (dbMe.userRoleId === 1) {
+                        context.io.emit('updateMissedAppointmentsCount', {
+                            isUpdated: true
+                        })
                     }
+
                     return {
                         success: true,
                         message: 'Appointment updated'
@@ -101,7 +103,7 @@ export const appointmentMutationResolver = {
                 newAppointment.start =  new Date(input.start);
                 newAppointment.end =  new Date(input.end);
                 newAppointment.allDay = input.allDay;
-
+        
                 if (dbMe.userRoleId === 3) {
                     if (input.allDay) {
                         return {

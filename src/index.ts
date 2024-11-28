@@ -76,6 +76,10 @@ io.on('connection', (socket) => {
         io.emit('receiveNotification', message);
     });
 
+    socket.on('updateMissedAppointmentsAcount', (isUpdated)=> {
+        io.emit('getMissedAppointmentsCount', isUpdated)
+    })
+
     socket.on('notifyDoctors', (info)=> {
         io.emit('newAppointmentRequest', info);
     });
