@@ -1,6 +1,7 @@
-// import { devDataSource } from "../configurations/dev-db.config";
-// import { prodDataSource } from "../configurations/prod-db.config";
+import { devDataSource } from "src/configurations/dev-db.config";
 import { User } from "./user/user.model";
+import { prodDataSource } from "src/configurations/prod-db.config";
+import { Server } from "socket.io";
 
 export interface MutationResponse {
     success: boolean
@@ -21,9 +22,9 @@ export interface NextAppointmentResponse {
 }
 
 export interface AppContext {
-    me: any,
-    dataSource?: any
-    io: any
+    me: {userId: number},
+    dataSource: typeof devDataSource | typeof prodDataSource, 
+    io: Server
 }
 
 export type DateTime = import('luxon').DateTime

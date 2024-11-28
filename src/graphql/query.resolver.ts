@@ -6,7 +6,7 @@ import { DoctorRequest } from "./doctor-request/doctor-request.model";
 import { Chat } from "./chat/chat.model";
 import { Message } from "./message/message.model";
 import { ChatParticipant } from "./chat-participant/chat-participant.model";
-import { AppContext, NextAppointmentResponse } from "./types";
+import { AppContext } from "./types";
 import { getNow } from "./utils";
 
 export const queries = {
@@ -51,43 +51,62 @@ export const queries = {
             }
         },
         doctors: async (parent: null, args: any, context: AppContext) => {
-            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
+            const me = await context.dataSource.getRepository(User).findOneBy({ id: context.me.userId });
             const repo = context.dataSource.getRepository(User);
             const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
-
+        
             if (!me || me.userRoleId !== 1) {
-                throw new Error("Unauthorized action")
+                throw new Error("Unauthorized action");
             }
+        
             let slice: User[];
             let length: number = 0;
-
+        
             try {
                 const queryBuilder = repo
                     .createQueryBuilder('user')
-                    .where('user.userRoleId = :userRoleId', { userRoleId: 2});
-    
+                    .where('user.userRoleId = :userRoleId', { userRoleId: 2 });
+        
                 if (filterInput) {
                     queryBuilder.andWhere(
                         '(LOWER(user.firstName) LIKE :nameLike OR LOWER(user.lastName) LIKE :nameLike)',
-                        { nameLike:  `%${filterInput}%` }
+                        { nameLike: `%${filterInput}%` }
                     );
                 }
+        
+                if (sortActive === 'unreadMessages') {
+                    queryBuilder
+                        .addSelect(subQuery => {
+                            return subQuery
+                                .select('COUNT(message.id)', 'unreadMessages')
+                                .from(Message, 'message')
+                                .leftJoin('message.chat', 'chat')
+                                .leftJoin('chat.participants', 'participants')
+                                .where('message.isRead = :isRead', { isRead: false })
+                                .andWhere('participants.id = user.id') 
+                                .andWhere('message.senderId != :userId', { userId: context.me.userId });
+                        }, 'unreadMessages')
+                        .orderBy('unreadMessages', sortDirection as 'ASC' | 'DESC');
+                } else {
+                    queryBuilder.orderBy(`user.${sortActive}`, `${sortDirection}` as 'ASC' | 'DESC');
+                }
+        
                 const [doctors, count]: [User[], number] = await queryBuilder
-                    .orderBy(`user.${sortActive}` || 'user.firstName', `${sortDirection}` as 'ASC' | 'DESC')
                     .limit(pageLimit)
                     .offset(pageIndex * pageLimit)
                     .getManyAndCount();
-
+        
                 length = count;
                 slice = doctors;
             } catch (error) {
                 throw new Error(`Error fetching doctors: ${error}`);
             }
+        
             return {
                 slice,
                 length
-            }
-        },
+            };
+        },        
         patients: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
             const repo = context.dataSource.getRepository(User);
@@ -543,6 +562,7 @@ export const queries = {
                     try {
                         const monthSlice = await repo
                             .createQueryBuilder('appointment')
+                            .leftJoinAndSelect('appointment.doctor', 'doctor')
                             .where('appointment.patientId = :patientId', { patientId: context.me.userId })
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
@@ -614,7 +634,7 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const { monthStart, monthEnd, patientId } = args;
-            const now = getNow(); 
+            const now = new Date();
 
             if (!me) {
                 throw new Error("Unauthorized action")
@@ -684,9 +704,16 @@ export const queries = {
                     }
                 case 1: 
                     try {
-                        const monthSlice = await repo
+                        const queryBuilder = await repo
                             .createQueryBuilder('appointment')
-                            .where('appointment.patientId = :patientId', { patientId })
+
+                        if (patientId) {
+                            queryBuilder
+                                .where('appointment.patientId = :patientId', { patientId })
+                        }
+
+                        queryBuilder
+                            .andWhere('appointment.doctorId IS NULL')
                             .andWhere('appointment.start < :now', {now})
                             .andWhere('appointment.start BETWEEN :monthStart AND :monthEnd', {
                                 monthStart,
@@ -696,6 +723,8 @@ export const queries = {
                                 monthStart,
                                 monthEnd
                             })
+                            
+                        const monthSlice = await queryBuilder
                             .orderBy('appointment.start', 'DESC')
                             .getMany();
 
@@ -713,7 +742,7 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const { monthStart, monthEnd, patientId } = args;
-            const now = getNow(); 
+            const now = new Date();
 
             switch (me.userRoleId) {
                 case 3:
@@ -816,7 +845,7 @@ export const queries = {
                 throw new Error('Unauthorized action')
             }
 
-            const now = getNow(); 
+            const now = new Date();
 
             switch (me.userRoleId) {
                 case 3:
@@ -905,7 +934,7 @@ export const queries = {
                 throw new Error('Unauthorized action')
             }
 
-            const now = getNow(); 
+            const now = new Date();
 
             switch (me.userRoleId) {
                 case 3:
@@ -1206,7 +1235,7 @@ export const queries = {
                         recordIds,
                         patient: nextAppointment.patient,
                         doctor: nextAppointment.doctor
-                    } as NextAppointmentResponse;
+                    };
                     
                 } else {
                     return null;
@@ -1501,7 +1530,7 @@ export const queries = {
         countMissedAppointments: async (parent: null, args: any, context: AppContext)=> {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
-            const now = getNow(); 
+            const now = new Date();
 
             if (!me) {
                 throw new Error("Unauthorized action");
@@ -1521,7 +1550,7 @@ export const queries = {
                         .createQueryBuilder('appointment')
                         .where('appointment.patientId = :id', {id: context.me.userId})
                         .andWhere('appointment.doctorId IS NULL')
-                        .andWhere('appointment.start < :now', {now})
+                        .andWhere('appointment.start < :now', { now })
                         .getCount();
                 }
 
@@ -1636,17 +1665,17 @@ export const queries = {
                     .andWhere('cp.participantId = :userId', { userId })
                     .getOne();
         
-                let messagesQuery = context.dataSource.getRepository(Message)
+                let query = context.dataSource.getRepository(Message)
                     .createQueryBuilder('message')
                     .leftJoinAndSelect('message.sender', 'sender')
                     .where('message.chatId = :chatId', { chatId })
                     .orderBy('message.createdAt', 'DESC');  
                 
                 if (chatParticipant && chatParticipant.deletedAt) {
-                    messagesQuery = messagesQuery.andWhere('message.createdAt > :deletedAt', { deletedAt: chatParticipant.deletedAt });
+                    query = query.andWhere('message.createdAt > :deletedAt', { deletedAt: chatParticipant.deletedAt });
                 }
-
-                return await messagesQuery.getMany();
+                const messages = await query.getMany();
+                return messages;
             } catch (error) {
                 throw new Error(`Failed to fetch messages for chatId ${chatId}: ${error}`);
             }
@@ -1709,12 +1738,6 @@ export const queries = {
 
             try {
                 const [records, count]: [Record[], number] = await queryBuilder
-                    // .createQueryBuilder('record')
-                    // .where('record.draft = :draft', {draft: false})
-                    // .andWhere('record.id IN (:...ids)', { ids })
-                    // .leftJoinAndSelect('record.appointment', 'appointment')
-                    // .innerJoin('appointment.doctor', 'doctor')
-                    // .innerJoin('appointment.patient', 'patient')
                     .orderBy(orderByField, `${sortDirection}` as 'ASC' | 'DESC')
                     .limit(pageLimit)
                     .offset(pageIndex * pageLimit)
@@ -1739,16 +1762,17 @@ export const queries = {
                 throw new Error('Unauthorized action')
             }
 
+
             const startOfDay = new Date();
-            startOfDay.setHours(0, 0, 0, 0); 
+            startOfDay.setUTCHours(0, 0, 0, 0); 
             const endOfDay = new Date();
-            endOfDay.setHours(23, 59, 59, 999); 
+            endOfDay.setUTCHours(23, 59, 59, 999); 
 
             try {
                 return await repo
                     .createQueryBuilder('appointment')
                     .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
-                    .where('appointment.start >= :startOfDay', { startOfDay })
+                    .andWhere('appointment.start >= :startOfDay', { startOfDay })
                     .andWhere('appointment.start <= :endOfDay', { endOfDay })
                     .getCount();  
         
@@ -1765,16 +1789,16 @@ export const queries = {
             }
 
             const startOfDay = new Date();
-            startOfDay.setHours(0, 0, 0, 0); 
+            startOfDay.setUTCHours(0, 0, 0, 0); 
             const endOfDay = new Date();
-            endOfDay.setHours(23, 59, 59, 999); 
+            endOfDay.setUTCHours(23, 59, 59, 999); 
 
             try {
                 const appointments = await repo
                     .createQueryBuilder('appointment')
                     .where('appointment.doctorId = :doctorId', {doctorId: context.me.userId})
                     .select(['appointment.start', 'appointment.end'])
-                    .where('appointment.start >= :startOfDay', { startOfDay })
+                    .andWhere('appointment.start >= :startOfDay', { startOfDay })
                     .andWhere('appointment.start <= :endOfDay', { endOfDay })
                     .getMany();
         
@@ -1801,6 +1825,71 @@ export const queries = {
             } catch (error) {
                 throw new Error(`Error fetching total appointment time for today: ${error}`);
             }
-        }                   
+        },
+        countUnreadMessages: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User)
+                .createQueryBuilder('user')
+                .leftJoinAndSelect('user.chats', 'chats, chat.id')
+                .where('user.id = :id', {id : context.me.userId})
+                .getOne();
+
+            if (!me || me.userRoleId === 3) {
+                throw new Error('Unauthorized action')
+            }
+
+            const chatIds = me.chats.map((chat: Chat) => chat.id);
+
+            try {
+                if (chatIds.length>0) {
+                    const count = await context.dataSource.getRepository(Message)
+                        .createQueryBuilder('message')
+                        .leftJoinAndSelect('message.sender', 'sender')
+                        .where('message.chatId IN (:...chatIds)', { chatIds })
+                        .andWhere('sender.id != :id', {id: context.me.userId})
+                        .andWhere('message.isRead = :isRead', { isRead: false })
+                        .getCount();
+    
+                    return count;
+                }
+                return 0;
+            } catch (error) {
+                throw new Error(error);
+            }
+
+        },
+        countAllUnreadMessages: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User)
+                .createQueryBuilder('user')
+                .leftJoinAndSelect('user.chats', 'chats, chat.id')
+                .where('user.id = :id', {id : context.me.userId})
+                .getOne();
+
+            if (!me || me.userRoleId === 3) {
+                throw new Error('Unauthorized action')
+            }
+
+            const chatIds = me.chats.map((chat: Chat) => chat.id);
+
+            try {
+                if (chatIds.length>0) {
+                    const unreadCounts = await context.dataSource.getRepository(Message)
+                        .createQueryBuilder('message')
+                        .select('sender.id', 'senderId')
+                        .addSelect('COUNT(message.id)', 'count')
+                        .leftJoin('message.sender', 'sender')
+                        .where('message.chatId IN (:...chatIds)', { chatIds })
+                        .andWhere('sender.id != :id', { id: context.me.userId })
+                        .andWhere('message.isRead = :isRead', { isRead: false })
+                        .groupBy('sender.id')
+                        .getRawMany();
+
+                    return unreadCounts;
+                }
+                return 0;
+
+            } catch (error) {
+                throw new Error('Error in count all unread messages: '+error);
+            }
+        }                
     }
 } 

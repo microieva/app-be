@@ -38,10 +38,7 @@ export const appointmentMutationResolver = {
             } else if (dbMe.userRoleId === 2) {
                 queryBuilder
                     .andWhere('appointment.doctorId = :doctorId', { doctorId: context.me.userId });
-            } else {
-                queryBuilder
-                    .andWhere('appointment.patientId = :patientId', { patientId: input.patientId });
-            }
+            } 
 
             // const isReserved = await queryBuilder
             //     .andWhere({updatedAt: Not(IsNull())})
@@ -77,15 +74,20 @@ export const appointmentMutationResolver = {
                 } else if (dbMe.userRoleId === 2){
                     dbAppointment.doctorId = dbMe.id;
                 } else {
-                    dbAppointment.patientId = input.patientId;
                     dbAppointment.updatedAt = null;
                 }
 
                 try {
-                    await repo.save(dbAppointment);
-                    if (notify) {
-                        sendEmailNotification(dbAppointment, "appointmentUpdated")
+                    const updatedAppointment = await repo.save(dbAppointment);
+
+                    if (notify && dbMe.userRoleId === 2) {
+                        sendEmailNotification(updatedAppointment, "appointmentUpdated")
+                    } else if (dbMe.userRoleId === 1) {
+                        context.io.emit('updateMissedAppointmentsCount', {
+                            isUpdated: true
+                        })
                     }
+
                     return {
                         success: true,
                         message: 'Appointment updated'
@@ -97,17 +99,11 @@ export const appointmentMutationResolver = {
                     } as MutationResponse;
                 }
             } else {
-                /*if (isReserved) {
-                    return {
-                        success: false,
-                        message: 'Time overlap!'
-                    } as MutationResponse;
-                } */
                 const newAppointment = new Appointment();
                 newAppointment.start =  new Date(input.start);
                 newAppointment.end =  new Date(input.end);
                 newAppointment.allDay = input.allDay;
-
+        
                 if (dbMe.userRoleId === 3) {
                     if (input.allDay) {
                         return {
@@ -323,11 +319,11 @@ export const appointmentMutationResolver = {
 
                 sendEmailNotification(emailInfo, "appointmentAccepted");
 
-                context.io.emit('receiveNotification', {
-                    receiverId: dbAppointment.patientId,
-                    message: 'Your appointment booking has been confirmed by a doctor',
-                    appointmentId: dbAppointment.id
-                });
+                // context.io.emit('receiveNotification', {
+                //     receiverId: dbAppointment.patientId,
+                //     message: 'Your appointment booking has been confirmed by a doctor',
+                //     appointmentId: dbAppointment.id
+                // });
 
                 return {
                     success: true,
