@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, ManyToOne, UpdateDateColumn, JoinColumn, ManyToMany, OneToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, ManyToOne, JoinColumn, ManyToMany, OneToMany } from "typeorm";
 import bcrypt from "bcryptjs";
 import { DateTime } from "luxon";
 import { UserRole } from "./user-role.model";
@@ -70,8 +70,8 @@ export class User {
   @Column({ type: 'datetime', nullable: true })
   lastLogOutAt: Date;
 
-  @UpdateDateColumn({type: 'datetime', nullable: true})
-  updatedAt: Date;
+  @Column({type: 'datetime', nullable: true, default: null})
+  updatedAt: Date | null;
 
   @ManyToMany(() => Chat, (chat) => chat.participants)
   chats: Chat[];

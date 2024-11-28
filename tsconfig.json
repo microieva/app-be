@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "es2018",
-    "rootDir": "src",
-    "outDir": "dist",
+    "rootDir": "./src",
+    "outDir": "./dist",
     "baseUrl": "./",
     "module": "commonjs",
     "moduleResolution": "node",
@@ -31,7 +31,8 @@
   },
   "exclude": [
     "node_modules",
-    "**/_*/**"
+    "**/*.test.ts",
+    "dist"
   ],
   "include": [
     "src/**/*",

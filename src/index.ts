@@ -7,6 +7,8 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { ApolloServer } from '@apollo/server';
+import {ApolloServerPluginLandingPageGraphQLPlayground} from '@apollo/server-plugin-landing-page-graphql-playground';
+import {ApolloServerPluginLandingPageLocalDefault} from '@apollo/server/plugin/landingPage/default';
 import { expressMiddleware } from '@apollo/server/express4';
 import { typeDefs } from './schema';
 import { resolvers } from './graphql/resolvers';
@@ -25,21 +27,29 @@ const port = parseInt(process.env.PORT) || 4000;
 const dataSource = process.env.NODE_ENV === 'production' ? prodDataSource : devDataSource;
 
 const corsOptions = {
-    origin: process.env.NOTIFICATIONS_ORIGIN, 
+    origin: process.env.NODE_ENV === 'production' 
+        ? ['https://studio.apollographql.com', process.env.NOTIFICATIONS_ORIGIN] 
+        : true, 
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true, 
     allowedHeaders: ["Content-Type", "Authorization", "x-apollo-operation-name", "access-control-allow-origin"]
 };
 
+
 app.use(cors(corsOptions));
 app.use(bodyParser.json());  
+const httpServer = createServer(app);
 
 const apolloServer = new ApolloServer<AppContext>({
     typeDefs,
-    resolvers
+    resolvers,
+    plugins: [
+        process.env.NODE_ENV === 'production' 
+            ? ApolloServerPluginLandingPageGraphQLPlayground() 
+            : ApolloServerPluginLandingPageLocalDefault(),
+    ],
 });
 
-const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
     cors: corsOptions
@@ -51,7 +61,7 @@ io.on('connection', (socket) => {
     console.log('a user connected: ', socket.id);
 
     socket.on('registerUser', (user) => {
-        const userInfo = { socketId: socket.id, ...user };
+        const userInfo = { socketId: socket.id, id: user.id, userRole: user.userRole, online: true };
         onlineUsers.push(userInfo);
         io.emit('onlineUsers', onlineUsers); 
         io.emit('online', { userId: user.id, online: true });
@@ -65,6 +75,10 @@ io.on('connection', (socket) => {
     socket.on('sendNotification', (message) => {
         io.emit('receiveNotification', message);
     });
+
+    socket.on('updateMissedAppointmentsAcount', (isUpdated)=> {
+        io.emit('getMissedAppointmentsCount', isUpdated)
+    })
 
     socket.on('notifyDoctors', (info)=> {
         io.emit('newAppointmentRequest', info);

@@ -1,5 +1,5 @@
 FROM node:18
-WORKDIR ./src/graphql
+WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
