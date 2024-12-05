@@ -1,5 +1,5 @@
-import 'dotenv/config'; 
 import "reflect-metadata";
+import 'dotenv/config'; 
 import { DataSource } from 'typeorm';
 import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
 import { UserRole } from '../graphql/user/user-role.model';
