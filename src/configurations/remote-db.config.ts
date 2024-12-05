@@ -10,7 +10,7 @@ import { Chat } from '../graphql/chat/chat.model';
 import { Message } from '../graphql/message/message.model';
 import { ChatParticipant } from '../graphql/chat-participant/chat-participant.model';
 
-export const prodDataSource = new DataSource({
+export const remoteDataSource = new DataSource({
     type: 'mysql',
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
