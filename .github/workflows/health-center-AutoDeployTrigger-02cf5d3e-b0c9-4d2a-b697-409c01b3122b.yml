@@ -1,8 +1,6 @@
 name: Trigger auto deployment for health-center
 
-# When this action will be executed
 on:
-  # Automatically trigger it when detected changes in repo
   push:
     branches: 
       [ main ]
@@ -45,4 +43,16 @@ jobs:
           _buildArgumentsKey_: |
             _buildArgumentsValues_
 
+      - name: Redeploy the container with the new image
+        run: |
+          az containerapp update \
+            --name health-center \
+            --resource-group health-center-env \
+            --image healthcenterenv845e8f.azurecr.io/health-center:${{ github.sha }} \
+            --cpu 1 --memory 1Gi
+        env:
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.HEALTHCENTER_AZURE_SUBSCRIPTION_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.HEALTHCENTER_AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.HEALTHCENTER_AZURE_TENANT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.HEALTHCENTER_AZURE_CLIENT_SECRET }}
 
