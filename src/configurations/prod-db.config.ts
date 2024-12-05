@@ -29,8 +29,6 @@ const options: SqlServerConnectionOptions = {
         Message,
         ChatParticipant
     ],
-    synchronize: true,
-    migrations: ["./src/migration/*.ts"],
     extra: {
         trustServerCertificate: true
     },
