@@ -29,6 +29,16 @@
             "resourceGroup": "app-env",
             "containerApp": "health-center",
             "containerRegistry": "appenvironment128212"
+        },
+        {
+            "label": "health-center",
+            "type": "AcrDockerBuildRequest",
+            "dockerfilePath": "Dockerfile",
+            "srcPath": ".",
+            "envPath": ".env.azure",
+            "resourceGroup": "health-center-env",
+            "containerApp": "health-center",
+            "containerRegistry": "healthcenterenv845e8f"
         }
     ]
 }
