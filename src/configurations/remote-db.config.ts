@@ -1,7 +1,6 @@
 import 'dotenv/config'; 
 import "reflect-metadata";
 import { DataSource } from 'typeorm';
-import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
 import { UserRole } from '../graphql/user/user-role.model';
 import { User } from '../graphql/user/user.model';
 import { Appointment } from '../graphql/appointment/appointment.model';
@@ -11,9 +10,8 @@ import { Chat } from '../graphql/chat/chat.model';
 import { Message } from '../graphql/message/message.model';
 import { ChatParticipant } from '../graphql/chat-participant/chat-participant.model';
 
-
-const options: SqlServerConnectionOptions = {
-    type: 'mssql',
+export const prodDataSource = new DataSource({
+    type: 'mysql',
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
     username:  process.env.DB_USER,
@@ -29,13 +27,10 @@ const options: SqlServerConnectionOptions = {
         Message,
         ChatParticipant
     ],
-    synchronize: true,
-    migrations: ["./src/migration/*.ts"],
+    connectTimeout: 300000, 
     extra: {
-        trustServerCertificate: true
-    },
-    options: {
-        encrypt: true  
+        keepAlive: true,
+        connectTimeout: 300000, 
+        acquireTimeout: 300000 
     }
-};
-export const devDataSource = new DataSource(options);
+});
