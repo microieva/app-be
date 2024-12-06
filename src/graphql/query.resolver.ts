@@ -1885,7 +1885,7 @@ export const queries = {
 
                     return unreadCounts;
                 }
-                return 0;
+                return [];
 
             } catch (error) {
                 throw new Error('Error in count all unread messages: '+error);
