@@ -31,7 +31,7 @@ export const messageMutationResolver = {
                 }
                 
                 context.io.emit('receiveNotification', {
-                    sender: sender.firstName+' '+sender.lastName,
+                    senderName: sender.firstName+' '+sender.lastName,
                     receiverId,
                     message: msg,
                     chatId

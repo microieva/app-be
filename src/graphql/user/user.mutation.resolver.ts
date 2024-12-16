@@ -87,6 +87,7 @@ export const userMutationResolver = {
 
             try {
                 const newUser = new User();
+
                 if (input.id) {
                     const dbUser = await repo.findOneBy({id: input.id});
 
@@ -106,6 +107,9 @@ export const userMutationResolver = {
                         dbUser.updatedAt = new Date();
                         await repo.save(dbUser);
 
+                        context.io.emit('refreshEvent', true);
+                        context.io.emit('refreshEvent', false);
+                   
                         return {
                             success: true,
                             message: "User saved"

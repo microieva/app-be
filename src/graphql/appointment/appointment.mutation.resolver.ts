@@ -168,20 +168,16 @@ export const appointmentMutationResolver = {
 
                     if (emailInfo.doctor && emailInfo.start > now && dbMe.userRoleId !== 2) {
                         // if patient or admin cancels upcomming appointment
-                        sendEmailNotification(emailInfo, "appointmentCancelled");
-
-                        const timeStr = DateTime.fromJSDate(emailInfo.start).setZone('Europe/Helsinki').toFormat('hh:mm, MMM dd')
-                        
-                        context.io.emit('receiveNotification', {
-                            receiverId: emailInfo.doctorId,
-                            message: `${timeStr} appointment has been cancelled. Check email for more details`,
-                            appointmentId: null
-                        });
+                        sendEmailNotification(emailInfo, "appointmentCancelled");    
                     }
 
                     return {
                         success: true,
-                        message: "Appointment deleted"
+                        message: "Appointment deleted",
+                        data: {
+                            start: emailInfo.start,
+                            doctorId: emailInfo.doctorId
+                        } as Appointment
                     } as MutationResponse;
                 } catch (error) {
                     return {
@@ -319,15 +315,12 @@ export const appointmentMutationResolver = {
 
                 sendEmailNotification(emailInfo, "appointmentAccepted");
 
-                // context.io.emit('receiveNotification', {
-                //     receiverId: dbAppointment.patientId,
-                //     message: 'Your appointment booking has been confirmed by a doctor',
-                //     appointmentId: dbAppointment.id
-                // });
-
                 return {
                     success: true,
-                    message: "Appointment accepted. Doctor id saved"
+                    message: "Appointment accepted. Doctor id saved",
+                    data: {
+                        start: dbAppointment.start
+                    }
                 } as MutationResponse
             } catch (error) {
                 return {

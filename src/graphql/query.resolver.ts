@@ -256,10 +256,10 @@ export const queries = {
         nowAppointment: async (parent: null, args: any, context: AppContext)=> {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
 
-            if (!me || me.userRoleId !== 2) {
+            if (!me || me.userRoleId === 1) {
                 throw new Error("Unauthorized action")
             }
-            const now = getNow(); 
+            const now = new Date(); 
             const repo = context.dataSource.getRepository(Appointment);
 
             try {
@@ -280,7 +280,7 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
-            const now = getNow(); 
+            const now = new Date(); 
 
             let length: number = 0;
             let slice: Appointment[] = [];   
@@ -366,7 +366,7 @@ export const queries = {
 
             let length: number = 0;
             let slice: Appointment[] = [];   
-            const now = getNow(); 
+            const now = new Date();
 
             if (me) {
                 if (me.userRoleId === 3) {
@@ -458,7 +458,7 @@ export const queries = {
 
             let length: number = 0;
             let slice: Appointment[] = [];   
-            const now = getNow(); 
+            const now = new Date(); 
 
             if (me) {
                 if (me.userRoleId === 3) {
@@ -1176,7 +1176,7 @@ export const queries = {
                 return null;
             } 
 
-            const now = getNow();
+            const now = new Date();
 
             try {
 
