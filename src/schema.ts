@@ -141,6 +141,7 @@ export const schema = `
   type MutationResponse {
     success: Boolean!
     message: String!
+    data: Appointment
   }
 
   type LoginResponse {

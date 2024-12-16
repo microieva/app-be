@@ -80,12 +80,25 @@ io.on('connection', (socket) => {
         io.emit('getMissedAppointmentsCount', isUpdated)
     })
 
+    socket.on('triggerRefresh', (isUpdated) => {
+        io.emit('refreshEvent', isUpdated);
+        io.emit('refreshEvent', false);
+    })
+
     socket.on('notifyDoctors', (info)=> {
-        io.emit('newAppointmentRequest', info);
+        if (onlineUsers.some(user => user.userRole === 'doctor')) {
+            io.emit('newAppointmentRequest', info);
+            io.emit('refreshEvent', true);
+            io.emit('refreshEvent', false);
+        }
     });
 
     socket.on('notifyDoctor', (info)=> {
-        io.emit('deletedAppointmentInfo', info);
+        if (onlineUsers.some(user => user.userRole === 'doctor')) {
+            io.emit('deletedAppointmentInfo', info);
+            io.emit('refreshEvent', true);
+            io.emit('refreshEvent', false);
+        }
     });
 
     socket.on('disconnect', () => {
