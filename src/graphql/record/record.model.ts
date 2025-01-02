@@ -1,7 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, BeforeInsert, CreateDateColumn, UpdateDateColumn, OneToOne, ManyToOne } from "typeorm";
-import { DateTime } from "luxon";
+import { Entity, PrimaryGeneratedColumn, Column, JoinColumn, CreateDateColumn, UpdateDateColumn, OneToOne, ManyToOne, BeforeInsert } from "typeorm";
 import { Appointment } from "../appointment/appointment.model";
 import { User } from "../user/user.model";
+import { DateTime } from "luxon";
 
 @Entity()
 export class Record {
@@ -18,10 +18,12 @@ export class Record {
   createdAt: Date;
 
   @BeforeInsert()
-  dateToLocalTime() {
-    this.createdAt = DateTime.local().toJSDate();
-    this.updatedAt = DateTime.local().toJSDate();
-  }
+    dateToLocalTime() {
+        const created = DateTime.local().toISO();
+        this.createdAt = new Date(created);
+        const updated = DateTime.local().toISO();
+        this.updatedAt = new Date(updated);
+    }
 
   @UpdateDateColumn({type: 'datetime', nullable: true})
   updatedAt: Date;

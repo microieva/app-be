@@ -12,10 +12,7 @@ export const recordMutationResolver = {
             const input: RecordInput = args.recordInput;
 
             if (!dbMe || (dbMe && dbMe.userRoleId !== 2)) {
-                return {
-                    success: false,
-                    message: 'Unauthorized action'
-                } as MutationResponse;
+               throw new Error('Unauthorized action')
             }
 
             const repo = context.dataSource.getRepository(Record);
@@ -32,6 +29,7 @@ export const recordMutationResolver = {
                 dbRecord.title = input.title;
                 dbRecord.text = input.text;
                 dbRecord.draft = input.draft;
+                dbRecord.updatedAt = new Date();
 
                 try {
                     await repo.save(dbRecord);
