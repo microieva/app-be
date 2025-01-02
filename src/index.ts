@@ -55,16 +55,28 @@ const io = new Server(httpServer, {
     cors: corsOptions
 });
 
-let onlineUsers = [];
+const onlineUsers: any[]=[];
 
 io.on('connection', (socket) => {
     console.log('a user connected: ', socket.id);
 
     socket.on('registerUser', (user) => {
-        const userInfo = { socketId: socket.id, id: user.id, userRole: user.userRole, online: true };
-        onlineUsers.push(userInfo);
-        io.emit('onlineUsers', onlineUsers); 
-        io.emit('online', { userId: user.id, online: true });
+        if (user.userRole === 'doctor') {
+            const userInfo = { socketId: socket.id, id: user.id, userRole: user.userRole, online: true };
+            onlineUsers.push(userInfo);
+            io.emit('onlineUsers',onlineUsers);
+            io.emit('online', { userId: user.id, online: true });
+        }
+    });
+
+    socket.on('userLogout', (userId) => {
+        const index = onlineUsers.findIndex(user => user.id === userId);
+
+        if (index !== -1) {
+            io.emit('online', { userId, online: false });
+            onlineUsers.splice(index, 1); 
+        }
+        io.emit('onlineUsers', onlineUsers);
     });
 
     socket.on('onlineUser', (userId) => {
@@ -94,7 +106,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('notifyDoctor', (info)=> {
-        if (onlineUsers.some(user => user.userRole === 'doctor')) {
+        if (Array.from(onlineUsers).some(user => user.userRole === 'doctor')) {
             io.emit('deletedAppointmentInfo', info);
             io.emit('refreshEvent', true);
             io.emit('refreshEvent', false);
