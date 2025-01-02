@@ -199,7 +199,7 @@ export const schema = `
     title: String
     text: String
     createdAt: Date!
-    updatedAt: Date!
+    updatedAt: Date
     appointmentId: Int!
     appointment: Appointment!
     draft: Boolean!
