@@ -63,7 +63,9 @@ io.on('connection', (socket) => {
     socket.on('registerUser', (user) => {
         if (user.userRole === 'doctor') {
             const userInfo = { socketId: socket.id, id: user.id, userRole: user.userRole, online: true };
-            onlineUsers.push(userInfo);
+            if (!onlineUsers.some(onlineUser => onlineUser.id === userInfo.id)) {
+                onlineUsers.push(userInfo);
+            }
             io.emit('onlineUsers',onlineUsers);
             io.emit('online', { userId: user.id, online: true });
         }

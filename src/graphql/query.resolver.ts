@@ -16,13 +16,13 @@ export const queries = {
             const requestRepo = context.dataSource.getRepository(DoctorRequest);
             const repo = context.dataSource.getRepository(User);
 
-            const myAccount = await repo.findOne({where: {id: userId}});
+            const me = await repo.findOne({where: {id: userId}});
             const myRequest = await requestRepo.findOneBy({id: userId});
 
             if (myRequest) {
                 throw new Error(`This account request is in process. Please try later`);
             }
-            return myAccount;
+            return me;
         },
         user: async (parent: null, args: any, context: AppContext)=> {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
@@ -259,7 +259,7 @@ export const queries = {
             if (!me || me.userRoleId === 1) {
                 throw new Error("Unauthorized action")
             }
-            const now = new Date(); 
+            const now = getNow();
             const repo = context.dataSource.getRepository(Appointment);
 
             try {
@@ -280,7 +280,7 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
-            const now = new Date(); 
+            const now = getNow(); 
 
             let length: number = 0;
             let slice: Appointment[] = [];   
@@ -318,7 +318,7 @@ export const queries = {
                             .createQueryBuilder('appointment')
                             .leftJoinAndSelect('appointment.patient', 'patient')
                             .where('appointment.doctorId IS NULL')
-                            .andWhere('appointment.end > :now', {now})
+                            .andWhere('appointment.start > :now', {now})
                         
                         if (formattedReservedTimes.length>0) {
                             queryBuilder.andWhere('appointment.start NOT IN (:...reservedTimes)', { reservedTimes: formattedReservedTimes });
@@ -366,7 +366,7 @@ export const queries = {
 
             let length: number = 0;
             let slice: Appointment[] = [];   
-            const now = new Date();
+            const now = getNow();
 
             if (me) {
                 if (me.userRoleId === 3) {
@@ -458,7 +458,7 @@ export const queries = {
 
             let length: number = 0;
             let slice: Appointment[] = [];   
-            const now = new Date(); 
+            const now = getNow();
 
             if (me) {
                 if (me.userRoleId === 3) {
@@ -1176,7 +1176,7 @@ export const queries = {
                 return null;
             } 
 
-            const now = new Date();
+            const now = getNow();
 
             try {
 
