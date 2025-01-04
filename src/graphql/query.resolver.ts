@@ -634,7 +634,7 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const { monthStart, monthEnd, patientId } = args;
-            const now = new Date();
+            const now = getNow();
 
             if (!me) {
                 throw new Error("Unauthorized action")
@@ -742,7 +742,7 @@ export const queries = {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(Appointment);
             const { monthStart, monthEnd, patientId } = args;
-            const now = new Date();
+            const now = getNow();
 
             switch (me.userRoleId) {
                 case 3:
@@ -845,7 +845,7 @@ export const queries = {
                 throw new Error('Unauthorized action')
             }
 
-            const now = new Date();
+            const now = getNow();
 
             switch (me.userRoleId) {
                 case 3:
@@ -934,7 +934,7 @@ export const queries = {
                 throw new Error('Unauthorized action')
             }
 
-            const now = new Date();
+            const now = getNow();
 
             switch (me.userRoleId) {
                 case 3:

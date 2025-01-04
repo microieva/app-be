@@ -58,7 +58,6 @@ export const appointmentMutationResolver = {
                     notify = true;
                 }
 
-                dbAppointment.id = input.id;
                 dbAppointment.start = new Date(input.start);
                 dbAppointment.end = new Date(input.end);
                 dbAppointment.allDay;
@@ -70,12 +69,7 @@ export const appointmentMutationResolver = {
                             message: 'Forbidden action: the appointment cannot be moved because it has been already accepted... Consider cancelling and making a new one on more suitable date.'
                         } as MutationResponse;
                     }
-                    dbAppointment.patientId = dbMe.id;
-                } else if (dbMe.userRoleId === 2){
-                    dbAppointment.doctorId = dbMe.id;
-                } else {
-                    dbAppointment.updatedAt = null;
-                }
+                } 
 
                 try {
                     const updatedAppointment = await repo.save(dbAppointment);
