@@ -5,5 +5,5 @@ export interface DoctorRequest {
     lastName: string
     userRoleId: number
     updatedAt: string
-    vreatedAt: string
+    createdAt: string
 }

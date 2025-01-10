@@ -12,6 +12,7 @@ import { Record } from "../record/record.model";
 import { Chat } from '../chat/chat.model';
 import { UserInput } from "./user.input";
 import { AppContext, LoginResponse, MutationResponse } from "../types";
+import { getNow } from '../utils';
 
 
 export const userMutationResolver = {
@@ -161,25 +162,29 @@ export const userMutationResolver = {
             const recordsRepo = context.dataSource.getRepository(Record);
             const chatRepo = context.dataSource.getRepository(Chat);
 
-            const dbUserAppointments = await appointmentsRepo
+            const dbUserAppointmentIds:number[] = await appointmentsRepo
                 .createQueryBuilder("appointment")
-                .where('appointment.patientId = :patientId', {patientId: userId})
-                .orWhere('appointment.doctorId = :doctorId',{doctorId: userId})
-                .getMany();
+                .select("appointment.id", "id")
+                .where('appointment.patientId = :userId', { userId })
+                .orWhere('appointment.doctorId = :userId', { userId })
+                .getRawMany();
 
-            const appointmentIds = dbUserAppointments.map(appointment => appointment.id);
-
-            const dbUserRecords = await recordsRepo
+            const recordQueryBuilder = recordsRepo
                 .createQueryBuilder("record")
                 .where('record.patientId = :patientId', {patientId: userId})
                 .orWhere('record.doctorId = :doctorId',{doctorId: userId})
-                .getMany();
 
-            const recordIds = dbUserRecords.map(record => record.id);
+            await recordsRepo
+                .createQueryBuilder()
+                .delete()
+                .from(Record)
+                .where({doctorId:userId})
+                .andWhere({draft:true})
+                .execute();
 
-            if (appointmentIds.length> 0) {
+            if (dbUserAppointmentIds.length> 0) {
                 try {
-                    await appointmentsRepo.delete({id: In(appointmentIds)});
+                    await appointmentsRepo.delete({id: In(dbUserAppointmentIds)});
                 } catch (error) {
                     return {
                         success: false,
@@ -187,26 +192,34 @@ export const userMutationResolver = {
                     } as MutationResponse;
                 }
             } 
-            if (recordIds.length>0 && dbUser.userRoleId === 3) {
+            const dbUserRecordIds = await recordQueryBuilder.select('record.id', 'id').getRawMany();
+            if (dbUserRecordIds.length>0) {
                 try {
-                    await recordsRepo.delete({id: In(recordIds)});
+                        if (dbUser.userRoleId === 3) {
+                            await recordsRepo.delete({id: In(dbUserRecordIds)});
+                        } else if (dbUser.userRoleId === 2) {
+                            await recordQueryBuilder.where({id: In(dbUserRecordIds), draft:false}).update({doctorId:null}).execute();
+                            await recordsRepo.delete({id: In(dbUserRecordIds), draft:true})
+                        }
+                    
                 } catch (error) {
                     return {
                         success: false,
-                        message: "Error deleting user appointments: "+error
+                        message: "Error processing user records: "+error
                     } as MutationResponse;
-                }    
+                }
             }
       
-            const chatIds = await chatRepo
+            const dbUserChatIds:number[] = await chatRepo
                 .createQueryBuilder('chat')
                 .leftJoinAndSelect('chat.participants', 'participants')
                 .where('participants.id = :userId', { userId }) 
-                .getMany();
+                .select('chat.id', 'id')
+                .getRawMany();
         
-            if (chatIds.length > 0) {
+            if (dbUserChatIds.length > 0) {
                 try {
-                    await chatRepo.remove(chatIds); 
+                    await chatRepo.delete({id: In(dbUserChatIds)}); 
                 } catch (error) {
                     return {
                         success: false,
@@ -215,7 +228,6 @@ export const userMutationResolver = {
                 }
             }
         
-
             try {
                 await repo.delete({id: userId});
 
@@ -308,7 +320,7 @@ export const userMutationResolver = {
                 } as LoginResponse;
             } else {
                 if (dbRequest) {
-                    throw new Error(`This account request is in process. Please try later`);
+                    throw new Error(`Your will receive an email when your account is activated`);
                 } else {
                     const newRequest = new DoctorRequest();
                     newRequest.email = payload.email;
@@ -418,6 +430,173 @@ export const userMutationResolver = {
                 }
             } catch (error) {
                 throw new Error('Bank authentication failed '+error)
+            }
+        },
+        deactivateDoctorAccountsByIds: async (parent: null, args: any, context: AppContext)=> {
+            const doctorIds: number[] = args.userIds;  
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const userRepo = context.dataSource.getRepository(User);
+            const requestRepo = context.dataSource.getRepository(DoctorRequest);
+            const appointmentRepo = context.dataSource.getRepository(Appointment);
+            const recordRepo = context.dataSource.getRepository(Record);
+            const chatRepo = context.dataSource.getRepository(Chat);
+            const now = getNow();
+
+            if (me.userRoleId !== 1) {
+                return {
+                    success: false, 
+                    message: "Unauthorized action"
+                } as MutationResponse;
+            }
+
+            const dbDoctors = await userRepo
+                .createQueryBuilder('user')
+                .where('user.id IN (:...ids)', { ids: doctorIds })
+                .andWhere(qb => {
+                    const subQuery = qb
+                        .subQuery()
+                        .select('doctor_request.email')
+                        .from(DoctorRequest, 'doctor_request')
+                        .getQuery();
+                    return 'user.email NOT IN ' + subQuery;
+                })
+                .getMany();
+
+            const doctorIdsToDeactivate = dbDoctors.map(doctor =>doctor.id);
+  
+            const dbDoctorsToDeactivate:User[] = await userRepo
+                .createQueryBuilder('user')
+                .where('user.id IN (:...ids)', {ids:doctorIdsToDeactivate})
+                .getMany();
+
+                try {
+                    await appointmentRepo
+                    .createQueryBuilder()
+                    .delete()
+                    .from(Appointment)
+                    .where("end <= :now", { now })
+                    .andWhere({ doctorId: In(doctorIdsToDeactivate) })
+                    .execute();
+
+
+                    await appointmentRepo
+                        .createQueryBuilder()
+                        .update(Appointment)
+                        .set({ doctorId: null, doctorMessage: null })
+                        .where("end > :now", { now })
+                        .andWhere({ doctorId: In(doctorIdsToDeactivate) })
+                        .execute();
+                    
+
+                    await recordRepo
+                        .createQueryBuilder()
+                        .update(Record)
+                        .set({ doctorId: null, appointmentId: null })
+                        .where({ doctorId: In(doctorIdsToDeactivate) , draft: false })
+                        .execute();
+                                    
+                    await recordRepo
+                        .createQueryBuilder()
+                        .delete()
+                        .from(Record)
+                        .where({ doctorId: In(doctorIdsToDeactivate) , draft: true })
+                        .execute();
+
+                    const chats = await context.dataSource.getRepository(Chat)
+                        .createQueryBuilder('chat')
+                        .innerJoin('chat.participants', 'participants')
+                        .innerJoin('ChatParticipant', 'cp', 'cp.chatId = chat.id')
+                        .where('participants.id IN (:...ids)', { ids: doctorIds })
+                        .groupBy('chat.id')
+                        .having('COUNT(DISTINCT participants.id) = :doctorCount', { doctorCount: doctorIds.length })
+                        .getMany();
+
+                    const dbUserChatIds = chats.map(chat => chat.id);
+                    await chatRepo.delete({id: In(dbUserChatIds)});
+
+                    dbDoctorsToDeactivate.forEach(async doctor => {
+                        const doctorRequest = new DoctorRequest();
+                        doctorRequest.email = doctor.email;
+                        doctorRequest.firstName = doctor.firstName;
+                        doctorRequest.lastName = doctor.lastName;
+                        doctorRequest.userRoleId = 2;
+                        doctorRequest.updatedAt = null;
+                        
+                        try {
+                            await requestRepo.save(doctorRequest);
+                        } catch (error) {
+                            return {
+                                success: false, 
+                                message: "Unexpected error when moving details to requests: "+error
+                            } as MutationResponse;
+                        }  
+                        try {
+                            await userRepo.delete({id:doctor.id});
+                        } catch (error) {
+                            return {
+                                success: false, 
+                                message: "Unexpected error when deleting user details: "+error
+                            } as MutationResponse;
+                        }  
+                        return true;
+                    });
+                    return {
+                        success:true,
+                        message: "Completed succesfully"
+                    } as MutationResponse
+
+                } catch (error) {
+                    return {
+                        success: false, 
+                        message: "Unexpected error when processing deactivation: "+error
+                    } as MutationResponse;
+                }
+        },
+        saveDoctorsByIds:async (parent: null, args: any, context: AppContext)=> {
+            const doctorRequestIds:number[] = args.userIds;
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const requestRepo = context.dataSource.getRepository(DoctorRequest);
+            const userRepo = context.dataSource.getRepository(User);
+
+            if (me.userRoleId !== 1) {
+                return {
+                    success: false, 
+                    message: "Uauthorized action"
+                } as MutationResponse; 
+            }
+
+            const usersForActivation = await requestRepo
+                .createQueryBuilder('doctor_request')
+                .where('doctor_request.id IN (:...ids)', {ids:doctorRequestIds})
+                .getMany();
+
+            try {
+                usersForActivation.forEach(async account_request => {
+                    const isActive = await userRepo.findOneBy({email:account_request.email});
+                    if (!isActive) {
+                        const newDoctor = new User();
+                        newDoctor.email = account_request.email;
+                        if (account_request.email.endsWith('@email.com')) {
+                            newDoctor.password = "demo"
+                        }
+                        newDoctor.firstName = account_request.firstName;
+                        newDoctor.lastName = account_request.lastName;
+                        newDoctor.userRoleId = 2;
+                        newDoctor.updatedAt = null;
+                        await userRepo.save(newDoctor);
+                        await requestRepo.delete({id: account_request.id});
+                        sendEmailNotification(newDoctor, "doctorAccountActivated")
+                    }
+                })
+                return {
+                    success: true, 
+                    message: "Accounts activated"
+                } as MutationResponse; 
+            } catch (error) {
+                return {
+                    success: false, 
+                    message: error
+                } as MutationResponse; 
             }
         }
     }

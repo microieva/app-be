@@ -123,10 +123,19 @@ export const schema = `
     saveRecord(recordInput: RecordInput!): MutationResponse!
     deleteRecord(recordId: Int!): MutationResponse!
     saveDoctor(doctorRequestId: Int!): MutationResponse!
-    deleteDoctorRequest(doctorRequestId: Int!): MutationResponse!
     saveChatMessage(chatId: Int!, content: String!): Message!
     deleteChatForParticipant(chatId: Int!): MutationResponse!
     setIsReadToTrue(chatId: Int!): MutationResponse!
+    acceptAppointmentsByIds(appointmentIds: [Int!]): MutationResponse!
+    unacceptAppointmentsByIds(appointmentIds: [Int!]): MutationResponse!
+    deleteAppointmentsByIds(appointmentIds: [Int!]): MutationResponse!
+    addMessageToAppointmentsByIds(appointmentIds: [Int!], message: String!): MutationResponse!
+    deleteMessagesFromAppointmentsByIds(appointmentIds: [Int!]): MutationResponse!
+    deleteRecordsByIds(recordIds: [Int!]): MutationResponse!
+    saveRecordsAsFinalByIds(recordIds:[Int!]): MutationResponse!
+    deactivateDoctorAccountsByIds(userIds:[Int!]): MutationResponse!
+    saveDoctorsByIds(userIds:[Int!]): MutationResponse!
+    deleteDoctorRequestsByIds(userIds:[Int!]): MutationResponse!
   }
 
   type Paged {
@@ -200,13 +209,13 @@ export const schema = `
     text: String
     createdAt: Date!
     updatedAt: Date
-    appointmentId: Int!
-    appointment: Appointment!
+    appointmentId: Int
+    appointment: Appointment
     draft: Boolean!
     patientId: Int!
-    doctorId: Int!
+    doctorId: Int
     patient: User!
-    doctor: User!
+    doctor: User
   }
 
   type DoctorRequest {

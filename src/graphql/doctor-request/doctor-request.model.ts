@@ -1,9 +1,21 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { BeforeInsert, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { getNow } from "../utils";
 
 @Entity()
 export class DoctorRequest {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @BeforeInsert()
+  generateId() {
+    if (!this.id) {
+      this.id = new Date().getUTCMilliseconds() + Math.floor(Math.random() * 100);
+    }
+  }
+  dateToLocalTime() {
+      this.createdAt  = getNow();
+      this.updatedAt = getNow();
+  }
 
   @Column({nullable: false })
   email: string;

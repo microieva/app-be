@@ -49,9 +49,10 @@ export class Appointment {
     @Column({ default: null, type: "nvarchar", length: 700})
     doctorMessage: string;
 
-    @OneToOne(() => Record, record => record.appointment)
-    @JoinColumn({ name: "recordId" }) 
+    @OneToOne(() => Record, record => record.appointment, { onDelete: 'SET NULL' })
+    @JoinColumn({ name: "recordId"})
     record: Record;
+    
 
     @Column({ default: null, nullable: true })
     recordId: number;

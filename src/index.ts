@@ -35,7 +35,6 @@ const corsOptions = {
     allowedHeaders: ["Content-Type", "Authorization", "x-apollo-operation-name", "access-control-allow-origin"]
 };
 
-
 app.use(cors(corsOptions));
 app.use(bodyParser.json());  
 const httpServer = createServer(app);
@@ -43,6 +42,7 @@ const httpServer = createServer(app);
 const apolloServer = new ApolloServer<AppContext>({
     typeDefs,
     resolvers,
+    introspection: true,
     plugins: [
         process.env.NODE_ENV === 'production' 
             ? ApolloServerPluginLandingPageGraphQLPlayground() 

@@ -16,7 +16,7 @@ export const recordMutationResolver = {
             }
 
             const repo = context.dataSource.getRepository(Record);
-            const dbAppointment = await context.dataSource.getRepository(Appointment).findOneBy({id: input.appointmentId});
+            
 
             if (input.id) {
                 const dbRecord: Record = await repo
@@ -48,6 +48,7 @@ export const recordMutationResolver = {
                     } as MutationResponse;
                 }
             } else {
+                const dbAppointment = await context.dataSource.getRepository(Appointment).findOneBy({id: input.appointmentId});
                 const newRecord = new Record();
                 newRecord.title = input.title;
                 newRecord.text = input.text;
@@ -104,6 +105,71 @@ export const recordMutationResolver = {
                     message: 'Unexpected error while deleting medical record: '+error
                 } as MutationResponse;
             }
+        },
+        deleteRecordsByIds:async (parent: null, args: any, context: AppContext)=> {
+            const appointmentRepo = context.dataSource.getRepository(Appointment);
+            const recordRepo = context.dataSource.getRepository(Record);
+        
+            try {
+                await appointmentRepo
+                    .createQueryBuilder()
+                    .update(Appointment)
+                    .set({ recordId: null })
+                    .where('recordId IN (:...ids)', { ids: args.recordIds })
+                    .execute();
+        
+                const recordsToDelete = await recordRepo
+                    .createQueryBuilder('record')
+                    .where('record.id IN (:...ids)', { ids: args.recordIds })
+                    .getMany();
+        
+                await recordRepo.remove(recordsToDelete);
+        
+                return {
+                    success: true,
+                    message: `${recordsToDelete.length} records deleted successfuly`
+                } as MutationResponse;
+            } catch (error) {
+                return {
+                    success: false,
+                    message: `Error deleting records: ${error}`
+                } as MutationResponse;
+            }
+        },
+        saveRecordsAsFinalByIds:async (parent: null, args: any, context: AppContext)=> {
+            const dbMe = await context.dataSource.getRepository(User).findOneBy({ id: context.me.userId });
+            const repo = context.dataSource.getRepository(Record);
+
+            if (dbMe.userRoleId !== 2) {
+                return {
+                    success: false,
+                    message: 'Unauthorized action'
+                } as MutationResponse;
+            }
+
+            try {
+                const dbDrafts = await repo
+                    .createQueryBuilder('record')
+                    .where('record.id IN (:...ids)', { ids: args.recordIds })
+                    .getMany();
+                
+                    dbDrafts.forEach((draft) => {
+                        draft.draft = false;
+                    });
+            
+                    await repo.save(dbDrafts);
+                
+                return {
+                    success: true,
+                    message: 'Saved as final'
+                } as MutationResponse;
+            } catch (error) {
+                return {
+                    success: false,
+                    message: error
+                } as MutationResponse;
+            }
+
         }
     }
 }

@@ -2,9 +2,11 @@ import { DateTime } from "luxon";
 import { User } from "../user/user.model";
 import { sendEmailNotification } from "../../services/email.service";
 import { Appointment } from "./appointment.model";
+import { Record } from "../record/record.model";
 import { AppointmentInput } from "./appointment.input";
 import { AppContext, MutationResponse } from "../types"
 import { getNow } from "../utils";
+
 
 export const appointmentMutationResolver = {
     Mutation: {
@@ -161,8 +163,7 @@ export const appointmentMutationResolver = {
                     await repo.delete({id});
 
                     if (emailInfo.doctor && emailInfo.start > now && dbMe.userRoleId !== 2) {
-                        // if patient or admin cancels upcomming appointment
-                        sendEmailNotification(emailInfo, "appointmentCancelled");    
+                        sendEmailNotification(emailInfo, "appointmentDeleted");    
                     }
 
                     return {
@@ -322,6 +323,266 @@ export const appointmentMutationResolver = {
                     message: "Unable to save doctor id to accept appointment: "+error
                 } as MutationResponse
             }
+        },
+        acceptAppointmentsByIds: async (parent: null, args: { appointmentIds: number[] }, context: AppContext) => {
+            const dbMe = await context.dataSource.getRepository(User).findOneBy({ id: context.me.userId });
+            const repo = context.dataSource.getRepository(Appointment);
+        
+            if (!dbMe || dbMe.userRoleId !== 2) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                } as MutationResponse;
+            }
+        
+            const dbAppointments = await repo
+                .createQueryBuilder('appointment')
+                .leftJoinAndSelect('appointment.patient', 'patient')
+                .leftJoinAndSelect('appointment.doctor', 'doctor')
+                .where('appointment.id IN (:...appointmentIds)', { appointmentIds: args.appointmentIds })
+                .getMany();
+        
+            if (dbAppointments.length === 0) {
+                return {
+                    success: false,
+                    message: "Appointments not found"
+                } as MutationResponse;
+            }
+        
+            try {
+                dbAppointments.forEach((appointment) => {
+                    appointment.doctorId = dbMe.id;
+                });
+        
+                await repo.save(dbAppointments);
+        
+                dbAppointments.forEach(async (appointment) => {
+                    const emailInfo = await repo
+                        .createQueryBuilder('appointment')
+                        .leftJoinAndSelect('appointment.patient', 'patient')
+                        .leftJoinAndSelect('appointment.doctor', 'doctor')
+                        .where({ id: appointment.id })
+                        .getOne();
+        
+                    sendEmailNotification(emailInfo, "appointmentAccepted");
+                });
+        
+                return {
+                    success: true,
+                    message: `${dbAppointments.length} appointments accepted. Doctor id saved for all.`,
+                    data: dbAppointments.map(appointment => ({ start: appointment.start }))
+                } as MutationResponse;
+            } catch (error) {
+                return {
+                    success: false,
+                    message: "Unable to save doctor id to accept appointments: " + error
+                } as MutationResponse;
+            }
+        },
+
+        unacceptAppointmentsByIds: async (parent: null, args: { appointmentIds: number[] }, context: AppContext) => {
+            const dbMe = await context.dataSource.getRepository(User).findOneBy({ id: context.me.userId });
+            const repo = context.dataSource.getRepository(Appointment);
+        
+            if (!dbMe || dbMe.userRoleId !== 2) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                } as MutationResponse;
+            }
+        
+            const dbAppointments = await repo
+                .createQueryBuilder('appointment')
+                .where('appointment.id IN (:...appointmentIds)', { appointmentIds: args.appointmentIds })
+                .getMany();
+        
+            if (dbAppointments.length === 0) {
+                return {
+                    success: false,
+                    message: "Appointments not found"
+                } as MutationResponse;
+            }
+        
+            try {
+                dbAppointments.forEach((appointment) => {
+                    appointment.doctorId = null;
+                    appointment.doctorMessage = null;
+                });
+
+                dbAppointments.forEach(async (appointment) => {
+                    const emailInfo = await repo
+                        .createQueryBuilder('appointment')
+                        .leftJoinAndSelect('appointment.patient', 'patient')
+                        .leftJoinAndSelect('appointment.doctor', 'doctor')
+                        .where({ id: appointment.id })
+                        .getOne();
+        
+                    sendEmailNotification(emailInfo, "unacceptedAppointment");
+                });
+                await repo.save(dbAppointments);
+                return {
+                    success: true,
+                    message: `${dbAppointments.length} appointments returned to pending state`,
+                } as MutationResponse;
+            } catch (error) {
+                return {
+                    success: false,
+                    message: "Unable to save doctor id to accept appointments: " + error
+                } as MutationResponse;
+            }
+        },
+        deleteAppointmentsByIds: async (parent: null, args: { appointmentIds: number[] }, context: AppContext) => {
+            const appointmentRepo = context.dataSource.getRepository(Appointment);
+            const recordRepo = context.dataSource.getRepository(Record);
+        
+            try {
+                await recordRepo
+                    .createQueryBuilder()
+                    .update(Record)
+                    .where('appointmentId IN (:...ids)', { ids: args.appointmentIds })
+                    .set({ appointmentId: null })
+                    .execute();
+        
+                const appointmentsToDelete = await appointmentRepo
+                    .createQueryBuilder('appointment')
+                    .where('appointment.id IN (:...ids)', { ids: args.appointmentIds })
+                    .getMany();
+        
+                await appointmentRepo.remove(appointmentsToDelete);
+        
+                return {
+                    success: true,
+                    message: `${appointmentsToDelete} appointments deleted successfully`,
+                    data: {
+                        deletedAppointmentIds: appointmentsToDelete.map(apt => apt.id),
+                    }
+                } as MutationResponse;
+            } catch (error) {
+                return {
+                    success: false,
+                    message: `Error deleting appointments: ${error}`
+                } as MutationResponse;
+            }
+        },
+        addMessageToAppointmentsByIds: async (parent: null, args: any, context: AppContext) => {
+            const dbMe = await context.dataSource.getRepository(User).findOneBy({ id: context.me.userId });
+            const repo = context.dataSource.getRepository(Appointment);
+            const { appointmentIds, message } = args;
+        
+            if (!dbMe || dbMe.userRoleId === 1) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                } as MutationResponse;
+            }
+        
+            const dbAppointments = await repo
+                .createQueryBuilder('appointment')
+                .where('appointment.id IN (:...appointmentIds)', { appointmentIds })
+                .getMany();
+        
+            if (dbAppointments.length === 0) {
+                return {
+                    success: false,
+                    message: "Appointments not found"
+                } as MutationResponse;
+            }
+        
+            try {
+                if (dbMe.userRoleId === 2) {
+                    dbAppointments.forEach((appointment) => {
+                        appointment.doctorMessage = message;
+                    });
+                } else {
+                    dbAppointments.forEach((appointment) => {
+                        appointment.patientMessage = message;
+                    });
+                }
+        
+                await repo.save(dbAppointments);
+                if (dbMe.userRoleId === 2) {
+                    dbAppointments.forEach(async (appointment) => {
+                        const emailInfo = await repo
+                            .createQueryBuilder('appointment')
+                            .leftJoinAndSelect('appointment.patient', 'patient')
+                            .leftJoinAndSelect('appointment.doctor', 'doctor')
+                            .where({ id: appointment.id })
+                            .getOne();
+            
+                        sendEmailNotification(emailInfo, "appointmentMessageAddedByPatient");
+                    });
+                } else {
+                    dbAppointments.forEach(async (appointment) => {
+                        const emailInfo = await repo
+                            .createQueryBuilder('appointment')
+                            .leftJoinAndSelect('appointment.patient', 'patient')
+                            .leftJoinAndSelect('appointment.doctor', 'doctor')
+                            .where({ id: appointment.id })
+                            .getOne();
+            
+                        sendEmailNotification(emailInfo, "appointmentMessageAddedByDoctor");
+                    });
+                }
+        
+                return {
+                    success: true,
+                    message: `Message saved in ${dbAppointments.length} appointments.`,
+                } as MutationResponse;
+            } catch (error) {
+                return {
+                    success: false,
+                    message: "Unable to save message in appointments: " + error
+                } as MutationResponse;
+            }
+        },
+        deleteMessagesFromAppointmentsByIds: async (parent: null, args: any, context: AppContext) => {
+            const dbMe = await context.dataSource.getRepository(User).findOneBy({ id: context.me.userId });
+            const repo = context.dataSource.getRepository(Appointment);
+        
+            if (!dbMe || dbMe.userRoleId === 1) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                } as MutationResponse;
+            }
+        
+            const dbAppointments = await repo
+                .createQueryBuilder('appointment')
+                .where('appointment.id IN (:...appointmentIds)', { appointmentIds: args.appointmentIds })
+                .getMany();
+        
+            if (dbAppointments.length === 0) {
+                return {
+                    success: false,
+                    message: "Appointments not found"
+                } as MutationResponse;
+            }
+        
+            try {
+                if (dbMe.userRoleId === 2) {
+                    dbAppointments.forEach((appointment) => {
+                        appointment.doctorMessage = null;
+                    });
+                } else {
+                    dbAppointments.forEach((appointment) => {
+                        appointment.patientMessage = null;
+                    });
+                }
+        
+                await repo.save(dbAppointments);
+        
+                return {
+                    success: true,
+                    message: `Message deleted from ${dbAppointments.length} appointments.`,
+                } as MutationResponse;
+            } catch (error) {
+                return {
+                    success: false,
+                    message: "Unable to save message in appointments: " + error
+                } as MutationResponse;
+            }
         }
+        
+        
     }
 }
