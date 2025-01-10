@@ -28,24 +28,25 @@ export class Record {
   @UpdateDateColumn({type: 'datetime', nullable: true})
   updatedAt: Date;
 
-  @Column({ nullable: true })
-  appointmentId: number;
-
+  
   @Column({ nullable: false })
   patientId: number;
   
   @ManyToOne(() => User)
   @JoinColumn({ name: "patientId" }) 
   patient: User;
-
-  @ManyToOne(() => User)
+  
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: "doctorId" }) 
   doctor: User;
-
-  @Column({ nullable: false })
+  
+  @Column({ nullable: true })
   doctorId: number;
 
-  @OneToOne(() => Appointment, appointment => appointment.record)
+  @Column({ nullable: true })
+  appointmentId: number;
+
+  @OneToOne(() => Appointment, appointment => appointment.record, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'appointmentId' }) 
   appointment: Appointment;
 

@@ -17,10 +17,10 @@ export const queries = {
             const repo = context.dataSource.getRepository(User);
 
             const me = await repo.findOne({where: {id: userId}});
-            const myRequest = await requestRepo.findOneBy({id: userId});
+            const isRequest = await requestRepo.findOneBy({email: me.email});
 
-            if (myRequest) {
-                throw new Error(`This account request is in process. Please try later`);
+            if (isRequest) {
+                throw new Error(`This account request is in process. Please try later..`);
             }
             return me;
         },
@@ -148,7 +148,7 @@ export const queries = {
             const repo = context.dataSource.getRepository(DoctorRequest);
             const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
 
-            if (!me || me.userRoleId !== 1) {
+            if (me.userRoleId !== 1) {
                 throw new Error("Unauthorized action")
             }
 
@@ -1255,15 +1255,14 @@ export const queries = {
                     return repo
                         .createQueryBuilder('record')
                         .leftJoinAndSelect('record.appointment', 'appointment')
-                        .leftJoinAndSelect('appointment.patient', 'patient')
+                        .leftJoinAndSelect('record.patient', 'patient')
                         .where({appointmentId})
                         .getOne();
 
                 } else {
                     return repo
                         .createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .leftJoinAndSelect('appointment.patient', 'patient')
+                        .leftJoinAndSelect('record.patient', 'patient')
                         .where({id: recordId})
                         .getOne();
                 }
@@ -1287,10 +1286,11 @@ export const queries = {
 
             if (me.userRoleId === 3) {
                 try {
-                    const queryBuilder = repo.createQueryBuilder('record')
-                        .leftJoinAndSelect('record.appointment', 'appointment')
-                        .innerJoin('appointment.doctor', 'doctor')
-                        .where('appointment.patientId = :patientId', {patientId: context.me.userId })
+                    const queryBuilder = repo
+                        .createQueryBuilder('record')
+                        .leftJoinAndSelect('record.doctor', 'doctor')
+                        .leftJoinAndSelect('record.patient', 'patient')
+                        .where('record.patientId = :patientId', {patientId: context.me.userId })
                         .andWhere('record.draft = :draft', {draft: false})
         
                     if (filterInput) {
@@ -1340,9 +1340,9 @@ export const queries = {
                     try {
                         const queryBuilder = repo
                             .createQueryBuilder('record')
-                            .leftJoinAndSelect('record.appointment', 'appointment')
-                            .innerJoin('appointment.patient', 'patient')
-                            .where('appointment.doctorId = :doctorId', { doctorId: me.id })
+                            .leftJoinAndSelect('record.doctor', 'doctor')
+                            .leftJoinAndSelect('record.patient', 'patient')
+                            .where('record.doctorId = :doctorId', { doctorId: me.id })
                             .andWhere('record.draft = :draft', { draft: false });
                     
                         if (filterInput) {
@@ -1412,9 +1412,9 @@ export const queries = {
             try {
                 const queryBuilder = repo
                     .createQueryBuilder('record')
-                    .leftJoinAndSelect('record.appointment', 'appointment')
-                    .innerJoin('appointment.patient', 'patient') 
-                    .where('appointment.doctorId = :doctorId', {doctorId: me.id})
+                    .leftJoinAndSelect('record.doctor', 'doctor')
+                    .leftJoinAndSelect('record.patient', 'patient')
+                    .where('record.doctorId = :doctorId', {doctorId: me.id})
                     .andWhere('record.draft = :draft', {draft: true})
 
                 if (filterInput) {
@@ -1423,7 +1423,6 @@ export const queries = {
                         { nameLike:  `%${filterInput}%` }
                     );
                 }
-
 
                 if (advancedSearchInput) {
                     const { rangeStart, rangeEnd, textLike, titleLike } = advancedSearchInput;

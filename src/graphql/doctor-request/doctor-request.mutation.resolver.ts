@@ -1,10 +1,11 @@
 import { User } from "../user/user.model";
 import { DoctorRequest } from "./doctor-request.model";
-import { AppContext } from "../types";
+import { AppContext, MutationResponse } from "../types";
+import { In } from "typeorm";
 
 export const doctorRequestMutationResolver = {
     Mutation: {
-        deleteDoctorRequest: async (parent: null, args: any, context: AppContext)=> {
+        deleteDoctorRequestsByIds: async (parent: null, args: any, context: AppContext)=> {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const repo = context.dataSource.getRepository(DoctorRequest);
             
@@ -12,19 +13,19 @@ export const doctorRequestMutationResolver = {
                 return {
                     success: false,
                     message: "Unauthorized action"
-                }
+                } as MutationResponse
             }
             try {
-                await repo.delete({id: args.doctorRequestId});
+                await repo.delete({id: In(args.userIds)});
                 return {
                     success: true,
-                    message: "Doctor request deleted"
-                }
+                    message: "All details deleted"
+                } as MutationResponse
             } catch (error) {
                 return {
                     success: false,
-                    message: "Request cannot be deleted: "+error
-                }
+                    message: error
+                } as MutationResponse
             }
         }
     }
