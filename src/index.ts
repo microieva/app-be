@@ -106,6 +106,11 @@ io.on('connection', (socket) => {
             io.emit('refreshEvent', false);
         }
     });
+    socket.on('newFeedback', (info)=> {
+        io.emit('newFeedback', info);
+        io.emit('refreshEvent', true);
+        io.emit('refreshEvent', false);
+    })
 
     socket.on('notifyDoctor', (info)=> {
         if (Array.from(onlineUsers).some(user => user.userRole === 'doctor')) {

@@ -3,8 +3,9 @@ import nodemailer, { TransportOptions } from "nodemailer";
 import { DateTime } from "luxon";
 import { Appointment } from "../graphql/appointment/appointment.model";
 import { Record } from "../graphql/record/record.model";
-import { DoctorRequest } from 'src/graphql/doctor-request/doctor-request.model';
-import { User } from 'src/graphql/user/user.model';
+import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
+import { User } from '../graphql/user/user.model';
+import { Feedback } from '../graphql/feedback/feedback.model';
 
 interface Options {
     host: string,
@@ -24,7 +25,9 @@ const transporter = nodemailer.createTransport<Options>({
     }
 } as TransportOptions);
 
-export const sendEmailNotification = (entity: Appointment | Record | DoctorRequest | User, notification: string): void => {
+type AppEntity = Appointment | Record | DoctorRequest | User | Feedback;
+
+export const sendEmailNotification = (entity: AppEntity, notification: string): void => {
     switch (notification) {
         case 'appointmentAccepted':
             sendNotificationAppointmentAccepted(entity as Appointment);
@@ -43,14 +46,42 @@ export const sendEmailNotification = (entity: Appointment | Record | DoctorReque
             break;
         case 'doctorAccountActivated':
             sendNotificationDoctorAccountActivated(entity as User);
+            break;
         case 'appointmentMessageAddedByDoctor':
             sendNotificationAppointmentMessageAddedByDoctor(entity as Appointment);
+            break;
         case 'appointmentMessageAddedByPatient':
             sendNotificationAppointmentMessageAddedByPatient(entity as Appointment);
+            break;
         case 'unacceptedAppointment':
             sendNotificationAppointmentUnaccepted(entity as Appointment);
+            break;
+        case 'feedbackCreated':
+            sendNotificationFeedbackCreated(entity as Feedback);
+            break;
+        default:
+            break;
     }
 };
+const sendNotificationFeedbackCreated = (dbFeedback:Feedback) :void=> {
+    const mailOptions = {
+        from: process.env.EMAIL_NOTIFICATION_SENDER_ID,
+        to: 'ieva.vyliaudaite@me.com', 
+        subject: 'FEEDBACK',
+        text: `Feedback info:, 
+            \nName: ${dbFeedback.name}
+            \nEmail: ${dbFeedback.email}
+            \nText: ${dbFeedback.text}`
+    };
+
+    transporter.sendMail(mailOptions, (error, info: any) => {
+        if (error) {
+            console.log('Error sending email:', error);
+        } else {
+            console.log('FEEDBACK CREATED Email sent:', info.response);
+        }
+    });
+}
 const sendNotificationAppointmentUnaccepted = (dbAppointment: Appointment): void => {
 
     const mailOptions = {
@@ -67,7 +98,7 @@ const sendNotificationAppointmentUnaccepted = (dbAppointment: Appointment): void
         if (error) {
             console.log('Error sending email:', error);
         } else {
-            console.log('APPOINTMENT ACCEPTED Email sent:', info.response);
+            console.log('APPOINTMENT CANCELLED BY DOCTOR Email sent:', info.response);
         }
     });
 };
@@ -88,7 +119,7 @@ const sendNotificationAppointmentMessageAddedByPatient = (dbAppointment: Appoint
         if (error) {
             console.log('Error sending email:', error);
         } else {
-            console.log('APPOINTMENT ACCEPTED Email sent:', info.response);
+            console.log('APPOINTMENT MESSAGE BY PATIENT Email sent:', info.response);
         }
     });
 };
@@ -109,7 +140,7 @@ const sendNotificationAppointmentMessageAddedByDoctor = (dbAppointment: Appointm
         if (error) {
             console.log('Error sending email:', error);
         } else {
-            console.log('APPOINTMENT ACCEPTED Email sent:', info.response);
+            console.log('APPOINTMENT MESSAGE BY DOCTOR Email sent:', info.response);
         }
     });
 };
@@ -128,7 +159,7 @@ const sendNotificationDoctorAccountActivated = (dbUser: User): void => {
         if (error) {
             console.log('Error sending email:', error);
         } else {
-            console.log('ACCOUNT READY Email sent:', info.response);
+            console.log('ACCOUNT ACTIVATED Email sent:', info.response);
         }
     });
 }
@@ -147,7 +178,7 @@ const sendNotificationNewDoctorRequestCreated = (dbDocRequest: DoctorRequest): v
         if (error) {
             console.log('Error sending email:', error);
         } else {
-            console.log('NEW DOCTOR ACCOUNT ACTIVATION REQUEST Email sent:', info.response);
+            console.log('NEW DOCTOR ACCOUNT REQUEST Email sent:', info.response);
         }
     });
 }
