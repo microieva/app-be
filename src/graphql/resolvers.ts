@@ -13,6 +13,8 @@ import { Record } from "./record/record.model";
 import { DoctorRequest } from "./doctor-request/doctor-request.model";
 import { User } from "./user/user.model";
 import { chatParticipantMutationResolver } from "./chat-participant/chat-participant.mutation.resolver";
+import { feedbackMutationResolver } from "./feedback/feedback.mutation.resolver";
+import { Feedback } from "./feedback/feedback.model";
 
 const unions = {
     Paginated: {
@@ -28,6 +30,9 @@ const unions = {
             }
             if (obj instanceof User) {
                 return 'User';
+            }
+            if (obj instanceof Feedback) {
+                return 'Feedback';
             }
             return null; 
         }
@@ -79,10 +84,11 @@ export const resolvers = [
     doctorRequestMutationResolver,
     userMutationResolver,
     userResolver,
+    feedbackMutationResolver,
     appointmentMutationResolver,
     appointmentResolver,
     recordMutationResolver,
     recordResolver,
     messageMutationResolver,
-    chatParticipantMutationResolver
+    chatParticipantMutationResolver,
 ]

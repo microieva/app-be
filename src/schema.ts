@@ -4,7 +4,7 @@ export const schema = `
   scalar Date
   scalar Void
 
-  union Paginated = Appointment | Record | User | DoctorRequest
+  union Paginated = Appointment | Record | User | DoctorRequest | Feedback
 
   type Query {
     me: User
@@ -106,6 +106,16 @@ export const schema = `
     messages(chatId: Int!): [Message!]!
     countUnreadMessages: Int!
     countAllUnreadMessages: [CountAllUnreadMessages]
+    feedbacks (
+      pageIndex: Int! 
+      pageLimit: Int!
+      sortActive: String 
+      sortDirection: String
+      filterInput: String
+    ): Paged!
+    countFeedback: Int!
+    countUnreadFeedback: Int!
+    feedback(feedbackId: Int!): Feedback
   }
 
   type Mutation {
@@ -136,6 +146,10 @@ export const schema = `
     deactivateDoctorAccountsByIds(userIds:[Int!]): MutationResponse!
     saveDoctorsByIds(userIds:[Int!]): MutationResponse!
     deleteDoctorRequestsByIds(userIds:[Int!]): MutationResponse!
+    saveFeedback(feedbackInput:FeedbackInput!): MutationResponse!
+    markAsReadFeedbacks(feedbackIds:[Int!]): MutationResponse!
+    deleteFeedbacksByIds(feedbackIds:[Int!]): MutationResponse!
+
   }
 
   type Paged {
@@ -305,6 +319,21 @@ export const schema = `
     rangeEnd: Date
     titleLike: String
     textLike: String
+  }
+
+  type Feedback {
+    id:Int!
+    name:String
+    email:String
+    text:String!
+    createdAt:Date!
+    isRead:Boolean!
+  }
+  
+  input FeedbackInput {
+    text: String!
+    name: String
+    email:String
   }
 `
 

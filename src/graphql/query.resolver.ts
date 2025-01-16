@@ -8,6 +8,7 @@ import { Message } from "./message/message.model";
 import { ChatParticipant } from "./chat-participant/chat-participant.model";
 import { AppContext } from "./types";
 import { getNow } from "./utils";
+import { Feedback } from "./feedback/feedback.model";
 
 export const queries = {
     Query: {
@@ -1889,6 +1890,114 @@ export const queries = {
             } catch (error) {
                 throw new Error('Error in count all unread messages: '+error);
             }
-        }                
+        },
+        feedbacks:  async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({ id: context.me.userId });
+            const repo = context.dataSource.getRepository(Feedback);
+            const { pageIndex, pageLimit, sortActive, sortDirection, filterInput } = args;
+        
+            if (!me || me.userRoleId !== 1) {
+                throw new Error("Unauthorized action");
+            }
+        
+            let slice: Feedback[];
+            let length: number = 0;
+        
+            try {
+                const queryBuilder = repo
+                    .createQueryBuilder('feedback')
+                    //.where('user.userRoleId = :userRoleId', { userRoleId: 2 });
+        
+                if (filterInput) {
+                    queryBuilder.andWhere(
+                        '(LOWER(feedback.name) LIKE :nameLike OR LOWER(feedback.name) LIKE :nameLike)',
+                        { nameLike: `%${filterInput}%` }
+                    );
+                }
+        
+                if (sortActive === 'isRead') {
+                    // queryBuilder
+                    //     .addSelect(subQuery => {
+                    //         return subQuery
+                    //             .select('COUNT(message.id)', 'unreadMessages')
+                    //             .from(Message, 'message')
+                    //             .leftJoin('message.chat', 'chat')
+                    //             .leftJoin('chat.participants', 'participants')
+                    //             .where('message.isRead = :isRead', { isRead: false })
+                    //             .andWhere('participants.id = user.id') 
+                    //             .andWhere('message.senderId != :userId', { userId: context.me.userId });
+                    //     }, 'unreadMessages')
+                    //     .orderBy('unreadMessages', sortDirection as 'ASC' | 'DESC');
+                } else {
+                    queryBuilder.orderBy(`feedback.${sortActive}`, `${sortDirection}` as 'ASC' | 'DESC');
+                }
+        
+                const [feedbacks, count]: [Feedback[], number] = await queryBuilder
+                    .limit(pageLimit)
+                    .offset(pageIndex * pageLimit)
+                    .getManyAndCount();
+        
+                length = count;
+                slice = feedbacks;
+            } catch (error) {
+                throw new Error(`Error fetching feedbacks: ${error}`);
+            }
+        
+            return {
+                slice,
+                length
+            };
+        }  ,
+        countFeedback: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Feedback);
+
+            if (!me || me.userRoleId !== 1) {
+                throw new Error("Unauthorized action");
+            }
+
+            try {
+                return await repo
+                    .createQueryBuilder('feedback')
+                    .getCount();
+            } catch (error) {
+                throw new Error("Unexpected error counting feedback: "+error);
+            }
+        },  
+        countUnreadFeedback: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Feedback);
+
+            if (!me || me.userRoleId !== 1) {
+                throw new Error("Unauthorized action");
+            }
+
+            try {
+                return await repo
+                    .createQueryBuilder('feedback')
+                    .where('feedback.isRead = :isRead', { isRead: false })
+                    .getCount();
+
+            } catch (error) {
+                throw new Error("Unexpected error counting unread feedback: "+error);
+            }
+        }, 
+        feedback:   async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const repo = context.dataSource.getRepository(Feedback);
+
+            if (me.userRoleId !== 1) {
+                throw new Error("Unauthorized action");
+            }
+            try {
+                return await repo
+                    .createQueryBuilder('feedback')
+                    .where('feedback.id = :id', { id: args.feedbackId })
+                    .getOne();
+
+            } catch (error) {
+                throw new Error("Unexpected error fetching feedback: "+error);
+            }
+        }      
     }
 } 

@@ -9,6 +9,7 @@ import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
 import { Chat } from '../graphql/chat/chat.model';
 import { Message } from '../graphql/message/message.model';
 import { ChatParticipant } from '../graphql/chat-participant/chat-participant.model';
+import { Feedback } from '../graphql/feedback/feedback.model';
 
 export const remoteDataSource = new DataSource({
     type: 'mysql',
@@ -25,7 +26,8 @@ export const remoteDataSource = new DataSource({
         DoctorRequest,
         Chat,
         Message,
-        ChatParticipant
+        ChatParticipant,
+        Feedback
     ],
     connectTimeout: 300000, 
     extra: {

@@ -10,6 +10,7 @@ import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
 import { Chat } from '../graphql/chat/chat.model';
 import { Message } from '../graphql/message/message.model';
 import { ChatParticipant } from '../graphql/chat-participant/chat-participant.model';
+import { Feedback } from '../graphql/feedback/feedback.model';
 
 
 const options: SqlServerConnectionOptions = {
@@ -27,7 +28,8 @@ const options: SqlServerConnectionOptions = {
         DoctorRequest,
         Chat,
         Message,
-        ChatParticipant
+        ChatParticipant,
+        Feedback
     ],
     migrations: ["./src/migration/*.ts"],
     extra: {
