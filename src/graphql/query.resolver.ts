@@ -17,13 +17,17 @@ export const queries = {
             const requestRepo = context.dataSource.getRepository(DoctorRequest);
             const repo = context.dataSource.getRepository(User);
 
-            const me = await repo.findOne({where: {id: userId}});
-            const isRequest = await requestRepo.findOneBy({email: me.email});
-
-            if (isRequest) {
-                throw new Error(`This account request is in process. Please try later..`);
+            try {
+                const me = await repo.findOne({where: {id: userId}});
+                const isRequest = await requestRepo.findOneBy({email: me.email});
+    
+                if (isRequest) {
+                    throw new Error(`This account request is in process. Please try later..`);
+                }
+                return me;
+            } catch (error) {
+                return null;
             }
-            return me;
         },
         user: async (parent: null, args: any, context: AppContext)=> {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
