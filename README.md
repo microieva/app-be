@@ -1,6 +1,6 @@
 ### Introduction
 
-This repository contains server side logic for a professional portfolio project "Health Center". The project is deployed via [Render](www.render.com). The application database service provided via [FreeSqlDatabase](www.freesqldatabase.com).
+This repository contains server side logic for a professional portfolio project "Health Center". The project is deployed via Azure Container Apps and Azure SQL database. [Visit Health Center](https://wonderful-dune-0e4733c03.5.azurestaticapps.net/)
 
 ___
 
@@ -25,6 +25,7 @@ ___
 - GraphQL
 - SQL
 - Docker
+- Azure
 
 ___
 
