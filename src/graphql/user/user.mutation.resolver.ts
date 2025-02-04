@@ -353,7 +353,7 @@ export const userMutationResolver = {
             const jweToken = args.signicatAccessToken;
 
             try {
-                const key = await jose.JWK.asKey(JSON.parse(process.env.SIGNICAT_KEY), 'pem'); //creates a JWK from the private key
+                const key = await jose.JWK.asKey(JSON.parse(process.env.SIGNICAT_KEY), 'pem'); 
                 const decryptedToken = await jose.JWE.createDecrypt(key).decrypt(jweToken);
                 
                 const decryptedPlaintext = JSON.parse(JSON.stringify(decryptedToken.plaintext));

@@ -1197,8 +1197,8 @@ export const queries = {
                 const nextAppointmentId = futureAppointments[0].id;
                 const nextAppointment = await aptRepo.findOne({ where: { id: nextAppointmentId }, relations: ['patient', 'doctor']});
             
-                const patientId = nextAppointment.patient.id;
-                const doctorId = nextAppointment.doctor.id;
+                const patientId = nextAppointment.patientId;
+                const doctorId = nextAppointment.doctorId;
 
                 const previousAppointments = await aptRepo
                     .createQueryBuilder('appointment')
@@ -1221,7 +1221,7 @@ export const queries = {
                         .getMany();
                 } else {
                     recordIds = await recQueryBuilder
-                        .where('record.patientId = :patientId', {patientId})
+                        .where('record.patientId = :patientId', {patientId: context.me.userId})
                         .andWhere('record.doctorId = :doctorId', {doctorId})
                         .andWhere('record.draft = :draft', {draft: false})
                         .orderBy('record.createdAt', 'DESC') 
@@ -1261,6 +1261,7 @@ export const queries = {
                         .createQueryBuilder('record')
                         .leftJoinAndSelect('record.appointment', 'appointment')
                         .leftJoinAndSelect('record.patient', 'patient')
+                        .leftJoinAndSelect('record.doctor', 'doctor')
                         .where({appointmentId})
                         .getOne();
 
@@ -1268,6 +1269,7 @@ export const queries = {
                     return repo
                         .createQueryBuilder('record')
                         .leftJoinAndSelect('record.patient', 'patient')
+                        .leftJoinAndSelect('record.doctor', 'doctor')
                         .where({id: recordId})
                         .getOne();
                 }
