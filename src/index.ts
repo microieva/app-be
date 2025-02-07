@@ -145,10 +145,10 @@ const startServer = async () => {
     try {
         console.log('Connecting to database...');
         const dot = '.';
-        let str =''
+        let str = '';
     
         const loadingInterval = setInterval(() => {
-            str = str+dot;
+            str = str + dot;
             console.log(str);
         }, 5000); 
     
@@ -156,43 +156,45 @@ const startServer = async () => {
             .initialize()
             .then(async () => {
                 clearInterval(loadingInterval); 
-                console.log('Datasource Initialized')
+                console.log('Datasource Initialized');
+                await apolloServer.start();
+
+                app.use('/graphql', expressMiddleware(apolloServer, {
+                    context: async ({ req, res }) => {
+                        const token = req.headers.authorization?.split(' ')[1];
+                        let me = null;
+
+                        if (token) {
+                            const payload = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+                            const currentTime = Math.floor(Date.now() / 1000);
+
+                            if (payload.exp && currentTime < payload.exp) {
+                                me = { userId: payload.userId };
+                            }
+                        }
+
+                        return {
+                            io,  
+                            dataSource,
+                            me
+                        };
+                    }
+                }));
+
+                httpServer.listen(port, () => {
+                    console.log(`🚀 Server ready at http://localhost:${port}/graphql`);
+                    console.log(`Socket.io server running on port ${port}`);
+                });
             })
-            .catch(error => {
+            .catch((error) => {
                 clearInterval(loadingInterval); 
-                console.log('Datasource Initialization Error: ', error)
+                console.log('Datasource Initialization Error: ', error);
+                process.exit(1);  
             });
 
-        await apolloServer.start();
-
-        app.use('/graphql', expressMiddleware(apolloServer, {
-            context: async ({ req, res }) => {
-                const token = req.headers.authorization?.split(' ')[1];
-                let me = null;
-
-                if (token) {
-                    const payload = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
-                    const currentTime = Math.floor(Date.now() / 1000);
-
-                    if (payload.exp && currentTime < payload.exp) {
-                        me = { userId: payload.userId };
-                    }
-                }
-
-                return {
-                    io,  
-                    dataSource,
-                    me
-                };
-            }
-        }));
-
-        httpServer.listen(port, () => {
-            console.log(`🚀 Server ready at http://localhost:${port}/graphql`);
-            console.log(`Socket.io server running on port ${port}`);
-        });
     } catch (error) {
         console.error('Error starting server:', error);
+        process.exit(1);  
     }
 };
 
