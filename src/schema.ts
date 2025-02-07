@@ -149,7 +149,7 @@ export const schema = `
     saveFeedback(feedbackInput:FeedbackInput!): MutationResponse!
     markAsReadFeedbacks(feedbackIds:[Int!]): MutationResponse!
     deleteFeedbacksByIds(feedbackIds:[Int!]): MutationResponse!
-
+    deleteAppointmentFromAi(appointmentStart: String!): MutationResponse!
   }
 
   type Paged {

@@ -95,6 +95,16 @@ export const appointmentMutationResolver = {
                     } as MutationResponse;
                 }
             } else {
+                const dbAppointment = await repo
+                    .createQueryBuilder('appointment')
+                    .where('appointment.start = :start', {start: input.start})
+                    .getOne();
+                if (dbAppointment) {
+                    return {
+                        success: false,
+                        message: 'Appointment already exists'
+                    } as MutationResponse;
+                }
                 const newAppointment = new Appointment();
                 newAppointment.start =  new Date(input.start);
                 newAppointment.end =  new Date(input.end);
@@ -581,8 +591,45 @@ export const appointmentMutationResolver = {
                     message: "Unable to save message in appointments: " + error
                 } as MutationResponse;
             }
-        }
+        },
+        deleteAppointmentFromAi: async (parent: null, args: any, context: AppContext) => {
+            const dbMe = await context.dataSource.getRepository(User).findOneBy({ id: context.me.userId });
+            const repo = context.dataSource.getRepository(Appointment);
+            const start:string = args.appointmentStart;
         
+            if (!dbMe || dbMe.userRoleId !== 3) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                } as MutationResponse;
+            }
+        
+            const dbAppointment = await repo.findOneBy({ start: new Date(start) });
+        
+            if (!dbAppointment) {
+                return {
+                    success: false,
+                    message: "Appointment not found"
+                } as MutationResponse;
+            }
+        
+            try {
+                await repo.delete({ id: dbAppointment.id });
+        
+                return {
+                    success: true,
+                    message: "Appointment cancelled",
+                    data: {
+                        start: dbAppointment.start
+                    }
+                } as MutationResponse;
+            } catch (error) {
+                return {
+                    success: false,
+                    message: "Error while deleting appointment: " + error
+                } as MutationResponse;
+            }
+        }
         
     }
 }
