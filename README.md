@@ -1,6 +1,7 @@
 ### Introduction
 
-This repository contains server side logic for a professional portfolio project "Health Center". The project is deployed via Azure Container Apps and Azure SQL database. [Visit Health Center](https://wonderful-dune-0e4733c03.5.azurestaticapps.net/)
+This repository contains server side logic for a professional portfolio project "Health Center". The project is deployed via Azure Container Apps. Database service: Azure SQL Database. 
+[Visit Health Center](https://wonderful-dune-0e4733c03.5.azurestaticapps.net/)
 
 ___
 
@@ -73,7 +74,9 @@ Root Folder
         │   └── ...
         ├── / message
         │   └── ...
-        └──  / chat_participant
+        ├── / chat_participant
+        │   └── ...
+        └── / feedback
             └── ...
 ```
 
@@ -87,6 +90,7 @@ ___
 - FTN (Finnish Trust Network) bank authentication (_Signicat Sandbox_)
 - Nodemailer email service
 - Socket.IO real-time notifications
+- AI assistant (gpt-35-turbo) 
   
 
 ##### Data & API
@@ -117,7 +121,7 @@ This backend serves GraphQL API, with SQL database connection (MSSQL locally, My
 |||CREATE||
 ||UPDATE|||
 ||DELETE|||
-|medical_record||GET|GET|
+|record||GET|GET|
 |||CREATE*||
 |||UPDATE*||
 |||DELETE||
@@ -125,4 +129,8 @@ This backend serves GraphQL API, with SQL database connection (MSSQL locally, My
 ||CREATE||CREATE|
 ||UPDATE|UPDATE*|UPDATE|
 ||DELETE|DELETE*|DELETE*|
+|message|GET|GET||
+|message|CREATE|CREATE||
+|feedback|GET|||
+||DELETE|||
   
