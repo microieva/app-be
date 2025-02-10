@@ -131,7 +131,7 @@ export const appointmentMutationResolver = {
 
                 try {
                     const savedAppointment = await repo.save(newAppointment);   
-                    if (!savedAppointment.allDay) {
+                    if (input.allDay === false) {
                         context.io.emit('receiveNotification', {
                             receiverId: null,
                             message: 'New appointment request',
@@ -140,7 +140,10 @@ export const appointmentMutationResolver = {
                     }
                     return {
                         success: true,
-                        message: 'Appointment created'
+                        message: 'Appointment created',
+                        data: {
+                            id: savedAppointment.id
+                        }
                     } as MutationResponse;
                 } catch (error) {
                     return {
@@ -615,6 +618,8 @@ export const appointmentMutationResolver = {
         
             try {
                 await repo.delete({ id: dbAppointment.id });
+                context.io.emit('refreshEvent', true);
+                context.io.emit('refreshEvent', false);
         
                 return {
                     success: true,
