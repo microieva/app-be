@@ -90,12 +90,11 @@ ___
 - FTN (Finnish Trust Network) bank authentication (_Signicat Sandbox_)
 - Nodemailer email service
 - Socket.IO real-time notifications
-- AI assistant (gpt-35-turbo) 
   
 
 ##### Data & API
 
-This backend serves GraphQL API, with SQL database connection (MSSQL locally, MySQL in production). Currently the dataset consists of 9 tables (appointment, chat, chat_participant, chat_participants_user, doctor_request, message, record, user, user_role). 
+This backend serves GraphQL API, with SQL database connection. Currently the dataset consists of 10 tables (appointment, chat, chat_participant, chat_participants_user, doctor_request, message, record, user, user_role and feedback). User features cover three user roles (patient, doctor and admin). 
 
 
 ##### ERD 
