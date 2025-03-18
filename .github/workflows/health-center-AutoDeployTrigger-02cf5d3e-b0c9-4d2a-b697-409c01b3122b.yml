@@ -1,47 +1,45 @@
-name: Trigger auto deployment for health-center
+# name: Trigger auto deployment for health-center
 
-on:
-  push:
-    branches: 
-      [ main ]
-    paths:
-    - '**'
-    - '.github/workflows/health-center-AutoDeployTrigger-02cf5d3e-b0c9-4d2a-b697-409c01b3122b.yml'
+# on:
+#   push:
+#     branches: 
+#       [ main ]
+#     paths:
+#       - '**'
+#       - '.github/workflows/health-center-AutoDeployTrigger-02cf5d3e-b0c9-4d2a-b697-409c01b3122b.yml'
+#   workflow_dispatch:
 
-  # Allow manual trigger 
-  workflow_dispatch:      
+# jobs:
+#   build-and-deploy:
+#     runs-on: ubuntu-latest
+#     permissions: 
+#       id-token: write # This is required for requesting the OIDC JWT Token
+#       contents: read # Required when GH token is used to authenticate with private repo
 
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    permissions: 
-      id-token: write #This is required for requesting the OIDC JWT Token
-      contents: read #Required when GH token is used to authenticate with private repo
+#     steps:
+#       - name: Checkout to the branch
+#         uses: actions/checkout@v2
 
-    steps:
-      - name: Checkout to the branch
-        uses: actions/checkout@v2
+#       - name: Azure Login
+#         uses: azure/login@v1
+#         with:
+#           client-id: ${{ secrets.HEALTHCENTER_AZURE_CLIENT_ID }}
+#           tenant-id: ${{ secrets.HEALTHCENTER_AZURE_TENANT_ID }}
+#           subscription-id: ${{ secrets.HEALTHCENTER_AZURE_SUBSCRIPTION_ID }}
 
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.HEALTHCENTER_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.HEALTHCENTER_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.HEALTHCENTER_AZURE_SUBSCRIPTION_ID }}
-
-      - name: Build and push container image to registry
-        uses: azure/container-apps-deploy-action@v2
-        with:
-          appSourcePath: ${{ github.workspace }}
-          _dockerfilePathKey_: _dockerfilePath_
-          registryUrl: healthcenterenv845e8f.azurecr.io
-          registryUsername: ${{ secrets.HEALTHCENTER_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.HEALTHCENTER_REGISTRY_PASSWORD }}
-          containerAppName: health-center
-          resourceGroup: health-center-env
-          imageToBuild: healthcenterenv845e8f.azurecr.io/health-center:${{ github.sha }}
-          _buildArgumentsKey_: |
-            _buildArgumentsValues_
+#       - name: Build and push container image to registry
+#         uses: azure/container-apps-deploy-action@v2
+#         with:
+#           appSourcePath: ${{ github.workspace }}
+#           _dockerfilePathKey_: _dockerfilePath_
+#           registryUrl: healthcenterenv845e8f.azurecr.io
+#           registryUsername: ${{ secrets.HEALTHCENTER_REGISTRY_USERNAME }}
+#           registryPassword: ${{ secrets.HEALTHCENTER_REGISTRY_PASSWORD }}
+#           containerAppName: health-center
+#           resourceGroup: health-center-env
+#           imageToBuild: healthcenterenv845e8f.azurecr.io/health-center:${{ github.sha }}
+#           _buildArgumentsKey_: |
+#             _buildArgumentsValues_
 
       # - name: Redeploy the container with the new image
       #   run: |
