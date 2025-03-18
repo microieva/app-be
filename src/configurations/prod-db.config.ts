@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import 'dotenv/config'; 
 import { DataSource } from 'typeorm';
-import { SqlServerConnectionOptions } from 'typeorm/driver/sqlserver/SqlServerConnectionOptions';
 import { UserRole } from '../graphql/user/user-role.model';
 import { User } from '../graphql/user/user.model';
 import { Appointment } from '../graphql/appointment/appointment.model';
@@ -11,10 +10,11 @@ import { Chat } from '../graphql/chat/chat.model';
 import { Message } from '../graphql/message/message.model';
 import { ChatParticipant } from '../graphql/chat-participant/chat-participant.model';
 import { Feedback } from '../graphql/feedback/feedback.model';
+import { PostgresConnectionOptions } from "typeorm/driver/postgres/PostgresConnectionOptions";
 
 
-const options: SqlServerConnectionOptions = {
-    type: 'mssql',
+const options: PostgresConnectionOptions = {
+    type: 'postgres',
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
     username:  process.env.DB_USER,
@@ -34,8 +34,6 @@ const options: SqlServerConnectionOptions = {
     extra: {
         trustServerCertificate: true
     },
-    options: {
-        encrypt: true  
-    }
+    synchronize:false
 };
 export const prodDataSource = new DataSource(options);
