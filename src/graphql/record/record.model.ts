@@ -25,7 +25,7 @@ export class Record {
         this.updatedAt = new Date(updated);
     }
 
-  @UpdateDateColumn({type: 'datetime', nullable: true})
+  @UpdateDateColumn({type: 'timestamp', nullable: true})
   updatedAt: Date;
 
   

@@ -31,13 +31,13 @@ export class Appointment {
         this.updatedAt = getNow();
     }
 
-    @UpdateDateColumn({type: 'datetime', nullable: true})
+    @UpdateDateColumn({type: 'timestamp', nullable: true})
     updatedAt: Date;
 
-    @Column({ type: 'datetime' })
+    @Column({ type: 'timestamp' })
     start: Date;
 
-    @Column({ type: 'datetime' })
+    @Column({ type: 'timestamp' })
     end: Date;
 
     @Column({ default: false })
