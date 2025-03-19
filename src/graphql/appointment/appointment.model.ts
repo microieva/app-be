@@ -43,10 +43,10 @@ export class Appointment {
     @Column({ default: false })
     allDay: boolean;
 
-    @Column({ default: null, type: "nvarchar", length: 700})
+    @Column({ default: null,  length: 700})
     patientMessage: string;
 
-    @Column({ default: null, type: "nvarchar", length: 700})
+    @Column({ default: null,  length: 700})
     doctorMessage: string;
 
     @OneToOne(() => Record, record => record.appointment, { onDelete: 'SET NULL' })
