@@ -8,10 +8,10 @@ export class Record {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ nullable: true, type: "nvarchar", length: 50})
+  @Column({ nullable: true,  length: 50})
   title: string;
 
-  @Column({ nullable: true, type: "nvarchar", length: 4000})
+  @Column({ nullable: true,  length: 4000})
   text: string;
 
   @CreateDateColumn({type:'timestamp'})
