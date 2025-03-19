@@ -23,6 +23,6 @@ export class Feedback {
       this.createdAt  = getNow();
   }
 
-  @CreateDateColumn({type:'datetime'})
+  @CreateDateColumn({type:'timestamp'})
   createdAt: Date;
 }

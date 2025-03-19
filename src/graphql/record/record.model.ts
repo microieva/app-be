@@ -14,7 +14,7 @@ export class Record {
   @Column({ nullable: true, type: "nvarchar", length: 4000})
   text: string;
 
-  @CreateDateColumn({type:'datetime'})
+  @CreateDateColumn({type:'timestamp'})
   createdAt: Date;
 
   @BeforeInsert()

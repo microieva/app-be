@@ -62,7 +62,7 @@ export class User {
     this.createdAt = new Date(created);
   }
 
-  @CreateDateColumn({type:'datetime'})
+  @CreateDateColumn({type:'timestamp'})
   createdAt: Date;
 
   @Column({ type: 'datetime', nullable: true })
