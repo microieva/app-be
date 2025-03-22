@@ -22,7 +22,7 @@ export class Appointment {
     @JoinColumn({ name: "doctorId" }) 
     doctor: User;
 
-    @CreateDateColumn({type:'timestamp'})
+    @CreateDateColumn({type:'datetime'})
     createdAt: Date;
 
     @BeforeInsert()
