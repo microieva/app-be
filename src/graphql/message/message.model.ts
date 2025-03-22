@@ -15,7 +15,7 @@ export class Message {
   @Column({ default: false })
   isRead: boolean;
 
-  @CreateDateColumn({type:'timestamp'})
+  @CreateDateColumn({type:'datetime'})
   createdAt: Date;
 
   @BeforeInsert()

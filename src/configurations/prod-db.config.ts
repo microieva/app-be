@@ -10,11 +10,10 @@ import { Chat } from '../graphql/chat/chat.model';
 import { Message } from '../graphql/message/message.model';
 import { ChatParticipant } from '../graphql/chat-participant/chat-participant.model';
 import { Feedback } from '../graphql/feedback/feedback.model';
-import { PostgresConnectionOptions } from "typeorm/driver/postgres/PostgresConnectionOptions";
+import { MysqlConnectionOptions } from "typeorm/driver/mysql/MysqlConnectionOptions";
 
-
-const options: PostgresConnectionOptions = {
-    type: 'postgres',
+const options: MysqlConnectionOptions = {
+    type: 'mysql',
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
     username:  process.env.DB_USER,

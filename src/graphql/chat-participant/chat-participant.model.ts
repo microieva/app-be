@@ -15,7 +15,7 @@ export class ChatParticipant {
     @JoinColumn({ name: 'participantId' })
     participant: User;
 
-    @Column({ type:'timestamp', nullable: true })
+    @Column({ type:'datetime', nullable: true })
     deletedAt: Date | null; 
 }
 
