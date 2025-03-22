@@ -29,14 +29,15 @@ const dataSource = process.env.NODE_ENV === 'production' ? prodDataSource : devD
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
         ? ['https://studio.apollographql.com', process.env.NOTIFICATIONS_ORIGIN] 
-        : true, 
+        : 'http://localhost:4200', 
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true, 
     allowedHeaders: ["Content-Type", "Authorization", "x-apollo-operation-name", "access-control-allow-origin"]
 };
 
 app.use(cors(corsOptions));
-app.use(bodyParser.json());  
+app.use(bodyParser.json()); 
+app.options('/graphql', cors(corsOptions)); 
 const httpServer = createServer(app);
 
 const apolloServer = new ApolloServer<AppContext>({
@@ -47,7 +48,7 @@ const apolloServer = new ApolloServer<AppContext>({
         process.env.NODE_ENV === 'production' 
             ? ApolloServerPluginLandingPageGraphQLPlayground() 
             : ApolloServerPluginLandingPageLocalDefault(),
-    ],
+    ]
 });
 
 
