@@ -5,9 +5,9 @@
   "main": "index.ts",
   "scripts": {
     "dev": "NODE_ENV=development nodemon --exec ts-node src/index.ts",
-    "build": "tsc",
+    "build": "tsc -p .",
     "start:prod": "NODE_ENV=production node dist/index.js",
-    "start": "npm run build && npm run start:prod",
+    "start": "NODE_ENV=production node dist/index.js",
     "clean": "rimraf dist",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint ./src/**/*.ts  --fix",
