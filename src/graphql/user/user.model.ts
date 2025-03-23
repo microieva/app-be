@@ -1,9 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, BeforeInsert, ManyToOne, JoinColumn, ManyToMany, OneToMany } from "typeorm";
 import bcrypt from "bcryptjs";
-import { DateTime } from "luxon";
 import { UserRole } from "./user-role.model";
 import { Chat } from "../chat/chat.model";
 import { Message } from "../message/message.model";
+import { getNow } from "../utils";
 
 
 @Entity()
@@ -34,7 +34,6 @@ export class User {
   password: string;
   
   @BeforeInsert()
-  //@BeforeUpdate()
   async hashPassword() {
     this.password = await bcrypt.hash(this.password, 10);
   }
@@ -58,20 +57,19 @@ export class User {
 
   @BeforeInsert()
   dateToLocalTime() {
-    const created = DateTime.local().toISO({includeOffset: true})
-    this.createdAt = new Date(created);
+    this.createdAt = getNow();
   }
 
   @CreateDateColumn({type:'datetime'})
   createdAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   lastLogInAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   lastLogOutAt: Date;
 
-  @Column({type: 'timestamp', nullable: true, default: null})
+  @Column({type: 'datetime', nullable: true, default: null})
   updatedAt: Date | null;
 
   @ManyToMany(() => Chat, (chat) => chat.participants)

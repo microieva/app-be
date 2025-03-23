@@ -28,16 +28,15 @@ export class Appointment {
     @BeforeInsert()
     dateToLocalTime() {
         this.createdAt  = getNow();
-        this.updatedAt = getNow();
     }
 
-    @UpdateDateColumn({type: 'timestamp', nullable: true})
+    @UpdateDateColumn({type: 'datetime', nullable: true})
     updatedAt: Date;
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'datetime' })
     start: Date;
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'datetime' })
     end: Date;
 
     @Column({ default: false })
