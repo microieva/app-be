@@ -1,8 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, BeforeInsert } from 'typeorm';
 import { Chat } from '../chat/chat.model';
 import { User } from '../user/user.model';
-import { DateTime } from 'luxon';
-
+import { getNow } from '../utils';
 
 @Entity()
 export class Message {
@@ -20,8 +19,7 @@ export class Message {
 
   @BeforeInsert()
   dateToLocalTime() {
-    const created = DateTime.local().toISO();
-    this.createdAt = new Date(created);
+    this.createdAt = getNow();
   }
 
   @ManyToOne(() => Chat, (chat) => chat.messages, { onDelete: 'CASCADE' })
