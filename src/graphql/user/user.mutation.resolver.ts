@@ -277,6 +277,7 @@ export const userMutationResolver = {
                 const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
     
                 return {
+                    __typename: 'LoginSuccess',
                     token: token,
                     expiresAt: expirationTimeInFinnishTime
                 } as LoginResponse;
@@ -302,7 +303,6 @@ export const userMutationResolver = {
             const repo = context.dataSource.getRepository(User);
             const requestRepo = context.dataSource.getRepository(DoctorRequest);
             const dbUser = await repo.findOneBy({email: payload.email});
-            const dbRequest = await requestRepo.findOneBy({email: payload.email});
 
             if (dbUser) {
                 const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET!, { expiresIn: '10h' });
@@ -315,12 +315,17 @@ export const userMutationResolver = {
                 await repo.save(dbUser);
 
                 return {
+                    __typename: 'LoginSuccess',
                     token: token, 
                     expiresAt: expirationTimeInFinnishTime
                 } as LoginResponse;
             } else {
-                if (dbRequest) {
-                    throw new Error(`Your will receive an email when your account is activated`);
+                const dbDoctorRequest = await requestRepo.findOneBy({email: payload.email});
+                if (dbDoctorRequest) {
+                    return {
+                        __typename: 'LoginFailure',
+                        message: "Pending approval"
+                    } as LoginResponse;
                 } else {
                     const newRequest = new DoctorRequest();
                     newRequest.email = payload.email;
@@ -331,18 +336,14 @@ export const userMutationResolver = {
     
                     try {
                         const newDoctorRequest = await requestRepo.save(newRequest);
-                        const token = jwt.sign({ userId: newDoctorRequest.id }, process.env.JWT_SECRET!, { expiresIn: '10h' });
-                        const currentTime = DateTime.now();
-                        const expirationTime = currentTime.plus({ hours: 10 });
-                        const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
-                        
-                        sendEmailNotification(newDoctorRequest, "newDoctorRequestCreated")
+                        sendEmailNotification(newDoctorRequest, "newDoctorRequestCreated");
+
                         return {
-                            token: token, 
-                            expiresAt: expirationTimeInFinnishTime
+                            __typename: 'LoginFailure',
+                            message: "Request saved"
                         } as LoginResponse;
                     } catch (error) {
-                        throw new Error(`error saving new request: ${error}`);
+                        throw new Error(`Error saving new request: ${error}`);
                     }
                 }
             }
@@ -397,6 +398,7 @@ export const userMutationResolver = {
                             await repo.save(dbUser);
             
                             return {
+                                __typename: 'LoginSuccess',
                                 token: token, 
                                 expiresAt: expirationTimeInFinnishTime
                             } as LoginResponse;
@@ -417,6 +419,7 @@ export const userMutationResolver = {
                             const expirationTimeInFinnishTime = expirationTime.setZone('Europe/Helsinki').toISO();
     
                             return {
+                                __typename: 'LoginSuccess',
                                 token: token, 
                                 expiresAt: expirationTimeInFinnishTime
                             } as LoginResponse;

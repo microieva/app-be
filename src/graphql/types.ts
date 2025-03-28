@@ -7,9 +7,14 @@ export interface MutationResponse {
     success: boolean
     message: string | null 
 }
-export interface LoginResponse {
+export type LoginResponse = LoginSuccess | LoginFailure
+
+export interface LoginSuccess {
     token: string
     expiresAt: string
+}
+export interface LoginFailure {
+    message: string
 }
 export interface NextAppointmentResponse {
     nextId: number
