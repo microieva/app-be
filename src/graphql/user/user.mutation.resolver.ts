@@ -568,26 +568,28 @@ export const userMutationResolver = {
                 } as MutationResponse; 
             }
 
-            const usersForActivation = await requestRepo
+            const doctorRequestsForActivation = await requestRepo
                 .createQueryBuilder('doctor_request')
                 .where('doctor_request.id IN (:...ids)', {ids:doctorRequestIds})
                 .getMany();
 
             try {
-                usersForActivation.forEach(async account_request => {
-                    const isActive = await userRepo.findOneBy({email:account_request.email});
+                doctorRequestsForActivation.forEach(async userData => {
+                    const isActive = await userRepo.findOneBy({email: userData.email});
                     if (!isActive) {
                         const newDoctor = new User();
-                        newDoctor.email = account_request.email;
-                        if (account_request.email.endsWith('@email.com')) {
+                        newDoctor.email = userData.email;
+                        if (userData.email.endsWith('@email.com')) {
                             newDoctor.password = "demo"
                         }
-                        newDoctor.firstName = account_request.firstName;
-                        newDoctor.lastName = account_request.lastName;
+                        newDoctor.firstName = userData.firstName;
+                        newDoctor.lastName = userData.lastName;
                         newDoctor.userRoleId = 2;
+                        newDoctor.password = "";
                         newDoctor.updatedAt = null;
+
                         await userRepo.save(newDoctor);
-                        await requestRepo.delete({id: account_request.id});
+                        await requestRepo.delete({id: userData.id});
                         sendEmailNotification(newDoctor, "doctorAccountActivated")
                     }
                 })
