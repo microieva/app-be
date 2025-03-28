@@ -5,6 +5,7 @@ export const schema = `
   scalar Void
 
   union Paginated = Appointment | Record | User | DoctorRequest | Feedback
+  union LoginResponse = LoginSuccess | LoginFailure
 
   type Query {
     me: User
@@ -167,9 +168,13 @@ export const schema = `
     data: Appointment
   }
 
-  type LoginResponse {
+  type LoginSuccess {
     token: String!
     expiresAt: Date!
+  }
+
+  type LoginFailure {
+    message: String!
   }
 
   type NextAppointmentResponse {
