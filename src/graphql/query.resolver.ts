@@ -238,26 +238,6 @@ export const queries = {
                 throw new Error(`Error fetching appointments: ${error}`);
             }
         },
-        justCreatedAppointment: async (parent: null, args: any, context: AppContext) => {
-            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
-
-            if (!me) {
-                throw new Error("Unauthorized action");
-            }
-
-            const repo = context.dataSource.getRepository(Appointment);
-
-            try {
-                const queryBuilder = repo
-                    .createQueryBuilder('appointment')
-                    .where('appointment.patientId = :patientId', {patientId: args.patientId})
-                    .orderBy('appointment.createdAt', 'DESC')
-                    
-                return await queryBuilder.getOne();
-            } catch (error) {
-                throw new Error("Failed refetching new appointment "+error)
-            }
-        },
         nowAppointment: async (parent: null, args: any, context: AppContext)=> {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
 

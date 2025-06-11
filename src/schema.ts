@@ -44,7 +44,6 @@ export const schema = `
     allAppointments: [Appointment!]!
     appointments: [Appointment!]!
     appointment (appointmentId: Int!): Appointment!
-    justCreatedAppointment(patientId: Int!): Appointment
     nowAppointment: Appointment
     calendarAllAppointments (monthStart: Date!, monthEnd: Date!, patientId: Int): CalendarSlice!
     calendarMissedAppointments (monthStart: Date!, monthEnd: Date!, patientId: Int): CalendarSlice!
