@@ -137,8 +137,8 @@ export const appointmentMutationResolver = {
                             message: 'New appointment request',
                             appointmentId: appointment.id
                         });
-                        context.io.emit('refreshEvent', true)
-                        context.io.emit('refreshEvent', false)
+                        // context.io.emit('refreshEvent', true)
+                        // context.io.emit('refreshEvent', false)
                     }
                     return {
                         success: true,
