@@ -2,10 +2,20 @@ import { DateTime } from "luxon";
 import { User } from "../user/user.model";
 import { sendEmailNotification } from "../../services/email.service";
 import { Appointment } from "./appointment.model";
-import { Record } from "../record/record.model";
 import { AppointmentInput } from "./appointment.input";
 import { AppContext, MutationResponse } from "../types"
 import { getNow } from "../utils";
+import {
+    APPOINTMENT_CREATED, 
+    APPOINTMENT_ACCEPTED, 
+    APPOINTMENT_CANCELLED, 
+    APPOINTMENT_UPDATED, 
+    APPOINTMENT_DELETED, 
+    APPOINTMENT_MESSAGE_CREATED_BY_DOCTOR, 
+    APPOINTMENT_MESSAGE_CREATED_BY_PATIENT, 
+    APPOINTMENT_DELETED_BY_PATIENT, 
+    APPOINTMENT_DELETED_BY_DOCTOR
+} from "../constants";
 
 
 export const appointmentMutationResolver = {
@@ -74,15 +84,16 @@ export const appointmentMutationResolver = {
                 } 
 
                 try {
-                    const updatedAppointment = await repo.save(dbAppointment);
+                    const data = await repo.save(dbAppointment);
 
                     if (notify && dbMe.userRoleId === 2) {
-                        sendEmailNotification(updatedAppointment, "appointmentUpdated")
-                    } else if (dbMe.userRoleId === 1) {
-                        context.io.emit('updateMissedAppointmentsCount', {
-                            isUpdated: true
+                        sendEmailNotification(data, APPOINTMENT_UPDATED);
+                        context.io.to(`patient_${data.patientId}_`).emit(APPOINTMENT_UPDATED, {
+                            event: APPOINTMENT_UPDATED,
+                            message:"Your upointment has been updated",
+                            data
                         })
-                    }
+                    } 
 
                     return {
                         success: true,
@@ -132,13 +143,11 @@ export const appointmentMutationResolver = {
                 try {
                     const appointment = await repo.save(newAppointment);   
                     if (input.allDay === false) {
-                        context.io.emit('receiveNotification', {
-                            receiverId: null,
+                        context.io.to('doctors').emit(APPOINTMENT_CREATED, { 
+                            event: APPOINTMENT_CREATED,
                             message: 'New appointment request',
-                            appointmentId: appointment.id
+                            data: appointment
                         });
-                        // context.io.emit('refreshEvent', true)
-                        // context.io.emit('refreshEvent', false)
                     }
                     return {
                         success: true,
@@ -175,8 +184,8 @@ export const appointmentMutationResolver = {
 
                     await repo.delete({id});
 
-                    if (emailInfo.doctor && emailInfo.start > now && dbMe.userRoleId !== 2) {
-                        sendEmailNotification(emailInfo, "appointmentDeleted");    
+                    if (emailInfo.doctor && emailInfo.end > now && dbMe.userRoleId !== 2) {
+                        sendEmailNotification(emailInfo, APPOINTMENT_DELETED);    
                     }
 
                     return {
@@ -209,32 +218,25 @@ export const appointmentMutationResolver = {
                 } as MutationResponse;
             }
 
-            const dbAppointment = await repo.findOneBy({id});
-
-            if (!dbAppointment) {
-                return {
-                    success: false,
-                    message: "Appointment not found"
-                } as MutationResponse;
-            }
             try {
-                if (dbMe.userRoleId === 3) {
-                    dbAppointment.patientMessage = message;
-                    if (!dbAppointment.updatedAt) {
-                        dbAppointment.updatedAt = null; 
-                    }
-                } else if (dbMe.userRoleId === 2){
-                    dbAppointment.doctorMessage = message;
-                    if (!dbAppointment.updatedAt) {
-                        dbAppointment.updatedAt = null; 
-                    }
+                if (dbMe.userRoleId === 2) {
+                    const data = await repo.update(id, {doctorMessage:message});
+                    sendEmailNotification(data.raw, APPOINTMENT_MESSAGE_CREATED_BY_DOCTOR);
+                    context.io.to(`patient_${data.raw.patientId}`).emit(APPOINTMENT_UPDATED, {
+                        event: APPOINTMENT_UPDATED,
+                        message:"Additional information added to your appointment",
+                        data
+                    });
                 } else {
-                    dbAppointment.patientMessage = message;
-                    if (!dbAppointment.updatedAt) {
-                        dbAppointment.updatedAt = null; 
-                    }
+                    const data = await repo.update(id, {patientMessage:message});
+                    sendEmailNotification(data.raw, APPOINTMENT_MESSAGE_CREATED_BY_PATIENT);
+                    context.io.to(`patient_${data.raw.doctorId}`).emit(APPOINTMENT_UPDATED, {
+                        event: APPOINTMENT_UPDATED,
+                        message:"Patient added additional information to your appointment",
+                        data
+                    });
                 }
-                await repo.save(dbAppointment);
+
                 return {
                     success: true,
                     message: "Message saved"
@@ -292,7 +294,6 @@ export const appointmentMutationResolver = {
             const dbAppointment = await repo
                 .createQueryBuilder('appointment')
                 .leftJoinAndSelect('appointment.patient', 'patient')
-                .leftJoinAndSelect('appointment.doctor', 'doctor')
                 .where({id: args.appointmentId})
                 .getOne();
 
@@ -311,24 +312,27 @@ export const appointmentMutationResolver = {
             }
 
             try {
-                dbAppointment.doctorId = dbMe.id;
-                await repo.save(dbAppointment);
+                await repo.update(args.appointmentId, {doctorId: dbMe.id}); 
 
-                const emailInfo = await repo
+                const data = await repo
                     .createQueryBuilder('appointment')
                     .leftJoinAndSelect('appointment.patient', 'patient')
                     .leftJoinAndSelect('appointment.doctor', 'doctor')
                     .where({id: args.appointmentId})
                     .getOne();
+                
+                context.io.to(`patient_${data.patientId}`).emit(APPOINTMENT_ACCEPTED, {
+                    event: APPOINTMENT_ACCEPTED,
+                    message: 'Your appointment has been accepted',
+                    data: dbAppointment
+                });
 
-                sendEmailNotification(emailInfo, "appointmentAccepted");
+                sendEmailNotification(data, APPOINTMENT_ACCEPTED);
 
                 return {
                     success: true,
                     message: "Appointment accepted. Doctor id saved",
-                    data: {
-                        start: dbAppointment.start
-                    }
+                    data: dbAppointment
                 } as MutationResponse
             } catch (error) {
                 return {
@@ -370,14 +374,20 @@ export const appointmentMutationResolver = {
                 await repo.save(dbAppointments);
         
                 dbAppointments.forEach(async (appointment) => {
-                    const emailInfo = await repo
+                    const data = await repo
                         .createQueryBuilder('appointment')
                         .leftJoinAndSelect('appointment.patient', 'patient')
                         .leftJoinAndSelect('appointment.doctor', 'doctor')
                         .where({ id: appointment.id })
                         .getOne();
+                    
+                    context.io.to(`patient_${data.patientId}`).emit(APPOINTMENT_ACCEPTED, {
+                        event: APPOINTMENT_ACCEPTED,
+                        message: 'Your appointment has been accepted',
+                        data
+                    });
         
-                    sendEmailNotification(emailInfo, "appointmentAccepted");
+                    sendEmailNotification(data, APPOINTMENT_ACCEPTED);
                 });
         
                 return {
@@ -423,14 +433,19 @@ export const appointmentMutationResolver = {
                 });
 
                 dbAppointments.forEach(async (appointment) => {
-                    const emailInfo = await repo
+                    const data = await repo
                         .createQueryBuilder('appointment')
                         .leftJoinAndSelect('appointment.patient', 'patient')
                         .leftJoinAndSelect('appointment.doctor', 'doctor')
                         .where({ id: appointment.id })
                         .getOne();
         
-                    sendEmailNotification(emailInfo, "unacceptedAppointment");
+                    sendEmailNotification(data, APPOINTMENT_CANCELLED);
+                    context.io.to(`patient_${data.patientId}`).emit(APPOINTMENT_CANCELLED,{
+                        event: APPOINTMENT_CANCELLED,
+                        message: "Appointment cancelled by doctor",
+                        data
+                    })
                 });
                 await repo.save(dbAppointments);
                 return {
@@ -445,27 +460,67 @@ export const appointmentMutationResolver = {
             }
         },
         deleteAppointmentsByIds: async (parent: null, args: { appointmentIds: number[] }, context: AppContext) => {
+            const dbMe = await context.dataSource.getRepository(User).findOneBy({ id: context.me.userId });
             const appointmentRepo = context.dataSource.getRepository(Appointment);
-            const recordRepo = context.dataSource.getRepository(Record);
+            //const recordRepo = context.dataSource.getRepository(Record);
+
+            if (!dbMe) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                } as MutationResponse;
+            }
         
             try {
+                /*is this needed ? should be taken care of by CASCADE ??
                 await recordRepo
                     .createQueryBuilder()
                     .update(Record)
                     .where('appointmentId IN (:...ids)', { ids: args.appointmentIds })
                     .set({ appointmentId: null })
-                    .execute();
-        
+                    .execute();*/
+
                 const appointmentsToDelete = await appointmentRepo
                     .createQueryBuilder('appointment')
+                    .leftJoinAndSelect('appointment.patient', 'patient')
+                    .leftJoinAndSelect('appointment.doctor', 'doctor')
                     .where('appointment.id IN (:...ids)', { ids: args.appointmentIds })
                     .getMany();
-        
-                await appointmentRepo.remove(appointmentsToDelete);
+
+                const now = getNow();
+
+                if (dbMe.userRoleId === 3) {
+                    appointmentsToDelete.forEach(async (appointment: Appointment) => {
+                        const data = appointment;
+                        await appointmentRepo.delete(appointment.id)
+                        if (data.doctorId && appointment.end > now) {
+                            sendEmailNotification(data, APPOINTMENT_DELETED_BY_PATIENT);
+                            context.io.to(`doctor_${data.doctorId}`).emit(APPOINTMENT_DELETED, {
+                                event: APPOINTMENT_DELETED,
+                                message: "Appointment has been cancelled by the patient",
+                                data
+                            });
+                        }
+                    })
+                } else {
+                    // doctor can delete from the db only past appointments with med record
+                    appointmentsToDelete.forEach(async (appointment: Appointment) => {    
+                        if (appointment.end < now && appointment.recordId) {
+                            const data = appointment;
+                            await appointmentRepo.delete(appointment.id);
+                            sendEmailNotification(data, APPOINTMENT_DELETED_BY_DOCTOR);
+                            context.io.to(`patient_${data.patientId}`).emit(APPOINTMENT_DELETED, {
+                                event: APPOINTMENT_DELETED,
+                                message: "Past appointment has been deleted by the doctor",
+                                data
+                            });
+                        }
+                    })
+                }
         
                 return {
                     success: true,
-                    message: `${appointmentsToDelete} appointments deleted successfully`,
+                    message: `${args.appointmentIds.length} appointments deleted successfully`,
                     data: {
                         deletedAppointmentIds: appointmentsToDelete.map(apt => apt.id),
                     }
@@ -503,37 +558,40 @@ export const appointmentMutationResolver = {
         
             try {
                 if (dbMe.userRoleId === 2) {
-                    dbAppointments.forEach((appointment) => {
-                        appointment.doctorMessage = message;
-                    });
-                } else {
-                    dbAppointments.forEach((appointment) => {
-                        appointment.patientMessage = message;
-                    });
-                }
-        
-                await repo.save(dbAppointments);
-                if (dbMe.userRoleId === 2) {
                     dbAppointments.forEach(async (appointment) => {
-                        const emailInfo = await repo
+                        await repo.update(appointment.id, {doctorMessage:message});
+
+                        const data = await repo
                             .createQueryBuilder('appointment')
                             .leftJoinAndSelect('appointment.patient', 'patient')
                             .leftJoinAndSelect('appointment.doctor', 'doctor')
                             .where({ id: appointment.id })
                             .getOne();
-            
-                        sendEmailNotification(emailInfo, "appointmentMessageAddedByPatient");
+
+                        sendEmailNotification(data, "APPOINTMENT_MESSAGE_CREATED_BY_DOCTOR");
+                        context.io.to(`patient_${appointment.patientId}`).emit(APPOINTMENT_UPDATED,{
+                            event: APPOINTMENT_UPDATED,
+                            message: "Doctor added additional information to your appointment",
+                            data
+                        });
                     });
                 } else {
                     dbAppointments.forEach(async (appointment) => {
-                        const emailInfo = await repo
+                        await repo.update(appointment.id, {patientMessage:message});
+
+                        const data = await repo
                             .createQueryBuilder('appointment')
                             .leftJoinAndSelect('appointment.patient', 'patient')
                             .leftJoinAndSelect('appointment.doctor', 'doctor')
                             .where({ id: appointment.id })
                             .getOne();
-            
-                        sendEmailNotification(emailInfo, "appointmentMessageAddedByDoctor");
+
+                        sendEmailNotification(data, "APPOINTMENT_MESSAGE_CREATED_BY_PATIENT");
+                        context.io.to(`doctor_${appointment.doctorId}`).emit(APPOINTMENT_UPDATED,{
+                            event: APPOINTMENT_UPDATED,
+                            message: "Patient added additional information to your appointment",
+                            data
+                        });
                     });
                 }
         
@@ -634,7 +692,6 @@ export const appointmentMutationResolver = {
                     message: "Error while deleting appointment: " + error
                 } as MutationResponse;
             }
-        }
-        
+        }    
     }
 }

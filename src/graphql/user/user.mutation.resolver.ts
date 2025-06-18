@@ -13,6 +13,7 @@ import { Chat } from '../chat/chat.model';
 import { UserInput } from "./user.input";
 import { AppContext, LoginResponse, MutationResponse } from "../types";
 import { getNow } from '../utils';
+import {DOCTOR_REQUEST_CREATED, ACCOUNT_ACTIVATED} from "../constants";
 
 
 export const userMutationResolver = {
@@ -22,9 +23,8 @@ export const userMutationResolver = {
             const me = await repo.findOneBy({id: context.me.userId});
             const now = new Date();
 
-            me.lastLogOutAt = now;
             try {
-                await repo.save(me);
+                await repo.update(me.id, {lastLogOutAt:now});
             } catch (error) {
                 console.error('Log out error: ', error)
             }
@@ -60,7 +60,7 @@ export const userMutationResolver = {
             try {
                 const savedUser = await userRepo.save(newUser);
                 await requestRepo.delete({id: dbDoctorRequest.id});
-                sendEmailNotification(savedUser, "doctorAccountActivated")
+                sendEmailNotification(savedUser, ACCOUNT_ACTIVATED)
 
                 return {
                     success: true,
@@ -107,9 +107,6 @@ export const userMutationResolver = {
                         dbUser.lastLogInAt = input.lastLogInAt ? new Date(input.lastLogInAt) : dbUser.lastLogInAt;
                         dbUser.updatedAt = new Date();
                         await repo.save(dbUser);
-
-                        context.io.emit('refreshEvent', true);
-                        context.io.emit('refreshEvent', false);
                    
                         return {
                             success: true,
@@ -257,6 +254,7 @@ export const userMutationResolver = {
             if (dbUser.userRoleId === 3) {
                 expiresIn = '1h';
             }
+            
 
             const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET, { expiresIn });
             const currentTime = DateTime.now();
@@ -336,7 +334,12 @@ export const userMutationResolver = {
     
                     try {
                         const newDoctorRequest = await requestRepo.save(newRequest);
-                        sendEmailNotification(newDoctorRequest, "newDoctorRequestCreated");
+                        context.io.to('admins').emit(DOCTOR_REQUEST_CREATED, {
+                            event: DOCTOR_REQUEST_CREATED,
+                            message: "New doctor account activation request",
+                            data: newDoctorRequest
+                        })
+                        sendEmailNotification(newDoctorRequest, DOCTOR_REQUEST_CREATED);
 
                         return {
                             __typename: 'LoginFailure',
@@ -590,7 +593,7 @@ export const userMutationResolver = {
 
                         await userRepo.save(newDoctor);
                         await requestRepo.delete({id: userData.id});
-                        sendEmailNotification(newDoctor, "doctorAccountActivated")
+                        sendEmailNotification(newDoctor, ACCOUNT_ACTIVATED)
                     }
                 })
                 return {

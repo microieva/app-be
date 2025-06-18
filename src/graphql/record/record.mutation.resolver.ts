@@ -4,6 +4,7 @@ import { Record } from "./record.model";
 import { Appointment } from "../appointment/appointment.model";
 import { RecordInput } from "./record.input";
 import { AppContext, MutationResponse } from "../types";
+import { RECORD_CREATED } from "../constants";
 
 export const recordMutationResolver = {
     Mutation: {
@@ -32,10 +33,15 @@ export const recordMutationResolver = {
                 dbRecord.updatedAt = new Date();
 
                 try {
-                    await repo.save(dbRecord);
+                    const record = await repo.save(dbRecord);
 
                     if (!input.draft) {
-                        sendEmailNotification(dbRecord, "recordSaved")
+                        sendEmailNotification(dbRecord, RECORD_CREATED);
+                        context.io.to(`patient_${record.patientId}`).emit(RECORD_CREATED, {
+                            event: RECORD_CREATED,
+                            message: "New medical record is open for access",
+                            data: record
+                        })
                     }
                     return {
                         success: true,
@@ -59,9 +65,30 @@ export const recordMutationResolver = {
                 newRecord.patientId = dbAppointment.patientId;
 
                 try {
-                    const saved = await repo.save(newRecord);
-                    dbAppointment.recordId = saved.id;
-                    await context.dataSource.getRepository(Appointment).save(dbAppointment);
+                    // const record = await repo.preload({
+                    //     id: newRecord.id,
+                    //     patient: { id: newRecord.patientId },
+                    //     doctor: { id: newRecord.doctorId }
+                    // });
+                    let record = await repo.save(newRecord);
+                    await context.dataSource.getRepository(Appointment).update(dbAppointment.id, {recordId: record.id});
+
+                    record = await repo
+                        .createQueryBuilder('record')
+                        .leftJoinAndSelect('record.patient', 'patient')
+                        .leftJoinAndSelect('record.doctor', 'doctor')
+                        .where({id: record.id})
+                        .getOne();
+
+                    if (!record.draft) {
+                        sendEmailNotification(record, RECORD_CREATED);
+                        context.io.to(`patient_${record.patientId}`).emit(RECORD_CREATED, {
+                            event: RECORD_CREATED,
+                            message: "New medical record is open for access",
+                            data: record
+                        })
+                    }
+
                     return {
                         success: true,
                         message: "Medical record saved"
