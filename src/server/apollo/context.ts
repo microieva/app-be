@@ -1,5 +1,5 @@
+require('dotenv');
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { JWT_SECRET } from "../../config/constants";
 import { DataSource } from "typeorm";
 import { Server } from "socket.io";
 
@@ -15,7 +15,7 @@ export const createContext = ({ io, dataSource }: ContextParams) => {
             let me = null;
 
             if (token) {
-                const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
+                const payload = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
                 const currentTime = Math.floor(Date.now() / 1000);
 
                 if (payload.exp && currentTime < payload.exp) {
