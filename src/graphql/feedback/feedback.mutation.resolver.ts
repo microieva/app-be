@@ -3,7 +3,7 @@ import { AppContext, MutationResponse } from "../types";
 import { FeedbackInput } from "./feedback.input";
 import { User } from "../user/user.model";
 import { sendEmailNotification } from "../../services/email.service";
-//import { In } from "typeorm";
+import { FEEDBACK_CREATED } from "../constants";
 
 export const feedbackMutationResolver = {
     Mutation: {
@@ -23,14 +23,15 @@ export const feedbackMutationResolver = {
             } as Feedback;
 
             try {
-                const saved = await repo.save(newFeedback);
-                sendEmailNotification(emailInfo, "feedbackCreated");
-                context.io.emit('newFeedback', {
-                    message: "New feedback",
-                    feedbackId: saved.id
+                const data = await repo.save(newFeedback);
+
+                sendEmailNotification(emailInfo, FEEDBACK_CREATED);
+                context.io.to('admins').emit(FEEDBACK_CREATED, {
+                    event: FEEDBACK_CREATED,
+                    message: "NEW FEEDBACK !",
+                    data
                 });
-                context.io.emit('refreshEvent', true);
-                context.io.emit('refreshEvent', false);
+                
 
                 return {
                     success: true,

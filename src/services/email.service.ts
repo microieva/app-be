@@ -6,6 +6,19 @@ import { Record } from "../graphql/record/record.model";
 import { DoctorRequest } from '../graphql/doctor-request/doctor-request.model';
 import { User } from '../graphql/user/user.model';
 import { Feedback } from '../graphql/feedback/feedback.model';
+import {
+    APPOINTMENT_ACCEPTED, 
+    APPOINTMENT_DELETED_BY_PATIENT,
+    APPOINTMENT_DELETED_BY_DOCTOR,
+    APPOINTMENT_UPDATED,
+    RECORD_CREATED,
+    DOCTOR_REQUEST_CREATED,
+    ACCOUNT_ACTIVATED,
+    APPOINTMENT_MESSAGE_CREATED_BY_DOCTOR,
+    APPOINTMENT_MESSAGE_CREATED_BY_PATIENT,
+    APPOINTMENT_CANCELLED,
+    FEEDBACK_CREATED
+} from "../graphql/constants";
 
 interface Options {
     host: string,
@@ -29,34 +42,37 @@ type AppEntity = Appointment | Record | DoctorRequest | User | Feedback;
 
 export const sendEmailNotification = (entity: AppEntity, notification: string): void => {
     switch (notification) {
-        case 'appointmentAccepted':
+        case APPOINTMENT_ACCEPTED:
             sendNotificationAppointmentAccepted(entity as Appointment);
             break;
-        case 'appointmentDeleted':
-            sendNotificationAppointmentDeleted(entity as Appointment);
+        case APPOINTMENT_DELETED_BY_PATIENT:
+            sendNotificationAppointmentDeletedByPatient(entity as Appointment);
             break;
-        case 'appointmentUpdated':
+        case APPOINTMENT_DELETED_BY_DOCTOR:
+            sendNotificationAppointmentDeletedByDoctor(entity as Appointment);
+            break;
+        case APPOINTMENT_UPDATED:
             sendNotificationAppointmentUpdated(entity as Appointment);
             break;
-        case 'recordSaved':
+        case RECORD_CREATED:
             sendNotificationRecordSaved(entity as Record);
             break;
-        case 'newDoctorRequestCreated':
+        case DOCTOR_REQUEST_CREATED:
             sendNotificationNewDoctorRequestCreated(entity as DoctorRequest);
             break;
-        case 'doctorAccountActivated':
+        case ACCOUNT_ACTIVATED:
             sendNotificationDoctorAccountActivated(entity as User);
             break;
-        case 'appointmentMessageAddedByDoctor':
+        case APPOINTMENT_MESSAGE_CREATED_BY_DOCTOR:
             sendNotificationAppointmentMessageAddedByDoctor(entity as Appointment);
             break;
-        case 'appointmentMessageAddedByPatient':
+        case APPOINTMENT_MESSAGE_CREATED_BY_PATIENT:
             sendNotificationAppointmentMessageAddedByPatient(entity as Appointment);
             break;
-        case 'unacceptedAppointment':
+        case APPOINTMENT_CANCELLED:
             sendNotificationAppointmentUnaccepted(entity as Appointment);
             break;
-        case 'feedbackCreated':
+        case FEEDBACK_CREATED:
             sendNotificationFeedbackCreated(entity as Feedback);
             break;
         default:
@@ -124,6 +140,47 @@ const sendNotificationAppointmentMessageAddedByPatient = (dbAppointment: Appoint
     });
 };
 
+const sendNotificationAppointmentDeletedByPatient = (dbAppointment: Appointment): void => {
+
+    const mailOptions = {
+        from: process.env.EMAIL_NOTIFICATION_SENDER_ID,
+        to: `${dbAppointment.doctor.email}`, 
+        subject: 'Appointment cancelled',
+        text: `Dear Dr ${dbAppointment.doctor.firstName} ${dbAppointment.doctor.lastName}, 
+            \nPatient ${dbAppointment.patient.firstName} ${dbAppointment.patient.lastName} has cancelled an appointment.
+            
+            \nAppointment time: ${DateTime.fromJSDate(new Date(dbAppointment.start)).toFormat('MMM dd, hh:mm a')}`
+    };
+
+    transporter.sendMail(mailOptions, (error, info: any) => {
+        if (error) {
+            console.log('Error sending email:', error);
+        } else {
+            console.log('APPOINTMENT DELETED BY PATIENT Email sent:', info.response);
+        }
+    });
+};
+const sendNotificationAppointmentDeletedByDoctor = (dbAppointment: Appointment): void => {
+
+    const mailOptions = {
+        from: process.env.EMAIL_NOTIFICATION_SENDER_ID,
+        to: `${dbAppointment.patient.email}`, 
+        subject: 'Appointment deleted',
+        text: `Dear  ${dbAppointment.patient.firstName} ${dbAppointment.patient.lastName}, 
+            \nDoctor ${dbAppointment.doctor.firstName} ${dbAppointment.doctor.lastName} has cancelled an appointment. We will be in touch soon for rescheduling. We apologize for this inconvenience.
+            
+            \nAppointment time: ${DateTime.fromJSDate(new Date(dbAppointment.start)).toFormat('MMM dd, hh:mm a')}`
+    };
+
+    transporter.sendMail(mailOptions, (error, info: any) => {
+        if (error) {
+            console.log('Error sending email:', error);
+        } else {
+            console.log('APPOINTMENT DELETED BY DOCTOR Email sent:', info.response);
+        }
+    });
+};
+
 const sendNotificationAppointmentMessageAddedByDoctor = (dbAppointment: Appointment): void => {
 
     const mailOptions = {
@@ -149,7 +206,7 @@ const sendNotificationDoctorAccountActivated = (dbUser: User): void => {
     const mailOptions = {
         from: process.env.EMAIL_NOTIFICATION_SENDER_ID,
         to: `${dbUser.email}`,
-        subject: 'Health Center Access Activated',
+        subject: 'Health Center Account Activated',
         text: `Dear Doctor ${dbUser.firstName} ${dbUser.lastName}, 
             \nYour doctor access account has been activated. 
             \nUse email ${dbUser.email} address to log in to your Health Center account. Once logged in, please update user information to gain access to full features.`
@@ -203,26 +260,6 @@ const sendNotificationAppointmentAccepted = (dbAppointment: Appointment): void =
     });
 };
 
-const sendNotificationAppointmentDeleted = (deletedAppointment: Appointment): void => {
-
-    const mailOptions = {
-        from: process.env.EMAIL_NOTIFICATION_SENDER_ID,
-        to: `${deletedAppointment.doctor.email}`, 
-        subject: 'Deleted Appointment',
-        text: `Dear Doctor ${deletedAppointment.doctor.firstName} ${deletedAppointment.doctor.lastName}, 
-            \nAppointment of ${DateTime.fromJSDate(new Date(deletedAppointment.start)).toFormat('MMM dd, hh:mm a')} has been cancelled by patient ${deletedAppointment.patient.firstName} ${deletedAppointment.patient.lastName}`
-    };
-
-    transporter.sendMail(mailOptions, (error, info: any) => {
-        if (error) {
-            console.log('Error sending email:', error);
-        } else {
-            console.log('APPOINTMENT CANCELLED Email sent:', info.response);
-        }
-    });
-}
-
-
 const sendNotificationAppointmentUpdated = (updatedAppointment: Appointment): void => {
 
     const mailOptions = {
@@ -245,8 +282,8 @@ const sendNotificationAppointmentUpdated = (updatedAppointment: Appointment): vo
 
 const sendNotificationRecordSaved = (dbRecord: Record): void => {
 
-    const recipient = dbRecord.appointment.patient.email;
-    const patientName = dbRecord.appointment.patient.firstName+" "+dbRecord.appointment.patient.lastName;
+    const recipient = dbRecord.patient.email;
+    const patientName = dbRecord.patient.firstName+" "+dbRecord.patient.lastName;
 
     const mailOptions = {
         from: process.env.EMAIL_NOTIFICATION_SENDER_ID,

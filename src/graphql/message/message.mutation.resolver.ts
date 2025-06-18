@@ -2,6 +2,7 @@ import { Chat } from "../chat/chat.model";
 import { AppContext, MutationResponse } from "../types";
 import { User } from "../user/user.model";
 import { Message } from "./message.model";
+import {MESSAGE_CREATED} from "../constants";
 
 export const messageMutationResolver = {
     Mutation: {
@@ -11,7 +12,7 @@ export const messageMutationResolver = {
             const repo = context.dataSource.getRepository(Message);
             const chat = await context.dataSource.getRepository(Chat).findOne({ where: { id: chatId }, relations: ['participants']});
             const sender = await context.dataSource.getRepository(User).findOne({ where: { id: context.me.userId } });
-            const receiverId = chat.participants.find((participant: User) => participant.id !== context.me.userId).id;
+            const receiver = chat.participants.find((participant: User) => participant.id !== context.me.userId);
 
             try {
                 const newMessage = new Message();
@@ -29,12 +30,15 @@ export const messageMutationResolver = {
                 } else {
                     msg = content
                 }
+
+                let userRole:string;
+                if (receiver.userRoleId === 2) userRole = 'doctor';
+                else if (receiver.userRoleId === 1) userRole = 'admin';
                 
-                context.io.emit('receiveNotification', {
-                    senderName: sender.firstName+' '+sender.lastName,
-                    receiverId,
-                    message: msg,
-                    chatId
+                context.io.to(`${userRole}_${receiver.id}`).emit(MESSAGE_CREATED, {
+                    event: MESSAGE_CREATED,
+                    message: `${sender.firstName} ${sender.lastName}: ${msg}`,
+                    data: savedMessage
                 });
 
                 return savedMessage;
