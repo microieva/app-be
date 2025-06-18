@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { loadEnvironment } from './config/environment';
 import { startServer } from './config/server';
+import './config/constants'; 
 
 loadEnvironment();
 

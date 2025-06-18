@@ -1,7 +1,6 @@
-// import { config } from 'dotenv';
+import { config } from 'dotenv';
 
-// const env = config().parsed;
-require('dotenv');
+config(); 
 
 if (!process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET is not defined in environment variables');
@@ -16,5 +15,5 @@ export const CORS_OPTIONS = {
     allowedHeaders: ["Content-Type", "Authorization", "x-apollo-operation-name", "access-control-allow-origin"]
 };
 
-export const PORT = parseInt(process.env.PORT) || 4000;
-//export const JWT_SECRET = env.JWT_SECRET;
+export const PORT = parseInt(process.env.PORT || '4000');
+export const JWT_SECRET = process.env.JWT_SECRET; 
