@@ -10,7 +10,7 @@ export const createSocketServer = (httpServer: HttpServer) => {
         cors: CORS_OPTIONS
     });
 
-    io.on('connection', (socket: Socket) => {
+    io.on('connection', (socket: Socket) => {      
         handleConnection(io, socket);
         handleDoctorEvents(io, socket);
         handleUserEvents(io, socket);

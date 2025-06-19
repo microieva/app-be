@@ -2,7 +2,7 @@ import { createServer } from "http";
 import { createExpressApp } from "../server/express";
 import { createApolloServer } from "../server/apollo/config";
 import { createContext } from "../server/apollo/context";
-import { createSocketServer } from "../server/socket";
+import { createSocketServer } from "../server/socket/index";
 import { getDataSource } from "./data-source";
 import { expressMiddleware } from '@apollo/server/express4';
 import { PORT } from "./constants";
@@ -22,11 +22,11 @@ export const startServer = async () => {
     try {
         await dataSource.initialize();
         clearInterval(loadingInterval);
-        console.log('\nDatasource Initialized');
+        console.log('Datasource Initialized');
 
         await apolloServer.start();
         app.use('/graphql', expressMiddleware(apolloServer, {
-            context: createContext({ io: io.io, dataSource })
+            context: createContext({ io, dataSource })
         }));
 
         httpServer.listen(PORT, () => {
