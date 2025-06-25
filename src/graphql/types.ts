@@ -1,6 +1,6 @@
-import { devDataSource } from "src/configurations/dev-db.config";
+import { devDataSource } from "src/config/db-config/dev-db.config";
 import { User } from "./user/user.model";
-import { prodDataSource } from "src/configurations/prod-db.config";
+import { prodDataSource } from "src/config/db-config/prod-db.config";
 import { Server } from "socket.io";
 
 export interface MutationResponse {
