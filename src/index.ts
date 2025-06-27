@@ -4,6 +4,7 @@ import { startServer } from './config/server';
 import './config/constants'; 
 import logger from "./utils/logger";
 
+
 loadEnvironment();
 
 startServer().catch(err => {
