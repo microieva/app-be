@@ -14,7 +14,6 @@ let connectionAttempts = 0;
 const connectWithRetry = async () => {
   try {
     await redisClient.connect();
-    console.info('Redis connected successfully');
   } catch (err) {
     connectionAttempts++;
     if (connectionAttempts >= MAX_RETRIES) {
