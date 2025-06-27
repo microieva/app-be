@@ -6,23 +6,27 @@ import { createSocketServer } from "../server/socket/index";
 import { getDataSource } from "./data-source";
 import { expressMiddleware } from '@apollo/server/express4';
 import { PORT } from "./constants";
+import { redisClient } from "../server/socket/redis"; 
 
 export const startServer = async () => {
-    const dataSource = getDataSource();
     const app = createExpressApp();
     const httpServer = createServer(app);
-    const io = createSocketServer(httpServer);
+    const dataSource = getDataSource();
     const apolloServer = createApolloServer();
 
-    console.log('Connecting to database...');
-    const loadingInterval = setInterval(() => {
-        process.stdout.write('.');
-    }, 5000);
+    console.log('Connecting to services...');
+    const loadingInterval = setInterval(() => process.stdout.write('.'), 500);
 
     try {
+        await redisClient.connect();
+        console.info('Redis connected successfully');
+
         await dataSource.initialize();
         clearInterval(loadingInterval);
-        console.log('Datasource Initialized');
+        console.info('Database connected successfully');
+
+        const io = await createSocketServer(httpServer);
+        console.info('Socket.IO server initialized');
 
         await apolloServer.start();
         app.use('/graphql', expressMiddleware(apolloServer, {
@@ -30,12 +34,32 @@ export const startServer = async () => {
         }));
 
         httpServer.listen(PORT, () => {
-            console.log(`Server ready at http://localhost:${PORT}/graphql`);
-            console.log(`Socket.io server running on port ${PORT}`);
+            console.info(`
+                Server ready at http://localhost:${PORT}/graphql
+                WebSocket endpoint: ws://localhost:${PORT}
+                Redis status: ${redisClient.isReady ? 'connected' : 'disconnected'}
+            `);
         });
+
+        process.on('SIGTERM', async () => {
+            console.info('Shutting down gracefully...');
+            await Promise.all([
+                redisClient.quit(),
+                dataSource.destroy(),
+                new Promise<void>((resolve) => httpServer.close(() => resolve()))
+            ]);
+            process.exit(0);
+        });
+
     } catch (error) {
         clearInterval(loadingInterval);
-        console.error('\nServer startup error:', error);
+        console.error('Server startup failed:', error);
+        
+        await Promise.allSettled([
+            redisClient.quit(),
+            dataSource.destroy()
+        ]);
+        
         process.exit(1);
     }
 };
