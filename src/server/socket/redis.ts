@@ -1,5 +1,6 @@
 import { createClient } from 'redis';
-import logger from 'src/utils/logger';
+import logger from '../../utils/logger';
+
 
 let redisClient = createClient({
   url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
