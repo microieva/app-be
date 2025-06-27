@@ -1,4 +1,5 @@
 import { createClient } from 'redis';
+import logger from 'src/utils/logger';
 
 let redisClient = createClient({
   url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
@@ -17,19 +18,19 @@ const connectWithRetry = async () => {
   } catch (err) {
     connectionAttempts++;
     if (connectionAttempts >= MAX_RETRIES) {
-      console.error(`Redis connection failed after ${MAX_RETRIES} attempts`);
+      logger.error(`Redis connection failed after ${MAX_RETRIES} attempts`);
       process.exit(1);
     }
-    console.warn(`Retrying Redis connection (attempt ${connectionAttempts})...`);
+    logger.warn(`Retrying Redis connection (attempt ${connectionAttempts})...`);
     setTimeout(connectWithRetry, 1000 * connectionAttempts);
   }
 };
 
 redisClient.on('error', (err) => {
   if (err.code === 'ECONNREFUSED') {
-    console.error('Redis refused connection - is the server running?');
+    logger.error('Redis refused connection - is the server running?');
   } else {
-    console.error('Redis error:', err);
+    logger.error('Redis error:', err);
   }
 });
 

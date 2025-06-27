@@ -69,7 +69,6 @@
     "type-graphql": "^2.0.0-rc.1",
     "typeorm": "^0.3.17",
     "typeorm-sqljs": "^1.2.2",
-    "winston": "^3.10.0",
     "winston-daily-rotate-file": "^4.7.1",
     "ws": "^8.17.1"
   },
@@ -83,6 +82,7 @@
     "@types/node-jose": "^1.1.13",
     "@types/nodemailer": "^6.4.15",
     "@types/passport-google-oauth20": "^2.0.16",
+    "@types/winston": "^2.4.4",
     "@typescript-eslint/eslint-plugin": "^6.2.0",
     "@typescript-eslint/parser": "^6.2.0",
     "cross-env": "^7.0.3",
@@ -91,6 +91,7 @@
     "prettier": "^3.0.0",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "winston": "^3.17.0"
   }
 }
