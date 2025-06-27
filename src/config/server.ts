@@ -6,7 +6,7 @@ import { createSocketServer } from "../server/socket/index";
 import { getDataSource } from "./data-source";
 import { expressMiddleware } from '@apollo/server/express4';
 import { PORT } from "./constants";
-import { redisClient } from "../server/socket/redis"; 
+import { connectWithRetry, redisClient } from "../server/socket/redis"; 
 
 export const startServer = async () => {
     const app = createExpressApp();
@@ -18,7 +18,7 @@ export const startServer = async () => {
     const loadingInterval = setInterval(() => process.stdout.write('.'), 500);
 
     try {
-        await redisClient.connect();
+        await connectWithRetry();
         console.info('Redis connected successfully');
 
         await dataSource.initialize();
