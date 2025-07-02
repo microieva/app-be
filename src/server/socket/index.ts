@@ -3,16 +3,19 @@ import { Server as HttpServer } from "http";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { redisClient } from "./redis"; 
 import { handleConnection } from "./handlers";
-import { handleDoctorEvents } from "./events/doctor-events";
+import { handleDoctorsRoomEvents } from "./events/doctor-events";
 import { handleUserEvents } from "./events/user-events";
 import { CORS_OPTIONS } from "../../config/constants";
+import { RedisClientType, RedisFunctions, RedisModules, RedisScripts } from '@redis/client';
 
 let io: Server;
+let pubClient: RedisClientType<RedisModules, RedisFunctions, RedisScripts>;
+let subClient: RedisClientType<RedisModules, RedisFunctions, RedisScripts>;
 
 export const createSocketServer = async (httpServer: HttpServer) => {
-    const pubClient = redisClient.duplicate();
-    const subClient = redisClient.duplicate();
-    
+    pubClient = redisClient.duplicate();
+    subClient = redisClient.duplicate();
+
     await Promise.all([pubClient.connect(), subClient.connect()]);
 
     io = new Server(httpServer, {
@@ -22,23 +25,50 @@ export const createSocketServer = async (httpServer: HttpServer) => {
     });
 
     io.on('connection', (socket: Socket) => {
-        console.info(`New connection: ${socket.id}`);
-        
-        handleConnection(io, socket);
-        handleDoctorEvents(io, socket);
-        handleUserEvents(io, socket);
-
-        socket.on('disconnect', () => {
-            console.info(`Client disconnected: ${socket.id}`);
-        });
+         try {     
+            handleConnection(io, socket);
+            handleDoctorsRoomEvents(io, socket);
+            handleUserEvents(io, socket);
+            console.info(`New connection: ${socket.id}`);
+        } catch (err) {
+            console.error('Connection handler error:', err);
+            socket.disconnect(true);
+        }
     });
 
     io.of("/").adapter.on("error", (err) => {
         console.error("Socket adapter error:", err);
     });
 
-    console.info("Socket.IO server with Redis adapter initialized");
     return io;
+};
+
+export const cleanupSocketServer = async (): Promise<void> => {
+    try {
+        console.info('Starting Socket.IO server cleanup...');
+        
+        if (io) {
+            await new Promise<void>((resolve) => {
+                io.close(() => {
+                    console.info('Socket.IO server closed');
+                    resolve();
+                });
+            });
+        }
+
+        if (pubClient) {
+            await pubClient.quit();
+            console.info('Redis pub client disconnected');
+        }
+
+        if (subClient) {
+            await subClient.quit();
+            console.info('Redis sub client disconnected');
+        }
+    } catch (err) {
+        console.error('Error during Socket.IO cleanup:', err);
+        throw err; // Re-throw to handle in the calling function
+    }
 };
 
 export const getSocketInstance = () => {
