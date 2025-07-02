@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import {USER_STATUS} from "../../../graphql/constants";
+import { USER_STATUS } from "../../../graphql/constants";
 
 export const handleUserEvents = (io: Server, socket: Socket) => {
     socket.on('request_status', (id: number) => {

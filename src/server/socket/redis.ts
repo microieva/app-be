@@ -1,8 +1,8 @@
-import { createClient } from 'redis';
+import { createClient, RedisClientType, RedisFunctions, RedisModules, RedisScripts } from '@redis/client';
 import logger from '../../utils/logger';
 
 
-let redisClient = createClient({
+let redisClient: RedisClientType<RedisModules, RedisFunctions, RedisScripts> = createClient({
   url: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
   socket: {
     connectTimeout: 5000,
@@ -26,6 +26,13 @@ const connectWithRetry = async () => {
     setTimeout(connectWithRetry, 1000 * connectionAttempts);
   }
 };
+
+redisClient.on('connect', () => {
+  logger.info('Redis connection established', { 
+    url: process.env.REDIS_URL,
+    timestamp: new Date().toISOString()
+  });
+});
 
 redisClient.on('error', (err) => {
   if (err.code === 'ECONNREFUSED') {

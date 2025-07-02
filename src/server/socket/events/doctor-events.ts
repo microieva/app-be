@@ -3,9 +3,9 @@ import {DOCTOR_ROOM_UPDATE} from "../../../graphql/constants";
 
 const activeDoctors = new Map(); 
 
-export const handleDoctorEvents = (io: Server, socket: Socket) => {
+export const handleDoctorsRoomEvents = (io: Server, socket: Socket) => {
     socket.on('join_room', (user) => {
-        if (user?.id && user?.userRole === 'doctor') {
+        if (user.userRole === 'doctor') {
             activeDoctors.set(user.id, socket.id);
             sendDoctorsRoomUpdate(io);
         }
