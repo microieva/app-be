@@ -220,17 +220,31 @@ export const appointmentMutationResolver = {
 
             try {
                 if (dbMe.userRoleId === 2) {
-                    const data = await repo.update(id, {doctorMessage:message});
-                    sendEmailNotification(data.raw, APPOINTMENT_MESSAGE_CREATED_BY_DOCTOR);
-                    context.io.to(`patient_${data.raw.patientId}`).emit(APPOINTMENT_UPDATED, {
+                    await repo.update(id, {doctorMessage:message});
+                    const data = await repo
+                        .createQueryBuilder('appointment')
+                        .leftJoinAndSelect('appointment.doctor', 'doctor')
+                        .leftJoinAndSelect('appointment.patient', 'patient')
+                        .where({id})
+                        .getOne();
+                    
+                    sendEmailNotification(data, APPOINTMENT_MESSAGE_CREATED_BY_DOCTOR);
+                    context.io.to(`patient_${data.patientId}`).emit(APPOINTMENT_UPDATED, {
                         event: APPOINTMENT_UPDATED,
                         message:"Additional information added to your appointment",
                         data
                     });
                 } else {
-                    const data = await repo.update(id, {patientMessage:message});
-                    sendEmailNotification(data.raw, APPOINTMENT_MESSAGE_CREATED_BY_PATIENT);
-                    context.io.to(`patient_${data.raw.doctorId}`).emit(APPOINTMENT_UPDATED, {
+                    await repo.update(id, {patientMessage:message});
+                    const data = await repo
+                        .createQueryBuilder('appointment')
+                        .leftJoinAndSelect('appointment.doctor', 'doctor')
+                        .leftJoinAndSelect('appointment.patient', 'patient')
+                        .where({id})
+                        .getOne();
+
+                    sendEmailNotification(data, APPOINTMENT_MESSAGE_CREATED_BY_PATIENT);
+                    context.io.to(`doctor_${data.doctorId}`).emit(APPOINTMENT_UPDATED, {
                         event: APPOINTMENT_UPDATED,
                         message:"Patient added additional information to your appointment",
                         data
@@ -276,6 +290,11 @@ export const appointmentMutationResolver = {
                     dbAppointment.patientMessage = null;
                 }
                 await repo.save(dbAppointment);
+                if (dbMe.userRoleId === 3) {
+                    context.io.to(`doctor_${dbAppointment.doctorId}`).emit(APPOINTMENT_UPDATED, {
+                        event: APPOINTMENT_UPDATED
+                    });
+                }
                 return {
                     success: true,
                     message: "Message removed"

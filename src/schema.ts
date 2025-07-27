@@ -102,6 +102,7 @@ export const schema = `
     countRecords: Int!
     countDrafts: Int!
     chatId (receiverId: Int): Int!
+    loadReceiverId :Int!
     chatMessages(chatId: Int!): [Message!]!
     messages(chatId: Int!): [Message!]!
     countUnreadMessages: Int!
@@ -120,7 +121,8 @@ export const schema = `
 
   type Mutation {
     saveUser(userInput: UserInput!): MutationResponse!
-    deleteUser(userId: Int!): MutationResponse!
+    createUser(userInput: UserInput!): MutationResponse!
+    deleteUser(userId: Int): MutationResponse!
     logOut: Void
     login(directLoginInput: LoginInput!): LoginResponse!
     loginWithGoogle(googleCredential: String!): LoginResponse!
@@ -177,13 +179,15 @@ export const schema = `
   }
 
   type NextAppointmentResponse {
-    nextStart: Date
-    nextEnd: Date
-    nextId: Int
+    nextStart: Date!
+    nextEnd: Date!
+    nextId: Int!
     previousAppointmentDate: Date
     recordIds: [Int!]
-    patient: User
-    doctor: User
+    patient: User!
+    doctor: User!
+    patientMessage: String
+    doctorMessage: String
   }
 
   type User {

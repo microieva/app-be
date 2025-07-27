@@ -1,16 +1,15 @@
 import { Server, Socket } from "socket.io";
+import logger from "../../utils/logger";
 
 export const activeDoctors = new Map();
 
 export const handleConnection = (io: Server, socket: Socket) => {
-    //console.log('New client connected:', socket.id);
-
     socket.on('join_room', (user) => {
         if (user?.id && user?.userRole) {
             const personalRoom = `${user.userRole}_${user.id}`;
             const roleRoom = `${user.userRole}s`;
             socket.join([personalRoom, roleRoom]);
-            console.log('user joined ', personalRoom, roleRoom)
+            logger.info('User joined rooms: ', personalRoom, roleRoom)
         }
     });
 

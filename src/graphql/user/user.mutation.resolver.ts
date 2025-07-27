@@ -1,6 +1,6 @@
 import 'dotenv/config'; 
 import { DateTime } from "luxon";
-import { In } from "typeorm";
+import { In, Repository } from "typeorm";
 import { OAuth2Client } from 'google-auth-library';
 import jwt from "jsonwebtoken";
 import jose from "node-jose";
@@ -13,7 +13,7 @@ import { Chat } from '../chat/chat.model';
 import { UserInput } from "./user.input";
 import { AppContext, LoginResponse, MutationResponse } from "../types";
 import { getNow } from '../utils';
-import {DOCTOR_REQUEST_CREATED, ACCOUNT_ACTIVATED} from "../constants";
+import {DOCTOR_REQUEST_CREATED, ACCOUNT_ACTIVATED, USER_UPDATED} from "../constants";
 
 
 export const userMutationResolver = {
@@ -74,87 +74,135 @@ export const userMutationResolver = {
             }
         },
         saveUser: async(parent: null, args: any, context: AppContext)=> {
-            const input: UserInput = args.userInput;            
-            const repo = context.dataSource.getRepository(User);
+            const input: UserInput = args.userInput;           
+            const repo: Repository<User> = context.dataSource.getRepository(User);
+            const isUser = await repo.findOneBy({email: input.email});
 
-            const isEmailInUse = await repo.findOneBy({email: input.email});
-
-            if (isEmailInUse && !input.id) {
+            if (isUser && !input.id) {
                 return {
                     success: false,
                     message: "This email address is already in use"
                 } as MutationResponse;
             }
+            let dbUser:User;
+            if (input.id) {
+                dbUser = await repo.findOneBy({id: input.id});
+            } else {
+                dbUser = await repo.findOneBy({id: context.me.userId});
+            }
+
+            if (dbUser) {
+                dbUser.firstName = input.firstName && input.firstName !== "" ? input.firstName : dbUser.firstName;
+                dbUser.lastName = input.lastName && input.lastName !== "" ? input.lastName : dbUser.lastName;
+                dbUser.userRoleId = !input.userRoleId ? dbUser.userRoleId : input.userRoleId;
+                dbUser.phone = !input.phone ? dbUser.phone : input.phone;
+                dbUser.email = !input.email ? dbUser.email : input.email;
+                dbUser.password = !input.password ? dbUser.password : input.password;
+                dbUser.dob = input.dob ? new Date(input.dob) : dbUser.dob;
+                dbUser.streetAddress = !input.streetAddress ? dbUser.streetAddress : input.streetAddress;
+                dbUser.city = !input.city ? dbUser.city : input.city;
+                dbUser.postCode = !input.postCode ? dbUser.postCode : input.postCode;
+                dbUser.lastLogInAt = input.lastLogInAt ? new Date(input.lastLogInAt) : dbUser.lastLogInAt;
+                dbUser.updatedAt = new Date();
+                
+                let isFirstUpdate:boolean = false;
+                if (!dbUser.updatedAt) isFirstUpdate = true;
+                
+                try {
+                    await repo.save(dbUser);
+
+                    if (isFirstUpdate) {
+                        const rooms = context.io.sockets.adapter.rooms;
+                            Array.from(rooms.keys()).some(roomName => {
+                            const room = roomName.endsWith(`_${dbUser.id}`)
+                            if (room) {
+                                context.io.to(roomName).emit(USER_UPDATED)
+                            }
+                        });    
+                    }
+                
+                    return {
+                        success: true,
+                        message: "User updated"
+                    } as MutationResponse;
+                } catch (error) {
+                    return {
+                        success: false,
+                        message: "Unexpected error updating user details: "+error
+                    } as MutationResponse;
+                }
+            } else {
+                return {
+                        success: false,
+                        message: "User you are trying to modify does not exist"
+                    } as MutationResponse;
+            }
+        },
+        createUser: async (parent:null, args:any, context:AppContext) => {
+            const input: UserInput = args.userInput; 
+            const repo: Repository<User> = context.dataSource.getRepository(User);
+            const me = await repo.findOneBy({id:context.me.userId});
+
+            if (me.userRoleId !== 1) {
+                return {
+                    success: false,
+                    message: "Unauthorized action"
+                } as MutationResponse
+            }
+
+            if (await repo.findOneBy({email: input.email})) {
+                 return {
+                    success: false,
+                    message: "Email already in use"
+                } as MutationResponse
+            }
+
+            const newUser = new User();
+            newUser.firstName = input.firstName;
+            newUser.lastName = input.lastName;
+            newUser.userRoleId = input.userRoleId;
+            newUser.phone = input.phone;
+            newUser.email = input.email;
+            newUser.password = input.password;
+            newUser.dob = new Date(input?.dob) || null;
+            newUser.streetAddress = input?.streetAddress;
+            newUser.city = input?.city;
+            newUser.postCode = input?.postCode;
+            newUser.lastLogInAt = input.lastLogInAt ? new Date(input.lastLogInAt) : null;
+            newUser.updatedAt = null;
 
             try {
-                const newUser = new User();
-
-                if (input.id) {
-                    const dbUser = await repo.findOneBy({id: input.id});
-
-                    if (dbUser) {
-                        dbUser.id = input.id;
-                        dbUser.firstName = input.firstName && input.firstName !== "" ? input.firstName : dbUser.firstName;
-                        dbUser.lastName = input.lastName && input.lastName !== "" ? input.lastName : dbUser.lastName;
-                        dbUser.userRoleId = !input.userRoleId ? dbUser.userRoleId : input.userRoleId;
-                        dbUser.phone = !input.phone ? dbUser.phone : input.phone;
-                        dbUser.email = !input.email ? dbUser.email : input.email;
-                        dbUser.password = !input.password ? dbUser.password : input.password;
-                        dbUser.dob = input.dob ? new Date(input.dob) : dbUser.dob;
-                        dbUser.streetAddress = !input.streetAddress ? dbUser.streetAddress : input.streetAddress;
-                        dbUser.city = !input.city ? dbUser.city : input.city;
-                        dbUser.postCode = !input.postCode ? dbUser.postCode : input.postCode;
-                        dbUser.lastLogInAt = input.lastLogInAt ? new Date(input.lastLogInAt) : dbUser.lastLogInAt;
-                        dbUser.updatedAt = new Date();
-                        await repo.save(dbUser);
-                   
-                        return {
-                            success: true,
-                            message: "User saved"
-                        } as MutationResponse;
-                    }
-                }
-
-                newUser.firstName = input.firstName;
-                newUser.lastName = input.lastName;
-                newUser.userRoleId = input.userRoleId;
-                newUser.phone = input.phone;
-                newUser.email = input.email;
-                newUser.password = input.password;
-                newUser.dob = new Date(input?.dob) || null;
-                newUser.streetAddress = input?.streetAddress;
-                newUser.city = input?.city;
-                newUser.postCode = input?.postCode;
-                newUser.lastLogInAt = input.lastLogInAt ? new Date(input.lastLogInAt) : null;
-                newUser.updatedAt = null;
-
-                const user = await repo.save(newUser);
+                // TO DO: find out if create will use pasw hashing now
+                const user = repo.create(newUser);
+                const data =await repo.save(user);
 
                 return {
                     success: true,
-                    message: "User saved",
-                    createdAt: user.createdAt
+                    message: "User created",
+                    createdAt: data.createdAt
                 } as MutationResponse;
             } catch (error) {
                 return {
                     success: false,
-                    message: `Error while saving user details: ${error}`
+                    message: `Error while creating user: ${error}`
                 } as MutationResponse;
             }
         },
         deleteUser: async (parent: null, args: any, context: AppContext)=> {
-            const userId: number | null = args.userId;  
-            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
-            const dbUser = await context.dataSource.getRepository(User).findOneBy({id: userId});
+            //const userId: number | undefined = args.userId;  
+            const userId = args.userId || context.me.userId;
+            //const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
+            const dbUserToDelete = await context.dataSource.getRepository(User).findOneBy({id: userId});
 
-            if (!me) {
-                return {
-                    success: false,
-                    message: "Forbidden action"
-                } as MutationResponse;
-            }
+            // if (!me || (me.userRoleId !== 1 && args.userId)) {
+            //     return {
+            //         success: false,
+            //         message: "Forbidden action"
+            //     } as MutationResponse;
+            // }
 
-            const repo = context.dataSource.getRepository(User);
+
+            const userRepo = context.dataSource.getRepository(User);
             const appointmentsRepo = context.dataSource.getRepository(Appointment);
             const recordsRepo = context.dataSource.getRepository(Record);
             const chatRepo = context.dataSource.getRepository(Chat);
@@ -192,13 +240,12 @@ export const userMutationResolver = {
             const dbUserRecordIds = await recordQueryBuilder.select('record.id', 'id').getRawMany();
             if (dbUserRecordIds.length>0) {
                 try {
-                        if (dbUser.userRoleId === 3) {
-                            await recordsRepo.delete({id: In(dbUserRecordIds)});
-                        } else if (dbUser.userRoleId === 2) {
-                            await recordQueryBuilder.where({id: In(dbUserRecordIds), draft:false}).update({doctorId:null}).execute();
-                            await recordsRepo.delete({id: In(dbUserRecordIds), draft:true})
-                        }
-                    
+                    if (dbUserToDelete.userRoleId === 3) {
+                        await recordsRepo.delete({id: In(dbUserRecordIds)});
+                    } else if (dbUserToDelete.userRoleId === 2) {
+                        await recordQueryBuilder.where({id: In(dbUserRecordIds), draft:false}).update({doctorId:null}).execute();
+                        await recordsRepo.delete({id: In(dbUserRecordIds), draft:true})
+                    }   
                 } catch (error) {
                     return {
                         success: false,
@@ -206,14 +253,16 @@ export const userMutationResolver = {
                     } as MutationResponse;
                 }
             }
-      
-            const dbUserChatIds:number[] = await chatRepo
+
+            const rawResults = await chatRepo
                 .createQueryBuilder('chat')
-                .leftJoinAndSelect('chat.participants', 'participants')
-                .where('participants.id = :userId', { userId }) 
+                .leftJoin('chat.participants', 'participants')
+                .where('participants.id = :userId', { userId })
                 .select('chat.id', 'id')
                 .getRawMany();
-        
+
+            const dbUserChatIds: number[] = rawResults.map(item => item.id);
+
             if (dbUserChatIds.length > 0) {
                 try {
                     await chatRepo.delete({id: In(dbUserChatIds)}); 
@@ -226,7 +275,7 @@ export const userMutationResolver = {
             }
         
             try {
-                await repo.delete({id: userId});
+                await userRepo.delete({id: userId});
 
                 return {
                     success: true,
@@ -242,28 +291,39 @@ export const userMutationResolver = {
         },
         login: async (parent: null, args: any, context: AppContext) => {
             const input = args.directLoginInput;
-            const dbUser = await context.dataSource.getRepository(User).findOneBy({ email: input.email});
             const repo = context.dataSource.getRepository(User);
+            const user:User = await repo.findOneBy({ email: input.email});
 
-            if (!dbUser) throw new Error(`Incorrect email`);
+            if (!user) {
+                return {
+                    __typename: 'LoginFailure',
+                    message:"Incorrect email"
+                } as LoginResponse;
+            }
+            const isValidPassword = await user.validatePassword(input.password);
 
-            const isValid = await dbUser.validatePassword(input.password);
-            if (!isValid) throw new Error('Invalid password');
+            if (!isValidPassword && user) {
+                return {
+                    __typename: 'LoginFailure',
+                    message:"Incorrect password"
+                } as LoginResponse;
+            }
 
             let expiresIn = '10h'; 
-            if (dbUser.userRoleId === 3) {
+            if (user.userRoleId === 3) {
                 expiresIn = '1h';
             }
             
 
-            const token = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET, { expiresIn });
+            const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn });
             const currentTime = DateTime.now();
             const lastLogin = currentTime.toISO({ includeOffset: true });
 
-            dbUser.lastLogInAt = new Date(lastLogin);
+            user.lastLogInAt = new Date(lastLogin);
+            user.updatedAt = user.updatedAt;
 
             try {
-                await repo.save(dbUser, {listeners: false});
+                await repo.save(user, {listeners: false});
                 let expirationTime;
     
                 if (expiresIn === '1h') {
@@ -281,7 +341,10 @@ export const userMutationResolver = {
                 } as LoginResponse;
 
             } catch (error) {
-                throw new Error('Cannot login, '+error)
+                return {
+                    __typename: 'LoginFailure',
+                    message:error
+                } as LoginResponse;
             }
 
         },
