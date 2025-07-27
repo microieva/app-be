@@ -27,15 +27,17 @@ export class User {
   @Column({nullable: true })
   phone: string;
 
-  @Column({nullable: false })
+  @Column({nullable: false, unique: true })
   email: string;
 
-  @Column({nullable: true })
+  @Column({ nullable: true })
   password: string;
-  
+
   @BeforeInsert()
   async hashPassword() {
-    this.password = await bcrypt.hash(this.password, 10);
+    if (this.password) {
+      this.password = await bcrypt.hash(this.password, 10);
+    }
   }
 
   async validatePassword(password: string): Promise<boolean> {
@@ -63,10 +65,10 @@ export class User {
   @CreateDateColumn({type:'datetime'})
   createdAt: Date;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'datetime', nullable: true, default: null })
   lastLogInAt: Date;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'datetime', nullable: true, default: null })
   lastLogOutAt: Date;
 
   @Column({type: 'datetime', nullable: true, default: null})

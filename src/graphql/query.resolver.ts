@@ -30,12 +30,7 @@ export const queries = {
             }
         },
         user: async (parent: null, args: any, context: AppContext)=> {
-            const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
             const repo = context.dataSource.getRepository(User);
-
-            if (!me || me.userRoleId !== 1) {
-                throw new Error("Unauthorized action")
-            }
             try {
                 return await repo.findOneBy({id: args.userId});
             } catch (error) {
@@ -1137,6 +1132,8 @@ export const queries = {
     
             const aptQueryBuilder = aptRepo
                 .createQueryBuilder('appointment')
+                .leftJoinAndSelect('appointment.patient', 'patient')
+                .leftJoinAndSelect('appointment.doctor', 'doctor')
                 .where('appointment.allDay = :allDay', {allDay: false})
 
             const recQueryBuilder = recRepo
@@ -1210,17 +1207,21 @@ export const queries = {
                 }
 
                 recordIds = recordIds.map(rec => rec.id);
-
+                
                 if (nextAppointment) {
-                    return {
+                    const data = {
                         nextStart: nextAppointment.start,
                         nextEnd: nextAppointment.end,
                         nextId: nextAppointment.id,
                         previousAppointmentDate,
                         recordIds,
                         patient: nextAppointment.patient,
-                        doctor: nextAppointment.doctor
+                        doctor: nextAppointment.doctor,
+                        patientMessage: nextAppointment.patientMessage,
+                        doctorMessage: nextAppointment.doctorMessage
                     };
+
+                    return data;
                     
                 } else {
                     return null;
@@ -1589,6 +1590,15 @@ export const queries = {
                 throw new Error('Error counting drafts, '+error)
             }
         },
+        loadReceiverId: async (parent: null, args: any, context: AppContext) => {
+            const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId}); 
+            if (me.userRoleId === 2) {
+                const chatReceiver = await context.dataSource.getRepository(User).findOneBy({email: "admin@email.com"});
+                return chatReceiver.id;
+            } else {
+                throw new Error("Unauthorized action");
+            }
+        },
         chatId: async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});   
             let receiverId;
@@ -1599,7 +1609,7 @@ export const queries = {
             if (me.userRoleId === 1) {
                 receiverId = args.receiverId;
             } else {
-                const admin = await context.dataSource.getRepository(User).findOneBy({userRoleId: 1});
+                const admin = await context.dataSource.getRepository(User).findOneBy({email: "admin@email.com"});
                 receiverId = admin.id;
             }
 
