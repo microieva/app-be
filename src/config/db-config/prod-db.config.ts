@@ -14,6 +14,7 @@ import { MysqlConnectionOptions } from "typeorm/driver/mysql/MysqlConnectionOpti
 
 const options: MysqlConnectionOptions = {
     type: 'mysql',
+    driver: require('mysql2'),
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT),
     username:  process.env.DB_USER,
@@ -30,9 +31,6 @@ const options: MysqlConnectionOptions = {
         ChatParticipant,
         Feedback
     ],
-    extra: {
-        trustServerCertificate: true
-    },
     synchronize:false
 };
 export const prodDataSource = new DataSource(options);
