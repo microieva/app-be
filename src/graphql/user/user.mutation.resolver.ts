@@ -207,12 +207,14 @@ export const userMutationResolver = {
             const recordsRepo = context.dataSource.getRepository(Record);
             const chatRepo = context.dataSource.getRepository(Chat);
 
-            const dbUserAppointmentIds:number[] = await appointmentsRepo
+            const dbUserAppointments = await appointmentsRepo
                 .createQueryBuilder("appointment")
                 .select("appointment.id", "id")
                 .where('appointment.patientId = :userId', { userId })
                 .orWhere('appointment.doctorId = :userId', { userId })
                 .getRawMany();
+            
+            const dbUserAppointmentIds: number[] = dbUserAppointments.map(item => item.id);
 
             const recordQueryBuilder = recordsRepo
                 .createQueryBuilder("record")
@@ -237,7 +239,8 @@ export const userMutationResolver = {
                     } as MutationResponse;
                 }
             } 
-            const dbUserRecordIds = await recordQueryBuilder.select('record.id', 'id').getRawMany();
+            const dbUserRecords = await recordQueryBuilder.select('record.id', 'id').getRawMany();
+            const dbUserRecordIds: number[] = dbUserRecords.map(item => item.id);
             if (dbUserRecordIds.length>0) {
                 try {
                     if (dbUserToDelete.userRoleId === 3) {

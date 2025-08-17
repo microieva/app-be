@@ -1132,8 +1132,8 @@ export const queries = {
     
             const aptQueryBuilder = aptRepo
                 .createQueryBuilder('appointment')
-                .leftJoinAndSelect('appointment.patient', 'patient')
-                .leftJoinAndSelect('appointment.doctor', 'doctor')
+                // .leftJoinAndSelect('appointment.patient', 'patient')
+                // .leftJoinAndSelect('appointment.doctor', 'doctor')
                 .where('appointment.allDay = :allDay', {allDay: false})
 
             const recQueryBuilder = recRepo
@@ -1154,11 +1154,15 @@ export const queries = {
                     .innerJoin('record.doctor', 'doctor')
             }
 
-            if (!await aptQueryBuilder.getExists()) {
+            if (!await aptQueryBuilder
+                .leftJoinAndSelect('appointment.patient', 'patient')
+                .leftJoinAndSelect('appointment.doctor', 'doctor')
+                .getExists()
+            ) {
                 return null;
             } 
 
-            const now = getNow();
+            const now = DateTime.now().toJSDate();
 
             try {
 
@@ -1328,9 +1332,9 @@ export const queries = {
                     try {
                         const queryBuilder = repo
                             .createQueryBuilder('record')
+                            .where('record.doctorId = :doctorId', { doctorId: context.me.userId })
                             .leftJoinAndSelect('record.doctor', 'doctor')
                             .leftJoinAndSelect('record.patient', 'patient')
-                            .where('record.doctorId = :doctorId', { doctorId: me.id })
                             .andWhere('record.draft = :draft', { draft: false });
                     
                         if (filterInput) {
