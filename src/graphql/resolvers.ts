@@ -15,6 +15,7 @@ import { User } from "./user/user.model";
 import { chatParticipantMutationResolver } from "./chat-participant/chat-participant.mutation.resolver";
 import { feedbackMutationResolver } from "./feedback/feedback.mutation.resolver";
 import { Feedback } from "./feedback/feedback.model";
+import { Message } from "./message/message.model";
 
 const unions = {
     Paginated: {
@@ -33,6 +34,9 @@ const unions = {
             }
             if (obj instanceof Feedback) {
                 return 'Feedback';
+            }
+            if (obj instanceof Message) {
+                return 'Message';
             }
             return null; 
         }

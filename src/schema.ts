@@ -4,7 +4,7 @@ export const schema = `
   scalar Date
   scalar Void
 
-  union Paginated = Appointment | Record | User | DoctorRequest | Feedback
+  union Paginated = Appointment | Record | User | DoctorRequest | Feedback | Message
   union LoginResponse = LoginSuccess | LoginFailure
 
   type Query {
@@ -104,7 +104,13 @@ export const schema = `
     chatId (receiverId: Int): Int!
     loadReceiverId :Int!
     chatMessages(chatId: Int!): [Message!]!
-    messages(chatId: Int!): [Message!]!
+    messages(
+      pageIndex: Int! 
+      pageLimit: Int!
+      sortActive: String 
+      sortDirection: String
+      chatId: Int!
+    ): Paged!
     countUnreadMessages: Int!
     countAllUnreadMessages: [CountAllUnreadMessages]
     feedbacks (
