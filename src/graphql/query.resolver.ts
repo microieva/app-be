@@ -1657,6 +1657,9 @@ export const queries = {
         messages: async (parent: null, args: any, context: AppContext) => {
             const chatId = args.chatId;
             const userId = context.me.userId;
+            const { pageIndex, pageLimit, sortActive, sortDirection } = args;
+            let slice: Message[];
+            let length: number = 0;
         
             try {
                 const chatParticipant = await context.dataSource.getRepository(ChatParticipant)
@@ -1674,11 +1677,24 @@ export const queries = {
                 if (chatParticipant && chatParticipant.deletedAt) {
                     query = query.andWhere('message.createdAt > :deletedAt', { deletedAt: chatParticipant.deletedAt });
                 }
-                const messages = await query.getMany();
-                return messages;
+
+                query.orderBy(`message.${sortActive}`, `${sortDirection}` as 'ASC' | 'DESC');
+                
+                const [messages, count]: [Message[], number] = await query
+                    .limit(pageLimit)
+                    .offset(pageIndex * pageLimit)
+                    .getManyAndCount();
+        
+                length = count;
+                slice = messages;
             } catch (error) {
                 throw new Error(`Failed to fetch messages for chatId ${chatId}: ${error}`);
             }
+
+            return {
+                length,
+                slice
+            };
         },
         medicalRecordsFromIds:  async (parent: null, args: any, context: AppContext) => {
             const me = await context.dataSource.getRepository(User).findOneBy({id : context.me.userId});
@@ -1906,7 +1922,6 @@ export const queries = {
             try {
                 const queryBuilder = repo
                     .createQueryBuilder('feedback')
-                    //.where('user.userRoleId = :userRoleId', { userRoleId: 2 });
         
                 if (filterInput) {
                     queryBuilder.andWhere(
@@ -1916,18 +1931,6 @@ export const queries = {
                 }
         
                 if (sortActive === 'isRead') {
-                    // queryBuilder
-                    //     .addSelect(subQuery => {
-                    //         return subQuery
-                    //             .select('COUNT(message.id)', 'unreadMessages')
-                    //             .from(Message, 'message')
-                    //             .leftJoin('message.chat', 'chat')
-                    //             .leftJoin('chat.participants', 'participants')
-                    //             .where('message.isRead = :isRead', { isRead: false })
-                    //             .andWhere('participants.id = user.id') 
-                    //             .andWhere('message.senderId != :userId', { userId: context.me.userId });
-                    //     }, 'unreadMessages')
-                    //     .orderBy('unreadMessages', sortDirection as 'ASC' | 'DESC');
                 } else {
                     queryBuilder.orderBy(`feedback.${sortActive}`, `${sortDirection}` as 'ASC' | 'DESC');
                 }
