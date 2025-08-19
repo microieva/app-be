@@ -1,7 +1,7 @@
 ### Introduction
 
-This repository contains server side logic for a professional portfolio project "Health Center". The project is deployed via Azure Container Apps. Database service: Azure SQL Database. 
-[Visit Health Center](https://wonderful-dune-0e4733c03.5.azurestaticapps.net/)
+This repository contains server side logic for a professional portfolio project "Health Center". The project is deployed via [Render](www.render.com). MySQL Database service: [Aiven.io](www.aiven.io). 
+[Visit Health Center](https://health-center-ten.vercel.app/)
 
 ___
 
@@ -22,11 +22,10 @@ ___
 ### Architecture
 
 - Node express
-- TypeORM
 - GraphQL
-- SQL
+- TypeORM
+- MySQL
 - Docker
-- Azure
 
 ___
 
