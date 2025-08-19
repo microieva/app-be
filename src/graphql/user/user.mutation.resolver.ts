@@ -445,6 +445,7 @@ export const userMutationResolver = {
                     const expires_at = userDetails.exp * 1000; 
                     const auth_time = userDetails.auth_time * 1000;
                     const authDateTime = DateTime.fromMillis(auth_time);
+                    let uniqueEmail: string;    
 
                     try {
                         const dbUser = await repo
@@ -479,7 +480,12 @@ export const userMutationResolver = {
                             newUser.dob = new Date(userDetails.birthdate);
                             newUser.userRoleId = 3;
                             newUser.updatedAt = null;
-                            newUser.email = "";
+                            if (userDetails.email) {
+                                newUser.email = userDetails.email;
+                            } else {
+                                uniqueEmail = `${userDetails.given_name.toLowerCase()}.${userDetails.family_name.toLowerCase()}@insertedonbankingsignup${DateTime.now().toISODate()}.com`;
+                                newUser.email = uniqueEmail;
+                            }
 
                             const user = await repo.save(newUser);
 
