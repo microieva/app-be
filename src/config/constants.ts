@@ -8,8 +8,8 @@ if (!process.env.JWT_SECRET) {
 
 export const CORS_OPTIONS = {
     origin: process.env.NODE_ENV === 'production' 
-        ? ['https://studio.apollographql.com', process.env.NOTIFICATIONS_ORIGIN] 
-        : 'http://localhost:4200',
+        ? ['https://studio.apollographql.com', process.env.NOTIFICATIONS_ORIGIN, 'http://localhost:5173'] 
+        : ['http://localhost:4200', 'http://localhost:5173'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization", "x-apollo-operation-name", "access-control-allow-origin"]
