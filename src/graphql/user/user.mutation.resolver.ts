@@ -11,11 +11,11 @@ import { DoctorRequest } from "../doctor-request/doctor-request.model";
 import { Record } from "../record/record.model";
 import { Chat } from '../chat/chat.model';
 import { UserInput } from "./user.input";
-import { AppContext, LoginResponse, MutationResponse, UploadResponse } from "../types";
+import { AppContext, LoginResponse, MutationResponse } from "../types";
 import { getNow } from '../utils';
 import {DOCTOR_REQUEST_CREATED, ACCOUNT_ACTIVATED, USER_UPDATED} from "../constants";
-import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { s3Client } from '../../config/r2-client.config';
+// import { PutObjectCommand } from '@aws-sdk/client-s3';
+// import { s3Client } from '../../config/r2-client.config';
 //import { finished } from 'node:stream/promises';
 // import { PutObjectCommand } from '@aws-sdk/client-s3';
 // import { s3Client } from '../../config/r2-client.config';
@@ -680,61 +680,60 @@ export const userMutationResolver = {
                 } as MutationResponse; 
             }
         },
-        uploadProfilePicture: async (parent: null, args: any, context: AppContext): Promise<UploadResponse> => { 
-            const base64 = args.base64;
-            const filename = args.name;
-            const match = base64.match(/^data:(.+);base64,(.+)$/);
-            if (!match) return {
-                success: false,
-                message: "Invalid base64 format"
-            };
+        // uploadProfilePicture: async (parent: null, args: any, context: AppContext): Promise<UploadResponse> => { 
+        //     const base64 = args.base64;
+        //     const filename = args.name;
+        //     const match = base64.match(/^data:(.+);base64,(.+)$/);
+        //     if (!match) return {
+        //         success: false,
+        //         message: "Invalid base64 format"
+        //     };
 
-            const mimeType = match[1];
-            const data = match[2];
-            const buffer = Buffer.from(data, 'base64');
-            const allowedMimeTypes = ['image/jpeg', 'image/png'];
-            if (!allowedMimeTypes.includes(mimeType)) {
-                return {
-                    success: false,
-                    message: `Invalid file type. Please upload an image (${allowedMimeTypes.join(', ')})`
-                };
-            }
-            const maxSize = 10 * 1024 * 1024; // 10MB
-            if (buffer.length > maxSize) {
-                return {
-                    success: false,
-                    message: `File too large. Maximum size is ${maxSize / 1024 / 1024}MB`
-                };
-            }
-            const folder='profile-pictures'
-            const objectKey = `${folder}/${filename}`;
-            const key = `${context.me.userId}/${objectKey}` 
-            const command = new PutObjectCommand({
-                Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
-                Key: key,
-                Body: buffer,
-                ContentType: mimeType
-            });
+        //     const mimeType = match[1];
+        //     const data = match[2];
+        //     const buffer = Buffer.from(data, 'base64');
+        //     const allowedMimeTypes = ['image/jpeg', 'image/png'];
+        //     if (!allowedMimeTypes.includes(mimeType)) {
+        //         return {
+        //             success: false,
+        //             message: `Invalid file type. Please upload an image (${allowedMimeTypes.join(', ')})`
+        //         };
+        //     }
+        //     const maxSize = 10 * 1024 * 1024; // 10MB
+        //     if (buffer.length > maxSize) {
+        //         return {
+        //             success: false,
+        //             message: `File too large. Maximum size is ${maxSize / 1024 / 1024}MB`
+        //         };
+        //     }
+        //     const folder='profile-pictures'
+        //     const objectKey = `${folder}/${filename}`;
+        //     const key = `${context.me.userId}/${objectKey}` 
+        //     const command = new PutObjectCommand({
+        //         Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+        //         Key: key,
+        //         Body: buffer,
+        //         ContentType: mimeType
+        //     });
             
-            try {
-                await s3Client.send(command);
+        //     try {
+        //         await s3Client.send(command);
 
-                const imageUrl = `${process.env.CLOUDFLARE_PUBLIC_DEV_URL}/${key}`;
+        //         const imageUrl = `${process.env.CLOUDFLARE_PUBLIC_DEV_URL}/${key}`;
 
-                const userRepo = context.dataSource.getRepository(User);
-                await userRepo.update(context.me.userId, {profilePictureUrl: imageUrl});
+        //         const userRepo = context.dataSource.getRepository(User);
+        //         await userRepo.update(context.me.userId, {profilePictureUrl: imageUrl});
         
-                return {
-                    success: true,
-                    message: "Image uploaded",
-                    url: imageUrl
-                };
-        } catch (error) {
-            return {
-                success: false,
-                message: `Image upload faled with error: ${error}`
-            };
-        }
-    }
+        //         return {
+        //             success: true,
+        //             message: "Image uploaded",
+        //             url: imageUrl
+        //         };
+        // } catch (error) {
+        //     return {
+        //         success: false,
+        //         message: `Image upload faled with error: ${error}`
+        //     };
+        // }
   }
 };
