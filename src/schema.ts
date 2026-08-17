@@ -132,7 +132,7 @@ export const schema = `
     logOut: Void
     login(directLoginInput: LoginInput!): LoginResponse!
     loginWithGoogle(googleCredential: String!): LoginResponse!
-    loginWithSignicat(signicatAccessToken: String!): LoginResponse!
+    loginWithSignicat(signicatAccessToken: String!, clientType: String): LoginResponse!
     saveAppointment(appointmentInput: AppointmentInput!): MutationResponse!
     deleteAppointment(appointmentId: Int!): MutationResponse!
     saveAppointmentMessage(appointmentId: Int!, appointmentMessage: String!): MutationResponse!
@@ -158,11 +158,18 @@ export const schema = `
     markAsReadFeedbacks(feedbackIds:[Int!]): MutationResponse!
     deleteFeedbacksByIds(feedbackIds:[Int!]): MutationResponse!
     deleteAppointmentFromAi(appointmentStart: String!): MutationResponse!
+    uploadProfilePicture(base64: String!, name:String!): UploadResponse!
   }
 
   type Paged {
     slice: [Paginated!]!
     length: Int!
+  }
+  
+  type UploadResponse {
+    success: Boolean!
+    message: String!
+    url: String
   }
 
   type CalendarSlice {
@@ -212,6 +219,7 @@ export const schema = `
     lastLogInAt: Date
     lastLogOutAt: Date
     updatedAt: Date
+    profilePictureUrl: String
   }
 
   type Appointment {
