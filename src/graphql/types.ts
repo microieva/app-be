@@ -7,6 +7,12 @@ export interface MutationResponse {
     success: boolean
     message: string | null 
 }
+export interface UploadResponse {
+  success: boolean
+  message: string
+  url?: string
+}
+
 export type LoginResponse = LoginSuccess | LoginFailure
 
 export interface LoginSuccess {
