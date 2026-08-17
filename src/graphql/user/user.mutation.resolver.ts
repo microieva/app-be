@@ -11,9 +11,17 @@ import { DoctorRequest } from "../doctor-request/doctor-request.model";
 import { Record } from "../record/record.model";
 import { Chat } from '../chat/chat.model';
 import { UserInput } from "./user.input";
-import { AppContext, LoginResponse, MutationResponse } from "../types";
+import { AppContext, LoginResponse, MutationResponse, UploadResponse } from "../types";
 import { getNow } from '../utils';
 import {DOCTOR_REQUEST_CREATED, ACCOUNT_ACTIVATED, USER_UPDATED} from "../constants";
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { s3Client } from '../../config/r2-client.config';
+//import { finished } from 'node:stream/promises';
+// import { PutObjectCommand } from '@aws-sdk/client-s3';
+// import { s3Client } from '../../config/r2-client.config';
+
+// import { writeFile } from 'fs/promises';
+// import path from 'path';
 
 
 export const userMutationResolver = {
@@ -189,19 +197,8 @@ export const userMutationResolver = {
             }
         },
         deleteUser: async (parent: null, args: any, context: AppContext)=> {
-            //const userId: number | undefined = args.userId;  
             const userId = args.userId || context.me.userId;
-            //const me = await context.dataSource.getRepository(User).findOneBy({id: context.me.userId});
             const dbUserToDelete = await context.dataSource.getRepository(User).findOneBy({id: userId});
-
-            // if (!me || (me.userRoleId !== 1 && args.userId)) {
-            //     return {
-            //         success: false,
-            //         message: "Forbidden action"
-            //     } as MutationResponse;
-            // }
-
-
             const userRepo = context.dataSource.getRepository(User);
             const appointmentsRepo = context.dataSource.getRepository(Appointment);
             const recordsRepo = context.dataSource.getRepository(Record);
@@ -421,9 +418,13 @@ export const userMutationResolver = {
             const repo = context.dataSource.getRepository(User);
 
             const jweToken = args.signicatAccessToken;
-
+            let key;
             try {
-                const key = await jose.JWK.asKey(JSON.parse(process.env.SIGNICAT_KEY), 'pem'); 
+                if (args.clientType === 'react') {
+                    key = await jose.JWK.asKey(JSON.parse(process.env.SIGNICAT_KEY_FOR_REACT_CLI), 'pem'); 
+                } else {
+                    key = await jose.JWK.asKey(JSON.parse(process.env.SIGNICAT_KEY), 'pem'); 
+                }
                 const decryptedToken = await jose.JWE.createDecrypt(key).decrypt(jweToken);
                 
                 const decryptedPlaintext = JSON.parse(JSON.stringify(decryptedToken.plaintext));
@@ -678,6 +679,62 @@ export const userMutationResolver = {
                     message: error
                 } as MutationResponse; 
             }
+        },
+        uploadProfilePicture: async (parent: null, args: any, context: AppContext): Promise<UploadResponse> => { 
+            const base64 = args.base64;
+            const filename = args.name;
+            const match = base64.match(/^data:(.+);base64,(.+)$/);
+            if (!match) return {
+                success: false,
+                message: "Invalid base64 format"
+            };
+
+            const mimeType = match[1];
+            const data = match[2];
+            const buffer = Buffer.from(data, 'base64');
+            const allowedMimeTypes = ['image/jpeg', 'image/png'];
+            if (!allowedMimeTypes.includes(mimeType)) {
+                return {
+                    success: false,
+                    message: `Invalid file type. Please upload an image (${allowedMimeTypes.join(', ')})`
+                };
+            }
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (buffer.length > maxSize) {
+                return {
+                    success: false,
+                    message: `File too large. Maximum size is ${maxSize / 1024 / 1024}MB`
+                };
+            }
+            const folder='profile-pictures'
+            const objectKey = `${folder}/${filename}`;
+            const key = `${context.me.userId}/${objectKey}` 
+            const command = new PutObjectCommand({
+                Bucket: process.env.CLOUDFLARE_R2_BUCKET_NAME,
+                Key: key,
+                Body: buffer,
+                ContentType: mimeType
+            });
+            
+            try {
+                await s3Client.send(command);
+
+                const imageUrl = `${process.env.CLOUDFLARE_PUBLIC_DEV_URL}/${key}`;
+
+                const userRepo = context.dataSource.getRepository(User);
+                await userRepo.update(context.me.userId, {profilePictureUrl: imageUrl});
+        
+                return {
+                    success: true,
+                    message: "Image uploaded",
+                    url: imageUrl
+                };
+        } catch (error) {
+            return {
+                success: false,
+                message: `Image upload faled with error: ${error}`
+            };
         }
     }
-}
+  }
+};
